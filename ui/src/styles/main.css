@@ -207,6 +207,7 @@ pre {
 .logo-bar {
   fill: #0f1115;
   stroke-width: 2px;
+  animation: logo-scan 2.6s ease-in-out infinite;
 }
 
 .logo-bar-a {
@@ -215,14 +216,17 @@ pre {
 
 .logo-bar-b {
   stroke: #3ba6a0;
+  animation-delay: 0.2s;
 }
 
 .logo-bar-c {
   stroke: #f0c86d;
+  animation-delay: 0.4s;
 }
 
 .logo-node {
   fill: #5fa8f5;
+  animation: logo-glow 2.4s ease-in-out infinite;
 }
 
 .logo-node-a {
@@ -231,10 +235,32 @@ pre {
 
 .logo-node-b {
   fill: #5fa8f5;
+  animation-delay: 0.2s;
 }
 
 .logo-node-c {
   fill: #f28f3b;
+  animation-delay: 0.4s;
+}
+
+@keyframes logo-scan {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes logo-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(95, 168, 245, 0.0));
+  }
+  50% {
+    filter: drop-shadow(0 0 6px rgba(95, 168, 245, 0.6));
+  }
 }
 
 .header-meta {
@@ -1115,6 +1141,11 @@ pre {
   }
 
   .intro-overlay {
+    animation: none;
+  }
+
+  .logo-bar,
+  .logo-node {
     animation: none;
   }
 }

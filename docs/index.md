@@ -7,6 +7,7 @@ Welcome to the Agent Director documentation hub.
 - `architecture.md` — system diagrams, data flow, and storage layout
 - `ux.md` — interaction model, shortcuts, and magic moments
 - `brand.md` — logo, voice, and visual tone
+- `visual-system.md` — color, motion, and composition rules
 
 ## Project hygiene
 - `../CONTRIBUTING.md` — dev flow + tests
