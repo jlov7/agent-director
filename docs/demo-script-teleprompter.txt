@@ -1,0 +1,22 @@
+Agent Director is a cinematic, chat‑native debugger for AI agents.
+
+Here’s a live run. I’ll hit play—notice the playback is driven by real timestamps,
+so overlaps are honest and timing is trustworthy.
+
+The Insight Strip surfaces the story instantly.
+I’ll jump to the bottleneck and open the inspector.
+Sensitive payloads are redacted by default.
+With Safe Export enabled, raw mode is disabled entirely.
+
+Now let’s morph to Flow. Same run, new lens.
+Structure edges show hierarchy, Sequence edges show order,
+and I/O edges show tool bindings.
+
+Let’s do a Director’s Cut.
+I’ll replay from this tool step using a Hybrid strategy.
+Now we’re in Compare: aligned timelines with ghost overlays.
+The diff summary tells us what changed—steps, cost, wall time.
+
+Finally, we can export the diff for audit or team review.
+
+That’s Agent Director: watch your agent think, then direct it.
