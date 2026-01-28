@@ -10,7 +10,7 @@
 
   --text-primary: #f2f6fb;
   --text-secondary: #b6c2d1;
-  --text-muted: #7f8b9a;
+  --text-muted: #8a98a8;
 
   --accent-llm: #3ba6a0;
   --accent-tool: #7bd389;
@@ -269,6 +269,7 @@ pre {
   align-items: center;
   color: var(--text-secondary);
   font-size: 0.9rem;
+  flex-wrap: wrap;
 }
 
 .header-replay {
@@ -279,6 +280,11 @@ pre {
   letter-spacing: 0.08em;
   border: 1px solid rgba(95, 168, 245, 0.3);
   color: rgba(163, 208, 255, 0.9);
+}
+
+.header-run,
+.header-wall {
+  overflow-wrap: anywhere;
 }
 
 .trace-select {
@@ -401,6 +407,7 @@ pre {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .search-input,
@@ -416,6 +423,7 @@ pre {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .playback-controls {
@@ -1162,6 +1170,33 @@ pre {
   }
 }
 
+@media (max-width: 920px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .header-actions {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .search-bar {
+    width: 100%;
+  }
+
+  .search-input {
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+
+  .toolbar-actions {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 760px) {
   .compare-grid {
     grid-template-columns: 1fr;
@@ -1176,5 +1211,69 @@ pre {
   .toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .toolbar-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 18px 18px 24px;
+  }
+
+  .intro-card {
+    width: min(92vw, 360px);
+    padding: 24px;
+  }
+
+  .header-logo {
+    font-size: 1.15rem;
+  }
+
+  .header-meta {
+    font-size: 0.82rem;
+    gap: 8px;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .insight-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-select,
+  .search-input {
+    width: 100%;
+  }
+
+  .toolbar-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .playback-controls,
+  .mini-controls,
+  .compare-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .playback-slider {
+    width: 100%;
+  }
+
+  .compare-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 }

@@ -116,9 +116,13 @@ function buildLocalReplay(
   modifications: Record<string, unknown>
 ): TraceSummary {
   const cloned = JSON.parse(JSON.stringify(baseTrace)) as TraceSummary;
-  const now = new Date();
   const shiftMs = 60_000;
-  cloned.id = `${baseTrace.id}-replay-${now.getTime()}`;
+  const fallbackEpoch = Date.parse('2024-01-01T00:00:00.000Z');
+  const baseEpoch = Date.parse(baseTrace.endedAt ?? baseTrace.startedAt ?? '');
+  const baseTime = Number.isNaN(baseEpoch) ? fallbackEpoch : baseEpoch;
+  const replayEpoch = baseTime + shiftMs;
+  const now = new Date(replayEpoch);
+  cloned.id = `${baseTrace.id}-replay-${replayEpoch}`;
   cloned.parentTraceId = baseTrace.id;
   cloned.branchPointStepId = stepId;
   cloned.replay = {

@@ -20,6 +20,6 @@ Welcome to the Agent Director documentation hub.
 - `../SECURITY.md` — responsible disclosure
 
 ## Media
-- `screenshots/` — product UI captures
+- `screenshots/` — product UI captures + responsive review
 - `demo.gif` — quick loop demo
 - `illustrations/` — concept art diagrams

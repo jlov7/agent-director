@@ -21,6 +21,8 @@ make verify-strict
 - UI typecheck (tsc --noEmit)
 - UI unit tests (Vitest)
 - UI E2E tests (Playwright)
+- Accessibility scan (Axe via Playwright)
+- Responsive snapshot suite (tablet + mobile)
 - Mutation checks (strict mode)
 
 ## Playwright setup
