@@ -105,6 +105,10 @@ See `TESTING.md` for details.
 - `docs/ux.md` — interaction model + magic moments
 - `docs/brand.md` — logo + voice guidelines
 
+## Project hygiene
+- `CONTRIBUTING.md` — dev flow + tests
+- `SECURITY.md` — responsible disclosure
+
 ## Maintenance
 
 Clean up old traces and export snapshots:
