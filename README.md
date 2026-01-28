@@ -110,7 +110,6 @@ See `TESTING.md` for details.
 - `docs/visual-system.md` — color, motion, and layout rules
 - `docs/pitch-deck.pdf` — ready-to-present deck
 - `docs/demo-script.md` — 90s live demo script
-- `docs/panel-review-checklist.md` — expert review checklist
 
 ## Project hygiene
 - `CONTRIBUTING.md` — dev flow + tests

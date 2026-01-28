@@ -21,8 +21,8 @@
 - Enable I/O edges. Explain semantic layers.
 
 ## Scene 5 — “Director’s Cut” (0:55–1:10)
-**Narration:** “Edit a step. Choose a replay strategy. Compare the branch.”
-- Replay from a tool step (Hybrid).
+**Narration:** “Replay from a step and compare the branch.”
+- Replay from a tool step (Hybrid default).
 - Switch to Compare.
 - Show ghost overlay + diff summary.
 

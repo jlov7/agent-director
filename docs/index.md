@@ -12,7 +12,6 @@ Welcome to the Agent Director documentation hub.
 - `pitch-deck.pdf` — ready-to-present PDF
 - `demo-script.md` — 90s demo script
 - `demo-script-teleprompter.txt` — teleprompter-friendly narration
-- `panel-review-checklist.md` — pass/fail checklist for expert review
 
 ## Project hygiene
 - `../CONTRIBUTING.md` — dev flow + tests

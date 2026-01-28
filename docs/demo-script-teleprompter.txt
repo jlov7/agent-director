@@ -13,7 +13,7 @@ Structure edges show hierarchy, Sequence edges show order,
 and I/O edges show tool bindings.
 
 Let’s do a Director’s Cut.
-I’ll replay from this tool step using a Hybrid strategy.
+I’ll replay from this tool step using the Hybrid default.
 Now we’re in Compare: aligned timelines with ghost overlays.
 The diff summary tells us what changed—steps, cost, wall time.
 
