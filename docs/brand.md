@@ -21,3 +21,4 @@ Tagline: **Watch your agent think. Then direct it.**
 - Night mode by default.
 - Accent colors map to step types.
 - Timeline and graph feel like instruments, not dashboards.
+- Logo mark animates subtly (pulsing bars + nodes) with reduced-motion fallback.
