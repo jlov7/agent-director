@@ -48,3 +48,17 @@ Playwright captures tablet and mobile snapshots to keep layout quality consisten
 ![Mobile cinema](screenshots/ux-mobile-cinema.png)
 ![Mobile flow](screenshots/ux-mobile-flow.png)
 ![Mobile compare](screenshots/ux-mobile-compare.png)
+
+## Deep review workflow
+Use the UX checklist walkthrough with traces + video for a human-in-the-loop pass:
+
+```bash
+make verify-ux
+```
+
+The walkthrough is defined in `ui/tests/e2e/ux-checklist.spec.ts`.
+
+Artifacts:
+- `ui/playwright-report/` — interactive report with step annotations
+- `ui/test-results/` — per-test traces, screenshots, and videos
+- `ui/.lighthouseci/` — Lighthouse budgets + metrics

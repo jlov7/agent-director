@@ -1,0 +1,42 @@
+name: ux-review
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ux-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Install UI deps
+        run: pnpm -C ui install
+
+      - name: Install Playwright
+        run: pnpm -C ui exec playwright install --with-deps chromium
+
+      - name: UX review
+        run: make verify-ux
+
+      - name: Upload UX artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ux-review-artifacts
+          path: |
+            ui/playwright-report
+            ui/test-results
+            ui/.lighthouseci

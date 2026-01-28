@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { maybePercySnapshot } from './utils/percy';
 
 const viewports = [
   { name: 'tablet', size: { width: 900, height: 1100 } },
@@ -35,6 +36,7 @@ for (const viewport of viewports) {
       await page.locator('.step-card').first().click();
       await expect(page.locator('.inspector')).toBeVisible();
       await page.evaluate(() => window.scrollTo(0, 0));
+      await maybePercySnapshot(page, `ux-${viewport.name}-cinema`, { widths: [viewport.size.width] });
       await expect(page).toHaveScreenshot(`ux-${viewport.name}-cinema.png`, { fullPage: true });
     });
 
@@ -44,6 +46,7 @@ for (const viewport of viewports) {
       await page.getByRole('button', { name: 'Flow' }).click();
       await expect(page.locator('.flow-node').first()).toBeVisible();
       await page.evaluate(() => window.scrollTo(0, 0));
+      await maybePercySnapshot(page, `ux-${viewport.name}-flow`, { widths: [viewport.size.width] });
       await expect(page).toHaveScreenshot(`ux-${viewport.name}-flow.png`, { fullPage: true });
     });
 
@@ -52,6 +55,7 @@ for (const viewport of viewports) {
       await page.goto('/');
       await openCompare(page);
       await page.evaluate(() => window.scrollTo(0, 0));
+      await maybePercySnapshot(page, `ux-${viewport.name}-compare`, { widths: [viewport.size.width] });
       await expect(page).toHaveScreenshot(`ux-${viewport.name}-compare.png`, { fullPage: true });
     });
   });

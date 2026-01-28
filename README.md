@@ -101,6 +101,12 @@ For stricter checks (includes mutation checks):
 make verify-strict
 ```
 
+For deep UX review (traces + Lighthouse + optional Percy):
+
+```bash
+make verify-ux
+```
+
 See `TESTING.md` for details.
 
 ## Docs (story + diagrams)

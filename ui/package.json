@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest --run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:review": "playwright test --trace on --video on --reporter html",
+    "lhci": "bash ./scripts/lhci.sh",
+    "percy:playwright": "percy exec -- playwright test tests/e2e/visual.spec.ts tests/e2e/ux-review.spec.ts"
   },
   "dependencies": {
     "dagre": "^0.8.5",
@@ -22,6 +25,9 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.10.1",
     "@eslint/js": "^9.5.0",
+    "@lhci/cli": "^0.13.0",
+    "@percy/cli": "^1.31.1",
+    "@percy/playwright": "^1.0.7",
     "@types/dagre": "^0.7.52",
     "@playwright/test": "^1.48.0",
     "@types/react": "^18.3.3",
