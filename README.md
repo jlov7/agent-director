@@ -109,6 +109,7 @@ See `TESTING.md` for details.
 - `docs/brand.md` — logo + voice guidelines
 - `docs/visual-system.md` — color, motion, and layout rules
 - `docs/pitch-deck.pdf` — ready-to-present deck
+- `docs/executive-summary.pdf` — one-page summary
 - `docs/demo-script.md` — 90s live demo script
 
 ## Project hygiene

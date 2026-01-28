@@ -10,6 +10,8 @@ Welcome to the Agent Director documentation hub.
 - `visual-system.md` — color, motion, and composition rules
 - `pitch-deck.md` — presentation deck source
 - `pitch-deck.pdf` — ready-to-present PDF
+- `executive-summary.md` — one-page summary
+- `executive-summary.pdf` — PDF summary
 - `demo-script.md` — 90s demo script
 - `demo-script-teleprompter.txt` — teleprompter-friendly narration
 
