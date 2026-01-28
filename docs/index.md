@@ -15,3 +15,4 @@ Welcome to the Agent Director documentation hub.
 ## Media
 - `screenshots/` — product UI captures
 - `demo.gif` — quick loop demo
+- `illustrations/` — concept art diagrams

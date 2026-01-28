@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="360" viewBox="0 0 980 360" fill="none">
+  <rect x="12" y="12" width="956" height="336" rx="20" fill="#0f1115" stroke="#2a3240" stroke-width="2"/>
+  <rect x="40" y="54" width="260" height="252" rx="16" fill="#151b24" stroke="#3a4a5f"/>
+  <rect x="64" y="88" width="212" height="22" rx="8" fill="#10161f" stroke="#5fa8f5"/>
+  <rect x="64" y="128" width="212" height="22" rx="8" fill="#10161f" stroke="#7bd389"/>
+  <rect x="64" y="168" width="212" height="22" rx="8" fill="#10161f" stroke="#f0c86d"/>
+  <rect x="64" y="208" width="212" height="22" rx="8" fill="#10161f" stroke="#f28f3b"/>
+  <rect x="64" y="248" width="212" height="22" rx="8" fill="#10161f" stroke="#d66d75"/>
+  <text x="52" y="40" font-family="'Space Grotesk', sans-serif" font-size="16" fill="#b6c2d1">Cinema Mode</text>
+
+  <rect x="340" y="54" width="260" height="252" rx="16" fill="#151b24" stroke="#3a4a5f"/>
+  <circle cx="420" cy="130" r="16" fill="#1b222c" stroke="#5fa8f5" stroke-width="2"/>
+  <circle cx="520" cy="130" r="16" fill="#1b222c" stroke="#7bd389" stroke-width="2"/>
+  <circle cx="470" cy="210" r="16" fill="#1b222c" stroke="#f0c86d" stroke-width="2"/>
+  <line x1="436" y1="130" x2="504" y2="130" stroke="#7f8b9a" stroke-width="2"/>
+  <line x1="420" y1="146" x2="470" y2="194" stroke="#7f8b9a" stroke-width="2"/>
+  <line x1="520" y1="146" x2="470" y2="194" stroke="#7f8b9a" stroke-width="2"/>
+  <text x="352" y="40" font-family="'Space Grotesk', sans-serif" font-size="16" fill="#b6c2d1">Flow Mode</text>
+
+  <rect x="640" y="54" width="300" height="252" rx="16" fill="#151b24" stroke="#3a4a5f"/>
+  <rect x="670" y="92" width="240" height="38" rx="10" fill="#10161f" stroke="#5fa8f5"/>
+  <rect x="670" y="142" width="240" height="38" rx="10" fill="#10161f" stroke="#7bd389"/>
+  <rect x="670" y="192" width="240" height="38" rx="10" fill="#10161f" stroke="#f0c86d"/>
+  <rect x="670" y="242" width="240" height="38" rx="10" fill="#10161f" stroke="#f28f3b"/>
+  <text x="652" y="40" font-family="'Space Grotesk', sans-serif" font-size="16" fill="#b6c2d1">Compare + Replay</text>
+
+  <path d="M310 180 C330 160, 330 200, 340 180" stroke="#5fa8f5" stroke-width="3"/>
+  <path d="M610 180 C630 160, 630 200, 640 180" stroke="#7bd389" stroke-width="3"/>
+  <text x="408" y="328" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#7f8b9a">Trace fusion: timeline + graph + replay</text>
+</svg>

@@ -1,6 +1,7 @@
 # Architecture
 
 ## System overview
+![Trace fusion](illustrations/trace-fusion.svg)
 ```mermaid
 flowchart LR
   subgraph Host
@@ -60,6 +61,7 @@ flowchart LR
 ```
 
 ## Replay + diff pipeline
+![Director's Cut](illustrations/directors-cut.svg)
 ```mermaid
 flowchart LR
   A[Select step] --> B[Replay strategy\nrecorded/live/hybrid]

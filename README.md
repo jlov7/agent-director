@@ -35,6 +35,11 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 
 ![Demo](docs/demo.gif)
 
+## Concept art
+![Trace fusion](docs/illustrations/trace-fusion.svg)
+![Director's Cut](docs/illustrations/directors-cut.svg)
+![Insight Strip](docs/illustrations/insight-strip.svg)
+
 ## Architecture at a glance
 ```mermaid
 flowchart LR

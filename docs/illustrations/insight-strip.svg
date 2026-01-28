@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="260" viewBox="0 0 980 260" fill="none">
+  <rect x="12" y="12" width="956" height="236" rx="20" fill="#0f1115" stroke="#2a3240" stroke-width="2"/>
+  <rect x="40" y="46" width="280" height="168" rx="14" fill="#151b24" stroke="#3a4a5f"/>
+  <rect x="360" y="46" width="280" height="168" rx="14" fill="#151b24" stroke="#3a4a5f"/>
+  <rect x="680" y="46" width="260" height="168" rx="14" fill="#151b24" stroke="#3a4a5f"/>
+
+  <text x="56" y="76" font-family="'Space Grotesk', sans-serif" font-size="16" fill="#b6c2d1">Critical Path</text>
+  <rect x="60" y="96" width="240" height="12" rx="6" fill="#10161f" stroke="#5fa8f5"/>
+  <rect x="60" y="118" width="200" height="12" rx="6" fill="#10161f" stroke="#7bd389"/>
+  <rect x="60" y="140" width="180" height="12" rx="6" fill="#10161f" stroke="#f0c86d"/>
+
+  <text x="376" y="76" font-family="'Space Grotesk', sans-serif" font-size="16" fill="#b6c2d1">Concurrency</text>
+  <rect x="380" y="98" width="12" height="68" rx="6" fill="#5fa8f5"/>
+  <rect x="398" y="88" width="12" height="78" rx="6" fill="#5fa8f5"/>
+  <rect x="416" y="110" width="12" height="56" rx="6" fill="#5fa8f5"/>
+  <rect x="434" y="76" width="12" height="90" rx="6" fill="#5fa8f5"/>
+  <rect x="452" y="124" width="12" height="42" rx="6" fill="#5fa8f5"/>
+
+  <text x="696" y="76" font-family="'Space Grotesk', sans-serif" font-size="16" fill="#b6c2d1">Health Signals</text>
+  <rect x="700" y="96" width="220" height="16" rx="8" fill="#10161f" stroke="#7bd389"/>
+  <rect x="700" y="122" width="220" height="16" rx="8" fill="#10161f" stroke="#f28f3b"/>
+  <rect x="700" y="148" width="220" height="16" rx="8" fill="#10161f" stroke="#d66d75"/>
+</svg>

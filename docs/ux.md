@@ -5,6 +5,8 @@
 - **Flow** — semantic graph with edge layers and windowed rendering.
 - **Compare** — side-by-side timelines with aligned diff summary.
 
+![Insight Strip](illustrations/insight-strip.svg)
+
 ## Interaction loop
 1. Load trace → watch playback.
 2. Select a step → inspect details (redacted by default).

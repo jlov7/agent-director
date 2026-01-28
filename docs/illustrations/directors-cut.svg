@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="320" viewBox="0 0 980 320" fill="none">
+  <rect x="12" y="12" width="956" height="296" rx="20" fill="#0f1115" stroke="#2a3240" stroke-width="2"/>
+  <rect x="40" y="60" width="900" height="56" rx="12" fill="#151b24" stroke="#3a4a5f"/>
+  <rect x="56" y="78" width="150" height="20" rx="8" fill="#10161f" stroke="#5fa8f5"/>
+  <rect x="220" y="78" width="150" height="20" rx="8" fill="#10161f" stroke="#7bd389"/>
+  <rect x="384" y="78" width="150" height="20" rx="8" fill="#10161f" stroke="#f0c86d"/>
+  <rect x="548" y="78" width="150" height="20" rx="8" fill="#10161f" stroke="#f28f3b"/>
+  <rect x="712" y="78" width="150" height="20" rx="8" fill="#10161f" stroke="#d66d75"/>
+
+  <path d="M120 116 C130 170, 180 170, 190 116" stroke="#5fa8f5" stroke-width="3"/>
+  <path d="M284 116 C294 190, 364 190, 374 116" stroke="#7bd389" stroke-width="3"/>
+  <path d="M448 116 C458 210, 548 210, 558 116" stroke="#f0c86d" stroke-width="3"/>
+
+  <rect x="40" y="160" width="440" height="120" rx="14" fill="#151b24" stroke="#3a4a5f"/>
+  <rect x="520" y="160" width="420" height="120" rx="14" fill="#151b24" stroke="#3a4a5f"/>
+  <text x="60" y="192" font-family="'Space Grotesk', sans-serif" font-size="16" fill="#b6c2d1">Replay Strategy</text>
+  <text x="60" y="218" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#7f8b9a">recorded | live | hybrid</text>
+  <text x="540" y="192" font-family="'Space Grotesk', sans-serif" font-size="16" fill="#b6c2d1">Diff Summary</text>
+  <text x="540" y="218" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#7f8b9a">+steps | cost | wall time</text>
+</svg>

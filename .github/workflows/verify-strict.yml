@@ -1,0 +1,36 @@
+name: verify-strict
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'
+
+jobs:
+  verify-strict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install UI deps
+        run: pnpm -C ui install
+
+      - name: Install Playwright
+        run: pnpm -C ui exec playwright install --with-deps chromium
+
+      - name: Verify (strict)
+        run: make verify-strict

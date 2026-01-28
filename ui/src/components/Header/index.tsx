@@ -1,4 +1,5 @@
 import type { TraceSummary } from '../../types';
+import LogoMark from '../common/LogoMark';
 
 const buildDate = typeof __BUILD_DATE__ === 'string' ? __BUILD_DATE__ : '';
 const hideBuildDate = import.meta.env.VITE_HIDE_BUILD_DATE === '1';
@@ -15,7 +16,10 @@ export default function Header({ trace, traces = [], selectedTraceId, onSelectTr
   return (
     <header className="header">
       <div className="header-title">
-        <div className="header-logo">Agent Director</div>
+        <div className="header-logo">
+          <LogoMark />
+          <span>Agent Director</span>
+        </div>
         <div className="header-meta">
           <span className="header-run">Run: {trace?.id ?? 'loading'}</span>
           {traces.length > 0 ? (

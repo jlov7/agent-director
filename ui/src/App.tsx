@@ -7,6 +7,7 @@ import PlaybackControls from './components/CinemaMode/PlaybackControls';
 import MiniTimeline from './components/CinemaMode/MiniTimeline';
 import ShortcutsModal from './components/common/ShortcutsModal';
 import OnboardingTips from './components/common/OnboardingTips';
+import IntroOverlay from './components/common/IntroOverlay';
 import FlowMode from './components/FlowMode';
 import Compare from './components/Compare';
 import Inspector from './components/Inspector';
@@ -117,6 +118,8 @@ export default function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [overlayEnabled, setOverlayEnabled] = usePersistedState('agentDirector.overlayEnabled', false);
   const [dismissedTips, setDismissedTips] = usePersistedState('agentDirector.onboarded', false);
+  const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
+  const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
   const [morphState, setMorphState] = useState<{
     steps: StepSummary[];
     fromRects: Record<string, Rect>;
@@ -347,6 +350,7 @@ export default function App() {
         onSelectTrace={setSelectedTraceId}
         onReload={reload}
       />
+      {!introDismissed && !skipIntro ? <IntroOverlay onComplete={() => setIntroDismissed(true)} /> : null}
       <InsightStrip
         insights={insights}
         onSelectStep={(stepId) => {
