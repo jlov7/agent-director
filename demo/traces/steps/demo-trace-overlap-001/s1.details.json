@@ -1,0 +1,20 @@
+{
+  "id": "s1",
+  "index": 0,
+  "type": "llm_call",
+  "name": "plan",
+  "startedAt": "2026-01-27T10:00:00.000Z",
+  "endedAt": "2026-01-27T10:00:01.000Z",
+  "durationMs": 1000,
+  "status": "completed",
+  "childStepIds": [],
+  "metrics": { "tokensTotal": 300, "costUsd": 0.004 },
+  "preview": { "title": "LLM: plan", "subtitle": "gpt-4o", "outputPreview": "I'll fetch two sources..." },
+  "data": {
+    "messages": [
+      { "role": "system", "content": "You are a careful research assistant." },
+      { "role": "user", "content": "Summarize the latest EU AI Act news." }
+    ],
+    "response": { "content": "I'll check two sources and summarize the key changes." }
+  }
+}

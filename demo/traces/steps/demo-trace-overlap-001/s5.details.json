@@ -1,0 +1,22 @@
+{
+  "id": "s5",
+  "index": 4,
+  "type": "llm_call",
+  "name": "analyze",
+  "startedAt": "2026-01-27T10:00:03.200Z",
+  "endedAt": "2026-01-27T10:00:04.600Z",
+  "durationMs": 1400,
+  "status": "completed",
+  "childStepIds": [],
+  "metrics": { "tokensTotal": 700, "costUsd": 0.012 },
+  "preview": { "title": "LLM: analyze", "outputPreview": "Synthesis based on tool outputs..." },
+  "io": { "consumedToolCallIds": ["tc-001", "tc-002"] },
+  "data": {
+    "messages": [
+      { "role": "assistant", "content": "Analyzing retrieved results." },
+      { "role": "tool", "content": "Search results summary", "toolCallId": "tc-001" },
+      { "role": "tool", "content": "DB rows summary", "toolCallId": "tc-002" }
+    ],
+    "response": { "content": "The EU AI Act clarifies obligations and updates compliance timelines." }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "s3",
+  "index": 2,
+  "type": "tool_call",
+  "name": "web_search",
+  "toolCallId": "tc-001",
+  "startedAt": "2026-01-27T10:00:01.200Z",
+  "endedAt": "2026-01-27T10:00:03.200Z",
+  "durationMs": 2000,
+  "status": "completed",
+  "childStepIds": [],
+  "metrics": { "costUsd": 0.0 },
+  "preview": { "title": "Tool: web_search", "inputPreview": "{\"q\":\"EU AI Act\"}", "outputPreview": "[3 results...]" },
+  "data": {
+    "input": { "q": "EU AI Act", "authorization": "Bearer abc.def.ghi" },
+    "output": {
+      "results": [
+        { "title": "EU AI Act update", "url": "https://example.com/a" },
+        { "title": "Regulatory brief", "url": "https://example.com/b" }
+      ]
+    }
+  }
+}

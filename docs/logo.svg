@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="140" viewBox="0 0 520 140" fill="none">
+  <rect x="12" y="18" width="120" height="104" rx="14" fill="#1b222c" stroke="#5fa8f5" stroke-width="2"/>
+  <rect x="26" y="32" width="92" height="20" rx="6" fill="#0f1115" stroke="#7bd389" stroke-width="1"/>
+  <rect x="26" y="60" width="92" height="20" rx="6" fill="#0f1115" stroke="#3ba6a0" stroke-width="1"/>
+  <rect x="26" y="88" width="92" height="20" rx="6" fill="#0f1115" stroke="#f0c86d" stroke-width="1"/>
+  <circle cx="168" cy="44" r="6" fill="#7bd389"/>
+  <circle cx="220" cy="70" r="6" fill="#5fa8f5"/>
+  <circle cx="168" cy="96" r="6" fill="#f28f3b"/>
+  <line x1="174" y1="44" x2="214" y2="70" stroke="#7f8b9a" stroke-width="2"/>
+  <line x1="214" y1="70" x2="174" y2="96" stroke="#7f8b9a" stroke-width="2"/>
+  <text x="250" y="72" font-family="'Space Grotesk', sans-serif" font-size="36" fill="#f2f6fb" font-weight="700">Agent Director</text>
+  <text x="252" y="100" font-family="'IBM Plex Mono', monospace" font-size="12" fill="#b6c2d1">Watch your agent think. Then direct it.</text>
+</svg>

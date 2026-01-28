@@ -1,0 +1,17 @@
+{
+  "id": "s4",
+  "index": 3,
+  "type": "tool_call",
+  "name": "database_query",
+  "toolCallId": "tc-002",
+  "startedAt": "2026-01-27T10:00:01.500Z",
+  "endedAt": "2026-01-27T10:00:02.700Z",
+  "durationMs": 1200,
+  "status": "completed",
+  "childStepIds": [],
+  "preview": { "title": "Tool: database_query", "inputPreview": "{\"sql\":\"SELECT...\"}", "outputPreview": "{\"rows\":42}" },
+  "data": {
+    "input": { "sql": "SELECT * FROM docs WHERE tag = 'ai_act'" },
+    "output": { "rows": 42 }
+  }
+}

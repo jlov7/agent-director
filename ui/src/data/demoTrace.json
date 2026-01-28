@@ -1,0 +1,86 @@
+{
+  "id": "demo-trace-overlap-001",
+  "name": "Overlap + ToolCallId Demo",
+  "startedAt": "2026-01-27T10:00:00.000Z",
+  "endedAt": "2026-01-27T10:00:05.000Z",
+  "status": "completed",
+  "metadata": {
+    "source": "openai_agents",
+    "agentName": "DemoAgent",
+    "modelId": "gpt-4o-2024-11-20",
+    "wallTimeMs": 5000,
+    "workTimeMs": 7200,
+    "totalTokens": 1400,
+    "totalCostUsd": 0.018
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "index": 0,
+      "type": "llm_call",
+      "name": "plan",
+      "startedAt": "2026-01-27T10:00:00.000Z",
+      "endedAt": "2026-01-27T10:00:01.000Z",
+      "durationMs": 1000,
+      "childStepIds": [],
+      "metrics": { "tokensTotal": 300, "costUsd": 0.004 },
+      "preview": { "title": "LLM: plan", "subtitle": "gpt-4o", "outputPreview": "I'll fetch two sources..." },
+      "status": "completed"
+    },
+    {
+      "id": "s2",
+      "index": 1,
+      "type": "llm_call",
+      "name": "call_tools",
+      "startedAt": "2026-01-27T10:00:01.000Z",
+      "endedAt": "2026-01-27T10:00:01.200Z",
+      "durationMs": 200,
+      "childStepIds": [],
+      "metrics": { "tokensTotal": 120, "costUsd": 0.002 },
+      "preview": { "title": "LLM: call tools", "outputPreview": "Calling web_search + database_query" },
+      "io": { "emittedToolCallIds": ["tc-001", "tc-002"] },
+      "status": "completed"
+    },
+    {
+      "id": "s3",
+      "index": 2,
+      "type": "tool_call",
+      "name": "web_search",
+      "toolCallId": "tc-001",
+      "startedAt": "2026-01-27T10:00:01.200Z",
+      "endedAt": "2026-01-27T10:00:03.200Z",
+      "durationMs": 2000,
+      "childStepIds": [],
+      "metrics": { "costUsd": 0.0 },
+      "preview": { "title": "Tool: web_search", "inputPreview": "{\"q\":\"EU AI Act\"}", "outputPreview": "[3 results...]" },
+      "status": "completed"
+    },
+    {
+      "id": "s4",
+      "index": 3,
+      "type": "tool_call",
+      "name": "database_query",
+      "toolCallId": "tc-002",
+      "startedAt": "2026-01-27T10:00:01.500Z",
+      "endedAt": "2026-01-27T10:00:02.700Z",
+      "durationMs": 1200,
+      "childStepIds": [],
+      "preview": { "title": "Tool: database_query", "inputPreview": "{\"sql\":\"SELECT...\"}", "outputPreview": "{\"rows\":42}" },
+      "status": "completed"
+    },
+    {
+      "id": "s5",
+      "index": 4,
+      "type": "llm_call",
+      "name": "analyze",
+      "startedAt": "2026-01-27T10:00:03.200Z",
+      "endedAt": "2026-01-27T10:00:04.600Z",
+      "durationMs": 1400,
+      "childStepIds": [],
+      "metrics": { "tokensTotal": 700, "costUsd": 0.012 },
+      "preview": { "title": "LLM: analyze", "outputPreview": "Synthesis based on tool outputs..." },
+      "io": { "consumedToolCallIds": ["tc-001", "tc-002"] },
+      "status": "completed"
+    }
+  ]
+}

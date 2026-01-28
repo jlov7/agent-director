@@ -1,0 +1,23 @@
+{
+  "id": "s2",
+  "index": 1,
+  "type": "llm_call",
+  "name": "call_tools",
+  "startedAt": "2026-01-27T10:00:01.000Z",
+  "endedAt": "2026-01-27T10:00:01.200Z",
+  "durationMs": 200,
+  "status": "completed",
+  "childStepIds": [],
+  "metrics": { "tokensTotal": 120, "costUsd": 0.002 },
+  "preview": { "title": "LLM: call tools", "outputPreview": "Calling web_search + database_query" },
+  "io": { "emittedToolCallIds": ["tc-001", "tc-002"] },
+  "data": {
+    "messages": [
+      { "role": "assistant", "content": "Calling tools now..." }
+    ],
+    "toolCalls": [
+      { "id": "tc-001", "name": "web_search", "arguments": { "q": "EU AI Act" } },
+      { "id": "tc-002", "name": "database_query", "arguments": { "sql": "SELECT ..." } }
+    ]
+  }
+}

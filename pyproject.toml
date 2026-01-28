@@ -1,0 +1,14 @@
+[project]
+name = "agent-director"
+version = "0.1.0"
+description = "Cinematic trace debugger for agent runs."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+[tool.ruff]
+line-length = 100
+lint.select = ["E", "F", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["server"]
