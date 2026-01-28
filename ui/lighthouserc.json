@@ -2,7 +2,7 @@
   "ci": {
     "collect": {
       "numberOfRuns": 3,
-      "startServerCommand": "pnpm -C ui build && pnpm -C ui preview --host 127.0.0.1 --port 4173",
+      "startServerCommand": "pnpm build && pnpm preview --host 127.0.0.1 --port 4173",
       "url": ["http://127.0.0.1:4173/"],
       "settings": {
         "preset": "desktop",

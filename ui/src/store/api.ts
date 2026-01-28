@@ -2,6 +2,7 @@ import type { StepDetails, TraceInsights, TraceSummary } from '../types';
 import demoTrace from '../data/demoTrace.json';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8787';
+const FORCE_DEMO = import.meta.env.VITE_FORCE_DEMO === '1';
 const stepDetailsCache = new Map<string, StepDetails>();
 const stepDetailsInflight = new Map<string, Promise<StepDetails | null>>();
 
@@ -16,12 +17,14 @@ async function safeFetchJson<T>(url: string): Promise<T | null> {
 }
 
 export async function fetchTraces(): Promise<TraceSummary[]> {
+  if (FORCE_DEMO) return [demoTrace as TraceSummary];
   const payload = await safeFetchJson<{ traces: TraceSummary[] }>(`${API_BASE}/api/traces`);
   if (payload?.traces?.length) return payload.traces;
   return [demoTrace as TraceSummary];
 }
 
 export async function fetchLatestTrace(): Promise<TraceSummary> {
+  if (FORCE_DEMO) return demoTrace as TraceSummary;
   const payload = await safeFetchJson<{ trace: TraceSummary | null }>(
     `${API_BASE}/api/traces?latest=1`
   );
@@ -30,6 +33,7 @@ export async function fetchLatestTrace(): Promise<TraceSummary> {
 }
 
 export async function fetchTrace(traceId: string): Promise<{ trace: TraceSummary; insights?: TraceInsights } | null> {
+  if (FORCE_DEMO) return { trace: demoTrace as TraceSummary };
   const payload = await safeFetchJson<{ trace: TraceSummary; insights?: TraceInsights }>(
     `${API_BASE}/api/traces/${traceId}`
   );
@@ -44,6 +48,7 @@ export async function fetchStepDetails(
   revealPaths: string[] = [],
   safeExport: boolean = false
 ): Promise<StepDetails | null> {
+  if (FORCE_DEMO) return null;
   const effectiveMode = safeExport ? 'redacted' : redactionMode;
   const effectiveRevealPaths = effectiveMode === 'redacted' && !safeExport ? revealPaths : [];
   const cacheKey = `${traceId}:${stepId}:${effectiveMode}:${safeExport}:${effectiveRevealPaths.join('|')}`;
@@ -95,6 +100,9 @@ export async function replayFromStep(
   modifications: Record<string, unknown>,
   baseTrace?: TraceSummary
 ): Promise<TraceSummary | null> {
+  if (FORCE_DEMO) {
+    return baseTrace ? buildLocalReplay(baseTrace, stepId, strategy, modifications) : null;
+  }
   try {
     const response = await fetch(`${API_BASE}/api/traces/${traceId}/replay`, {
       method: 'POST',
@@ -181,6 +189,7 @@ export async function compareTraces(
   leftTraceId: string,
   rightTraceId: string
 ): Promise<Record<string, unknown> | null> {
+  if (FORCE_DEMO) return null;
   try {
     const response = await fetch(`${API_BASE}/api/compare`, {
       method: 'POST',

@@ -196,6 +196,8 @@ pre {
 .logo-mark {
   width: 44px;
   height: 44px;
+  transform-origin: center;
+  animation: logo-float 6s ease-in-out infinite;
 }
 
 .logo-frame {
@@ -260,6 +262,16 @@ pre {
   }
   50% {
     filter: drop-shadow(0 0 6px rgba(95, 168, 245, 0.6));
+  }
+}
+
+@keyframes logo-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
   }
 }
 

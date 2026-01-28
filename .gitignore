@@ -11,6 +11,7 @@ dist/
 coverage/
 playwright-report/
 ui/test-results/
+ui/.lighthouseci/
 
 # Python
 __pycache__/

@@ -41,6 +41,8 @@ If Playwright browsers are not installed, run:
 pnpm -C ui exec playwright install chromium
 ```
 
+Playwright runs with `VITE_FORCE_DEMO=1` to keep UI snapshots deterministic.
+
 ## Lighthouse CI
 Run local Lighthouse budgets (uses Playwright’s Chromium binary):
 

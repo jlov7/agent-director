@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest --run",
     "test:e2e": "playwright test",
-    "test:e2e:review": "playwright test --trace on --video on --reporter html",
+    "test:e2e:review": "playwright test --config playwright.review.config.ts",
     "lhci": "bash ./scripts/lhci.sh",
     "percy:playwright": "percy exec -- playwright test tests/e2e/visual.spec.ts tests/e2e/ux-review.spec.ts"
   },
