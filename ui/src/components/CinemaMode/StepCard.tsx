@@ -29,10 +29,11 @@ export default function StepCard({
   const preview = step.preview?.outputPreview ?? step.preview?.inputPreview ?? '';
   const diffClass = diffStatus ? `step-diff-${diffStatus}` : '';
   const variantClass = variant === 'ghost' ? 'step-ghost' : '';
+  const compactClass = interval.wPct < 8 ? 'step-compact' : '';
   return (
     <button
       type="button"
-      className={`step-card step-${step.type} step-${playbackState} ${selected ? 'step-selected' : ''} ${diffClass} ${variantClass}`}
+      className={`step-card step-${step.type} step-${playbackState} ${selected ? 'step-selected' : ''} ${diffClass} ${variantClass} ${compactClass}`}
       data-step-id={step.id}
       aria-label={`${step.name} (${step.type})`}
       aria-pressed={selected}

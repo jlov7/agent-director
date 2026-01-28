@@ -642,6 +642,8 @@ pre {
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+  overflow: hidden;
+  height: 132px;
 }
 
 .step-card:hover {
@@ -707,6 +709,7 @@ pre {
   align-items: center;
   font-weight: 600;
   margin-bottom: 4px;
+  gap: 8px;
 }
 
 .step-title-group,
@@ -714,6 +717,19 @@ pre {
   display: inline-flex;
   gap: 8px;
   align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+.step-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.step-card-header .status-pill {
+  flex-shrink: 0;
 }
 
 .step-badge {
@@ -777,6 +793,10 @@ pre {
   font-size: 0.75rem;
   color: var(--text-secondary);
   margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .step-metrics {
@@ -791,6 +811,20 @@ pre {
   font-size: 0.8rem;
   color: var(--text-secondary);
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.step-compact {
+  height: 96px;
+}
+
+.step-compact .step-subtitle,
+.step-compact .step-metrics,
+.step-compact .step-preview {
+  display: none;
 }
 
 .step-llm_call {

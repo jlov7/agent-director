@@ -11,6 +11,8 @@ dist/
 coverage/
 playwright-report/
 ui/test-results/
+ui/dist/
+ui/playwright-report/
 ui/.lighthouseci/
 
 # Python

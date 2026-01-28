@@ -4,6 +4,9 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
+  {
+    ignores: ['dist/**', 'playwright-report/**', 'test-results/**', '.lighthouseci/**'],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
