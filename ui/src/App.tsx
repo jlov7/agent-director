@@ -8,6 +8,8 @@ import MiniTimeline from './components/CinemaMode/MiniTimeline';
 import ShortcutsModal from './components/common/ShortcutsModal';
 import JourneyPanel from './components/common/JourneyPanel';
 import DirectorBrief from './components/common/DirectorBrief';
+import GuidedTour, { type TourStep } from './components/common/GuidedTour';
+import ContextHelpOverlay from './components/common/ContextHelpOverlay';
 import IntroOverlay from './components/common/IntroOverlay';
 import FlowMode from './components/FlowMode';
 import Compare from './components/Compare';
@@ -119,8 +121,11 @@ export default function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [overlayEnabled, setOverlayEnabled] = usePersistedState('agentDirector.overlayEnabled', false);
   const [journeyCollapsed, setJourneyCollapsed] = usePersistedState('agentDirector.onboarded', false);
+  const [tourCompleted, setTourCompleted] = usePersistedState('agentDirector.tourCompleted', false);
+  const [explainMode, setExplainMode] = usePersistedState('agentDirector.explainMode', false);
   const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
   const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
+  const [tourOpen, setTourOpen] = useState(false);
   const [morphState, setMorphState] = useState<{
     steps: StepSummary[];
     fromRects: Record<string, Rect>;
@@ -174,6 +179,63 @@ export default function App() {
     }
   }, [trace, setMode]);
 
+  const tourSteps = useMemo<TourStep[]>(
+    () => [
+      {
+        id: 'header',
+        title: 'Mission control',
+        body: 'Confirm the run, status, and metadata. Use Guide and Explain to orient the room instantly.',
+        target: '[data-tour="header"]',
+        placement: 'bottom',
+      },
+      {
+        id: 'insights',
+        title: 'Fast diagnosis',
+        body: 'Jump straight to bottlenecks, errors, and high-cost steps with one click.',
+        target: '[data-tour="insights"]',
+        placement: 'bottom',
+      },
+      {
+        id: 'journey',
+        title: 'Director journey',
+        body: 'A narrative path that teaches how to watch, inspect, and direct a better run.',
+        target: '[data-tour="journey"]',
+        placement: 'bottom',
+      },
+      {
+        id: 'toolbar',
+        title: 'Filters + modes',
+        body: 'Search, filter, and switch between Cinema, Flow, and Compare as the story evolves.',
+        target: '[data-tour="toolbar"]',
+        placement: 'bottom',
+      },
+      {
+        id: 'stage',
+        title: 'Cinema stage',
+        body: 'The timeline shows every step as a scene. Scrub to see pacing and concurrency.',
+        target: '[data-tour="stage"]',
+        placement: 'top',
+      },
+      {
+        id: 'inspector',
+        title: 'Inspector',
+        body: 'Open any step to read payloads, apply redaction, and replay from that moment.',
+        target: '[data-tour="inspector"]',
+        placement: 'left',
+      },
+      {
+        id: 'compare',
+        title: 'Compare runs',
+        body: compareTrace
+          ? 'Compare is live. Review deltas in cost, steps, and wall time side by side.'
+          : 'Replay from a step to unlock compare mode and validate improvements.',
+        target: '[data-tour="compare"]',
+        placement: 'top',
+      },
+    ],
+    [compareTrace]
+  );
+
   const handleModeChange = useCallback(
     (next: Mode) => {
       if (next === mode || !trace) return;
@@ -212,6 +274,19 @@ export default function App() {
       setMode('cinema');
     }
   }, [trace, compareTrace, mode, setMode, setWindowed, setOverlayEnabled]);
+
+  useEffect(() => {
+    if (!tourCompleted && introDismissed) {
+      setTourOpen(true);
+    }
+  }, [tourCompleted, introDismissed]);
+
+  useEffect(() => {
+    document.body.classList.toggle('explain-mode', explainMode);
+    return () => {
+      document.body.classList.remove('explain-mode');
+    };
+  }, [explainMode]);
 
   useEffect(() => {
     if (!trace) return;
@@ -361,15 +436,31 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${explainMode ? 'explain-mode' : ''}`}>
       <Header
         trace={trace}
         traces={traces}
         selectedTraceId={selectedTraceId}
         onSelectTrace={setSelectedTraceId}
         onReload={reload}
+        onStartTour={() => setTourOpen(true)}
+        onToggleExplain={() => setExplainMode((prev) => !prev)}
+        explainMode={explainMode}
       />
       {!introDismissed && !skipIntro ? <IntroOverlay onComplete={() => setIntroDismissed(true)} /> : null}
+      <GuidedTour
+        steps={tourSteps}
+        open={tourOpen}
+        onClose={() => {
+          setTourOpen(false);
+          setTourCompleted(true);
+        }}
+        onComplete={() => {
+          setTourOpen(false);
+          setTourCompleted(true);
+        }}
+      />
+      <ContextHelpOverlay enabled={explainMode} />
       <InsightStrip
         insights={insights}
         onSelectStep={(stepId) => {
@@ -396,9 +487,17 @@ export default function App() {
         onJumpToBottleneck={jumpToBottleneck}
         onReplay={handleReplay}
         onShowShortcuts={() => setShowShortcuts(true)}
+        onStartTour={() => setTourOpen(true)}
       />
 
-      <div className="toolbar">
+      <div
+        className="toolbar"
+        data-help
+        data-tour="toolbar"
+        data-help-title="Search + filters"
+        data-help-body="Filter by step type, enable Safe export, and jump between Cinema, Flow, and Compare."
+        data-help-placement="bottom"
+      >
         <SearchBar query={query} typeFilter={typeFilter} onQueryChange={setQuery} onTypeFilterChange={setTypeFilter} />
         <div className="toolbar-actions">
           <button
@@ -426,6 +525,7 @@ export default function App() {
             title={compareTrace ? 'Side-by-side compare' : 'Run a replay to enable compare'}
             onClick={() => handleModeChange('compare')}
             disabled={!compareTrace}
+            data-tour="compare"
           >
             Compare
           </button>
@@ -453,44 +553,73 @@ export default function App() {
       </div>
 
       {mode === 'cinema' ? (
-        <>
+        <div className="playback-stack" data-tour="playback">
+          <div
+            data-help
+            data-help-title="Playback controls"
+            data-help-body="Play, pause, scrub, and adjust speed to feel the rhythm of the run."
+            data-help-placement="bottom"
+          >
+            <PlaybackControls
+              playheadMs={playheadMs}
+              wallTimeMs={trace.metadata.wallTimeMs || 1}
+              isPlaying={isPlaying}
+              speed={speed}
+              onToggle={() => setIsPlaying((prev) => !prev)}
+              onScrub={(value) => setPlayheadMs(value)}
+              onSpeedChange={setSpeed}
+            />
+          </div>
+          <div
+            data-help
+            data-help-title="Density map"
+            data-help-body="Zoom into hotspots and keep long traces readable with windowing."
+            data-help-placement="bottom"
+          >
+            <MiniTimeline
+              traceStart={trace.startedAt}
+              traceEnd={trace.endedAt}
+              steps={trace.steps}
+              playheadMs={playheadMs}
+              windowRange={windowRange}
+              windowed={windowed}
+              spanMs={windowSpanMs}
+              onSpanChange={setWindowSpanMs}
+              onToggleWindowed={setWindowed}
+              onScrub={(value) => setPlayheadMs(value)}
+            />
+          </div>
+        </div>
+      ) : null}
+      {mode === 'compare' && compareTrace ? (
+        <div
+          data-help
+          data-help-title="Compare playback"
+          data-help-body="Sync both runs to evaluate improvements at identical timestamps."
+          data-help-placement="bottom"
+        >
           <PlaybackControls
             playheadMs={playheadMs}
-            wallTimeMs={trace.metadata.wallTimeMs || 1}
+            wallTimeMs={Math.max(trace.metadata.wallTimeMs || 1, compareTrace.metadata.wallTimeMs || 1)}
             isPlaying={isPlaying}
             speed={speed}
             onToggle={() => setIsPlaying((prev) => !prev)}
             onScrub={(value) => setPlayheadMs(value)}
             onSpeedChange={setSpeed}
           />
-          <MiniTimeline
-            traceStart={trace.startedAt}
-            traceEnd={trace.endedAt}
-            steps={trace.steps}
-            playheadMs={playheadMs}
-            windowRange={windowRange}
-            windowed={windowed}
-            spanMs={windowSpanMs}
-            onSpanChange={setWindowSpanMs}
-            onToggleWindowed={setWindowed}
-            onScrub={(value) => setPlayheadMs(value)}
-          />
-        </>
-      ) : null}
-      {mode === 'compare' && compareTrace ? (
-        <PlaybackControls
-          playheadMs={playheadMs}
-          wallTimeMs={Math.max(trace.metadata.wallTimeMs || 1, compareTrace.metadata.wallTimeMs || 1)}
-          isPlaying={isPlaying}
-          speed={speed}
-          onToggle={() => setIsPlaying((prev) => !prev)}
-          onScrub={(value) => setPlayheadMs(value)}
-          onSpeedChange={setSpeed}
-        />
+        </div>
       ) : null}
 
       <div className="stage">
-        <div className="main" ref={viewportRef}>
+        <div
+          className="main"
+          ref={viewportRef}
+          data-help
+          data-tour="stage"
+          data-help-title="Trace stage"
+          data-help-body="Every step becomes a scene. Hover or click to open deep inspection."
+          data-help-placement="top"
+        >
           <MorphOrchestrator morph={morphState} onComplete={handleMorphComplete}>
             {mode === 'cinema' ? (
               <CinemaMode

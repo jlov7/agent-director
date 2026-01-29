@@ -17,7 +17,14 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
   const costByModel = insights.costByModel ?? {};
 
   return (
-    <section className="insight-strip">
+    <section
+      className="insight-strip"
+      data-help
+      data-tour="insights"
+      data-help-title="Run insights"
+      data-help-body="Fast diagnostics for latency, cost, errors, and concurrency. Click chips to jump into the trace."
+      data-help-placement="bottom"
+    >
       <div className="insight-block">
         <span className="insight-label">Top latency</span>
         <div className="insight-items">

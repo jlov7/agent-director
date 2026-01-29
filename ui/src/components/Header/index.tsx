@@ -10,16 +10,36 @@ type HeaderProps = {
   selectedTraceId?: string | null;
   onSelectTrace?: (traceId: string) => void;
   onReload?: () => void;
+  onStartTour?: () => void;
+  onToggleExplain?: () => void;
+  explainMode?: boolean;
 };
 
-export default function Header({ trace, traces = [], selectedTraceId, onSelectTrace, onReload }: HeaderProps) {
+export default function Header({
+  trace,
+  traces = [],
+  selectedTraceId,
+  onSelectTrace,
+  onReload,
+  onStartTour,
+  onToggleExplain,
+  explainMode = false,
+}: HeaderProps) {
   return (
-    <header className="header">
+    <header
+      className="header"
+      data-help
+      data-tour="header"
+      data-help-title="Mission control"
+      data-help-body="Trace identity, status, and live controls live here. Use Guide or Explain to orient new viewers."
+      data-help-placement="bottom"
+    >
       <div className="header-title">
         <div className="header-logo">
           <LogoMark />
           <span>Agent Director</span>
         </div>
+        <div className="header-tagline">Cinematic trace intelligence for agent runs.</div>
         <div className="header-meta">
           <span className="header-run">Run: {trace?.id ?? 'loading'}</span>
           {traces.length > 0 ? (
@@ -50,6 +70,18 @@ export default function Header({ trace, traces = [], selectedTraceId, onSelectTr
         </div>
       </div>
       <div className="header-actions">
+        <button className="ghost-button" type="button" onClick={onStartTour} aria-label="Start guided tour">
+          Guide
+        </button>
+        <button
+          className={`ghost-button ${explainMode ? 'active' : ''}`}
+          type="button"
+          onClick={onToggleExplain}
+          aria-pressed={explainMode}
+          aria-label="Toggle explain mode"
+        >
+          Explain
+        </button>
         <button className="ghost-button" onClick={onReload} type="button" aria-label="Refresh traces" title="Refresh traces">
           Refresh
         </button>

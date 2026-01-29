@@ -32,7 +32,14 @@ export default function DirectorBrief({
   const wall = trace.metadata.wallTimeMs ?? 0;
 
   return (
-    <aside className="inspector inspector-empty">
+    <aside
+      className="inspector inspector-empty"
+      data-help
+      data-tour="inspector"
+      data-help-title="Inspector panel"
+      data-help-body="Select a step to open detailed payloads, redaction controls, and replay actions."
+      data-help-placement="left"
+    >
       <div className="inspector-header">
         <div>
           <div className="inspector-title">Director's notes</div>

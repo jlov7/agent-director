@@ -52,7 +52,14 @@ export default function Inspector({ traceId, step, safeExport, onClose, onReplay
   const revealedFields = redaction?.revealedFields ?? [];
 
   return (
-    <aside className="inspector">
+    <aside
+      className="inspector"
+      data-help
+      data-tour="inspector"
+      data-help-title="Inspector panel"
+      data-help-body="Deep dive into a single step: payloads, redaction, metrics, and replay."
+      data-help-placement="left"
+    >
       <div className="inspector-header">
         <div>
           <div className="inspector-title">

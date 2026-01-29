@@ -15,6 +15,7 @@ type JourneyPanelProps = {
   onJumpToBottleneck: () => void;
   onReplay: (stepId: string) => void;
   onShowShortcuts: () => void;
+  onStartTour?: () => void;
 };
 
 type JourneyStatus = 'done' | 'active' | 'next';
@@ -47,6 +48,7 @@ export default function JourneyPanel({
   onJumpToBottleneck,
   onReplay,
   onShowShortcuts,
+  onStartTour,
 }: JourneyPanelProps) {
   const steps = trace.steps ?? [];
   const bottleneck = pickBottleneck(steps);
@@ -116,7 +118,15 @@ export default function JourneyPanel({
 
   if (collapsed) {
     return (
-      <section className="journey-panel journey-collapsed" aria-label="Director journey">
+      <section
+        className="journey-panel journey-collapsed"
+        aria-label="Director journey"
+        data-help
+        data-tour="journey"
+        data-help-title="Director journey"
+        data-help-body="A guided path from observation to replay. Use it to show newcomers what to do first."
+        data-help-placement="bottom"
+      >
         <div className="journey-collapsed-main">
           <div className="journey-eyebrow">Director journey</div>
           <div className="journey-collapsed-title">From observe to direct</div>
@@ -126,6 +136,11 @@ export default function JourneyPanel({
           <button className="ghost-button" type="button" onClick={onShowShortcuts}>
             Shortcuts
           </button>
+          {onStartTour ? (
+            <button className="ghost-button" type="button" onClick={onStartTour}>
+              Tour
+            </button>
+          ) : null}
           <button className="primary-button journey-expand" type="button" onClick={onToggleCollapsed}>
             Expand
           </button>
@@ -135,7 +150,15 @@ export default function JourneyPanel({
   }
 
   return (
-    <section className="journey-panel" aria-label="Director journey">
+    <section
+      className="journey-panel"
+      aria-label="Director journey"
+      data-help
+      data-tour="journey"
+      data-help-title="Director journey"
+      data-help-body="A three-act flow that teaches the story: observe, inspect, direct. Each act jumps to the right place."
+      data-help-placement="bottom"
+    >
       <div className="journey-head">
         <div>
           <div className="journey-eyebrow">Director journey</div>
@@ -148,6 +171,11 @@ export default function JourneyPanel({
           <button className="ghost-button" type="button" onClick={onShowShortcuts}>
             Shortcuts
           </button>
+          {onStartTour ? (
+            <button className="ghost-button" type="button" onClick={onStartTour}>
+              Start tour
+            </button>
+          ) : null}
           <button className="ghost-button" type="button" onClick={onToggleCollapsed}>
             Collapse
           </button>

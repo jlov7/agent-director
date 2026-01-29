@@ -9,6 +9,8 @@ async function initStorage(page: import('@playwright/test').Page) {
     window.localStorage.setItem('agentDirector.overlayEnabled', 'true');
     window.localStorage.setItem('agentDirector.speed', '1');
     window.localStorage.setItem('agentDirector.introDismissed', 'true');
+    window.localStorage.setItem('agentDirector.tourCompleted', 'true');
+    window.localStorage.setItem('agentDirector.explainMode', 'false');
   });
 }
 
