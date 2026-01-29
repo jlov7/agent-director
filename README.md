@@ -42,8 +42,8 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 ![Demo](docs/demo.gif)
 
 ## Live demo
-- GitHub Pages (static demo): https://jlov7.github.io/agent-director/
-- Codespaces (instant live preview): https://github.com/codespaces/new?hide_repo_select=true&repo=jlov7/agent-director
+- GitHub Pages (static demo; requires public repo or Pro/Team/Enterprise for private): https://jlov7.github.io/agent-director/
+- Codespaces (instant live preview; private-friendly): https://github.com/codespaces/new?hide_repo_select=true&repo=jlov7/agent-director
 
 ## Concept art
 ![Trace fusion](docs/illustrations/trace-fusion.svg)

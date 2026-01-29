@@ -5,6 +5,7 @@ The UI can run entirely from static hosting using the embedded demo trace.
 
 - Build env: `BASE_PATH=/<repo>/` and `VITE_FORCE_DEMO=1`
 - Workflow: `.github/workflows/deploy-pages.yml`
+- Note: GitHub Pages for private repos requires a Pro/Team/Enterprise plan. On Free, use a public demo repo or another host.
 
 ## Codespaces (instant live preview)
 Codespaces boots the full stack and exposes the UI on port 5173.
