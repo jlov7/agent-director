@@ -1,0 +1,41 @@
+name: deploy-pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install UI deps
+        run: pnpm -C ui install
+
+      - name: Build UI
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_FORCE_DEMO: '1'
+          VITE_HIDE_BUILD_DATE: '1'
+        run: pnpm -C ui build
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ui/dist

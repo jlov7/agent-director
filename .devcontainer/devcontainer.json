@@ -1,0 +1,24 @@
+{
+  "name": "Agent Director",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  "postCreateCommand": "corepack enable && pnpm -C ui install",
+  "postStartCommand": "bash scripts/codespaces-start.sh",
+  "forwardPorts": [5173, 8787],
+  "portsAttributes": {
+    "5173": {
+      "label": "Agent Director UI",
+      "onAutoForward": "openPreview"
+    },
+    "8787": {
+      "label": "Agent Director API"
+    }
+  }
+}

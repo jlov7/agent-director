@@ -14,6 +14,7 @@ Welcome to the Agent Director documentation hub.
 - `executive-summary.pdf` — PDF summary
 - `demo-script.md` — 90s demo script
 - `demo-script-teleprompter.txt` — teleprompter-friendly narration
+- `hosting.md` — live demo hosting options
 
 ## Project hygiene
 - `../CONTRIBUTING.md` — dev flow + tests
