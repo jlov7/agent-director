@@ -20,6 +20,12 @@ Use the same static build output as GitHub Pages.
 - Output folder: `ui/dist`
 - Workflow: `.github/workflows/deploy-cloudflare-pages.yml` (requires `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_PAGES_PROJECT_NAME`)
 
+## Vercel (static demo)
+Deploys the Vite UI as a static site with demo data baked in.
+
+- Config: `vercel.json`
+- Env vars: `VITE_FORCE_DEMO=1`, `VITE_HIDE_BUILD_DATE=1`
+
 ## Render (full stack)
 Host the Python API and static UI separately.
 
