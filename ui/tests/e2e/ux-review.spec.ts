@@ -43,7 +43,7 @@ for (const viewport of viewports) {
     test('flow layout snapshot', async ({ page }) => {
       await preparePage(page);
       await page.goto('/');
-      await page.getByRole('button', { name: 'Flow' }).click();
+      await page.getByTitle('Graph view').click();
       await expect(page.locator('.flow-node').first()).toBeVisible();
       await page.evaluate(() => window.scrollTo(0, 0));
       await maybePercySnapshot(page, `ux-${viewport.name}-flow`, { widths: [viewport.size.width] });

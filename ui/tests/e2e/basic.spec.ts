@@ -13,6 +13,6 @@ test('loads cinema mode and inspector', async ({ page }) => {
 
 test('switches to flow mode', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Flow' }).click();
+  await page.getByTitle('Graph view').click();
   await expect(page.locator('.flow-canvas')).toBeVisible();
 });

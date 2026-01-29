@@ -6,7 +6,8 @@ import CinemaMode from './components/CinemaMode';
 import PlaybackControls from './components/CinemaMode/PlaybackControls';
 import MiniTimeline from './components/CinemaMode/MiniTimeline';
 import ShortcutsModal from './components/common/ShortcutsModal';
-import OnboardingTips from './components/common/OnboardingTips';
+import JourneyPanel from './components/common/JourneyPanel';
+import DirectorBrief from './components/common/DirectorBrief';
 import IntroOverlay from './components/common/IntroOverlay';
 import FlowMode from './components/FlowMode';
 import Compare from './components/Compare';
@@ -117,7 +118,7 @@ export default function App() {
   const [windowSpanMs, setWindowSpanMs] = useState(20000);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [overlayEnabled, setOverlayEnabled] = usePersistedState('agentDirector.overlayEnabled', false);
-  const [dismissedTips, setDismissedTips] = usePersistedState('agentDirector.onboarded', false);
+  const [journeyCollapsed, setJourneyCollapsed] = usePersistedState('agentDirector.onboarded', false);
   const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
   const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
   const [morphState, setMorphState] = useState<{
@@ -154,6 +155,24 @@ export default function App() {
       setMode('flow');
     }
   };
+
+  const jumpToBottleneck = useCallback(() => {
+    if (!trace) return;
+    const bottleneck = [...trace.steps].sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0))[0];
+    if (bottleneck) {
+      setSelectedStepId(bottleneck.id);
+      setMode('cinema');
+    }
+  }, [trace, setMode]);
+
+  const jumpToError = useCallback(() => {
+    if (!trace) return;
+    const firstError = trace.steps.find((step) => step.status === 'failed');
+    if (firstError) {
+      setSelectedStepId(firstError.id);
+      setMode('cinema');
+    }
+  }, [trace, setMode]);
 
   const handleModeChange = useCallback(
     (next: Mode) => {
@@ -357,23 +376,27 @@ export default function App() {
           setSelectedStepId(stepId);
           if (mode !== 'cinema') setMode('cinema');
         }}
-        onJumpToError={() => {
-          const firstError = trace.steps.find((step) => step.status === 'failed');
-          if (firstError) {
-            setSelectedStepId(firstError.id);
-            setMode('cinema');
-          }
-        }}
-        onJumpToBottleneck={() => {
-          const bottleneck = [...trace.steps].sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0))[0];
-          if (bottleneck) {
-            setSelectedStepId(bottleneck.id);
-            setMode('cinema');
-          }
-        }}
+        onJumpToError={jumpToError}
+        onJumpToBottleneck={jumpToBottleneck}
       />
 
-      {!dismissedTips ? <OnboardingTips trace={trace} onDismiss={() => setDismissedTips(true)} /> : null}
+      <JourneyPanel
+        trace={trace}
+        mode={mode}
+        playheadMs={playheadMs}
+        selectedStepId={selectedStepId}
+        compareTrace={compareTrace}
+        collapsed={journeyCollapsed}
+        onToggleCollapsed={() => setJourneyCollapsed((prev) => !prev)}
+        onModeChange={handleModeChange}
+        onSelectStep={(stepId) => {
+          setSelectedStepId(stepId);
+          if (mode !== 'cinema') setMode('cinema');
+        }}
+        onJumpToBottleneck={jumpToBottleneck}
+        onReplay={handleReplay}
+        onShowShortcuts={() => setShowShortcuts(true)}
+      />
 
       <div className="toolbar">
         <SearchBar query={query} typeFilter={typeFilter} onQueryChange={setQuery} onTypeFilterChange={setTypeFilter} />
@@ -466,55 +489,69 @@ export default function App() {
         />
       ) : null}
 
-      <div className="main" ref={viewportRef}>
-        <MorphOrchestrator morph={morphState} onComplete={handleMorphComplete}>
-          {mode === 'cinema' ? (
-            <CinemaMode
-              trace={trace}
-              steps={steps}
-              selectedStepId={selectedStepId}
-              onSelectStep={(stepId) => setSelectedStepId(stepId)}
-              playheadMs={playheadMs}
-              windowRange={windowRange}
-              timing={insights?.timing}
-              ghostTrace={overlayEnabled ? compareTrace : null}
-              diff={diff}
-            />
-          ) : null}
-          {mode === 'flow' ? (
-            <FlowMode
-              steps={steps}
-              selectedStepId={selectedStepId}
-              onSelectStep={(stepId) => setSelectedStepId(stepId)}
-              baseTrace={trace}
-              compareTrace={compareTrace}
-              compareSteps={compareSteps}
-              overlayEnabled={overlayEnabled}
-              onToggleOverlay={() => setOverlayEnabled((prev) => !prev)}
-            />
-          ) : null}
-          {mode === 'compare' && compareTrace ? (
-            <Compare
-              baseTrace={trace}
-              compareTrace={compareTrace}
-              playheadMs={playheadMs}
-              safeExport={safeExport}
-              onExit={() => {
-                setMode('cinema');
-                setCompareTrace(null);
-              }}
-            />
-          ) : null}
-        </MorphOrchestrator>
-      </div>
+      <div className="stage">
+        <div className="main" ref={viewportRef}>
+          <MorphOrchestrator morph={morphState} onComplete={handleMorphComplete}>
+            {mode === 'cinema' ? (
+              <CinemaMode
+                trace={trace}
+                steps={steps}
+                selectedStepId={selectedStepId}
+                onSelectStep={(stepId) => setSelectedStepId(stepId)}
+                playheadMs={playheadMs}
+                windowRange={windowRange}
+                timing={insights?.timing}
+                ghostTrace={overlayEnabled ? compareTrace : null}
+                diff={diff}
+              />
+            ) : null}
+            {mode === 'flow' ? (
+              <FlowMode
+                steps={steps}
+                selectedStepId={selectedStepId}
+                onSelectStep={(stepId) => setSelectedStepId(stepId)}
+                baseTrace={trace}
+                compareTrace={compareTrace}
+                compareSteps={compareSteps}
+                overlayEnabled={overlayEnabled}
+                onToggleOverlay={() => setOverlayEnabled((prev) => !prev)}
+              />
+            ) : null}
+            {mode === 'compare' && compareTrace ? (
+              <Compare
+                baseTrace={trace}
+                compareTrace={compareTrace}
+                playheadMs={playheadMs}
+                safeExport={safeExport}
+                onExit={() => {
+                  setMode('cinema');
+                  setCompareTrace(null);
+                }}
+              />
+            ) : null}
+          </MorphOrchestrator>
+        </div>
 
-      <Inspector
-        traceId={trace.id}
-        step={selectedStep}
-        safeExport={safeExport}
-        onClose={() => setSelectedStepId(null)}
-        onReplay={handleReplay}
-      />
+        {selectedStep ? (
+          <Inspector
+            traceId={trace.id}
+            step={selectedStep}
+            safeExport={safeExport}
+            onClose={() => setSelectedStepId(null)}
+            onReplay={handleReplay}
+          />
+        ) : (
+          <DirectorBrief
+            trace={trace}
+            mode={mode}
+            selectedStepId={selectedStepId}
+            onModeChange={handleModeChange}
+            onSelectStep={(stepId) => setSelectedStepId(stepId)}
+            onJumpToBottleneck={jumpToBottleneck}
+            onReplay={handleReplay}
+          />
+        )}
+      </div>
       <ShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );

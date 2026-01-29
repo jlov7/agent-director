@@ -22,7 +22,7 @@ test('cinema visual snapshot', async ({ page }) => {
 test('flow visual snapshot', async ({ page }) => {
   await initStorage(page);
   await page.goto('/');
-  await page.getByRole('button', { name: 'Flow' }).click();
+  await page.getByTitle('Graph view').click();
   await expect(page.locator('.flow-node').first()).toBeVisible();
   await maybePercySnapshot(page, 'flow');
   await expect(page.locator('.app')).toHaveScreenshot('flow.png');
