@@ -122,7 +122,7 @@ export default function App() {
   const [overlayEnabled, setOverlayEnabled] = usePersistedState('agentDirector.overlayEnabled', false);
   const [journeyCollapsed, setJourneyCollapsed] = usePersistedState('agentDirector.onboarded', false);
   const [tourCompleted, setTourCompleted] = usePersistedState('agentDirector.tourCompleted', false);
-  const [explainMode, setExplainMode] = usePersistedState('agentDirector.explainMode', false);
+  const [explainMode, setExplainMode] = usePersistedState('agentDirector.explainMode', true);
   const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
   const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
   const [tourOpen, setTourOpen] = useState(false);
