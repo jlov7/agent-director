@@ -12,7 +12,13 @@ type EdgeLayerTogglesProps = {
 export default function EdgeLayerToggles({ layers, onChange }: EdgeLayerTogglesProps) {
   return (
     <div className="edge-toggles">
-      <label title="Parent/child span edges">
+      <label
+        title="Parent/child span edges"
+        data-help
+        data-help-title="Structure edges"
+        data-help-body="Shows parent-child spans to reveal hierarchy."
+        data-help-placement="top"
+      >
         <input
           type="checkbox"
           checked={layers.structure}
@@ -20,7 +26,13 @@ export default function EdgeLayerToggles({ layers, onChange }: EdgeLayerTogglesP
         />
         Structure
       </label>
-      <label title="Chronological sequence edges">
+      <label
+        title="Chronological sequence edges"
+        data-help
+        data-help-title="Sequence edges"
+        data-help-body="Shows chronological ordering of steps."
+        data-help-placement="top"
+      >
         <input
           type="checkbox"
           checked={layers.sequence}
@@ -28,7 +40,13 @@ export default function EdgeLayerToggles({ layers, onChange }: EdgeLayerTogglesP
         />
         Sequence
       </label>
-      <label title="Tool call I/O binding edges">
+      <label
+        title="Tool call I/O binding edges"
+        data-help
+        data-help-title="I/O edges"
+        data-help-body="Connects tool calls to their inputs and outputs."
+        data-help-placement="top"
+      >
         <input
           type="checkbox"
           checked={layers.io}

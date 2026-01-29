@@ -219,10 +219,23 @@ export default function FlowCanvas({
 
   return (
     <div className="flow-mode">
-      <div className="flow-controls">
+      <div
+        className="flow-controls"
+        data-help
+        data-help-title="Flow controls"
+        data-help-body="Toggle edge layers and windowing for high-density graphs."
+        data-help-placement="bottom"
+      >
         <EdgeLayerToggles layers={layers} onChange={setLayers} />
         {steps.length > 500 ? (
-          <label className="toggle" title="Window nodes based on viewport for large graphs">
+          <label
+            className="toggle"
+            title="Window nodes based on viewport for large graphs"
+            data-help
+            data-help-title="Windowed flow"
+            data-help-body="Limits the graph to the visible region for performance."
+            data-help-placement="bottom"
+          >
             <input type="checkbox" checked={windowed} onChange={() => setWindowed((prev) => !prev)} />
             Windowed
           </label>
@@ -233,6 +246,10 @@ export default function FlowCanvas({
             type="button"
             onClick={onToggleOverlay}
             title="Show or hide ghost overlay from replay"
+            data-help
+            data-help-title="Overlay diff"
+            data-help-body="Layer the replay on top to see what changed."
+            data-help-placement="bottom"
           >
             {overlayEnabled ? 'Hide overlay' : 'Show overlay'} ({diff?.addedSteps.length ?? 0}/
             {diff?.removedSteps.length ?? 0}/
@@ -240,7 +257,15 @@ export default function FlowCanvas({
           </button>
         ) : null}
       </div>
-      <div className="flow-canvas" ref={containerRef}>
+      <div
+        className="flow-canvas"
+        ref={containerRef}
+        data-help
+        data-help-indicator
+        data-help-title="Flow canvas"
+        data-help-body="A spatial map of step dependencies. Click nodes to inspect."
+        data-help-placement="top"
+      >
         <ReactFlow
           nodes={overlayEnabled ? [...nodes, ...ghostNodes] : nodes}
           edges={flowEdges}

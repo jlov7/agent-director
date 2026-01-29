@@ -32,6 +32,10 @@ export default function PlaybackControls({
         type="button"
         onClick={onToggle}
         aria-label={isPlaying ? 'Pause playback' : 'Play playback'}
+        data-help
+        data-help-title="Playhead"
+        data-help-body="Start or pause the run to experience timing as it unfolded."
+        data-help-placement="bottom"
       >
         {isPlaying ? 'Pause' : 'Play'}
       </button>
@@ -43,12 +47,20 @@ export default function PlaybackControls({
         value={playheadMs}
         aria-label="Playback position"
         onChange={handleScrub}
+        data-help
+        data-help-title="Scrub timeline"
+        data-help-body="Drag to jump to any moment in the run."
+        data-help-placement="bottom"
       />
       <select
         className="playback-speed"
         value={speed}
         aria-label="Playback speed"
         onChange={(event) => onSpeedChange(Number(event.target.value))}
+        data-help
+        data-help-title="Speed"
+        data-help-body="Slow down to inspect or speed up to skim."
+        data-help-placement="bottom"
       >
         {speeds.map((value) => (
           <option key={value} value={value}>

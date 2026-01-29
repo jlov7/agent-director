@@ -42,8 +42,9 @@ export default function ContextHelpOverlay({ enabled }: ContextHelpOverlayProps)
     const handleMove = (event: MouseEvent) => {
       const target = (event.target as HTMLElement | null)?.closest?.('[data-help]') as HTMLElement | null;
       if (!target) {
-        activeEl.current = null;
-        setActive(null);
+        if (!activeEl.current) {
+          setActive(null);
+        }
         return;
       }
       if (activeEl.current !== target) {
@@ -52,17 +53,48 @@ export default function ContextHelpOverlay({ enabled }: ContextHelpOverlayProps)
       }
     };
 
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = (event.target as HTMLElement | null)?.closest?.('[data-help]') as HTMLElement | null;
+      if (!target) return;
+      activeEl.current = target;
+      updateFromElement();
+    };
+
+    const handleFocusOut = (event: FocusEvent) => {
+      const next = event.relatedTarget as HTMLElement | null;
+      if (next?.closest?.('[data-help]')) return;
+      activeEl.current = null;
+      setActive(null);
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = (event.target as HTMLElement | null)?.closest?.('[data-help]') as HTMLElement | null;
+      if (!target) {
+        activeEl.current = null;
+        setActive(null);
+        return;
+      }
+      activeEl.current = target;
+      updateFromElement();
+    };
+
     const handleScroll = () => {
       if (!activeEl.current) return;
       updateFromElement();
     };
 
     window.addEventListener('mousemove', handleMove);
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
+    window.addEventListener('pointerdown', handlePointerDown);
     window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('resize', handleScroll);
 
     return () => {
       window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
+      window.removeEventListener('pointerdown', handlePointerDown);
       window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', handleScroll);
     };

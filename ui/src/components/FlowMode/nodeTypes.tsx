@@ -14,8 +14,19 @@ export function StepNode({ data }: NodeProps<StepNodeData>) {
   const costLabel = stepCostLabel(step);
   const diffClass = data.diffStatus ? `diff-${data.diffStatus}` : '';
   const ghostClass = data.ghost ? 'ghost-node' : '';
+  const typeLabel = step.type.replace('_', ' ').toUpperCase();
+  const tokenLabel = step.metrics?.tokensTotal != null ? `${step.metrics.tokensTotal} tokens` : null;
+  const durationLabel = step.durationMs != null ? `${step.durationMs}ms` : null;
+  const helpBits = [tokenLabel, durationLabel, costLabel].filter(Boolean).join(' · ');
+  const helpBody = `Click to inspect or replay this step.${helpBits ? ` ${helpBits}.` : ''}`;
   return (
-    <div className={`flow-node step-${step.type} ${diffClass} ${ghostClass}`}>
+    <div
+      className={`flow-node step-${step.type} ${diffClass} ${ghostClass}`}
+      data-help
+      data-help-title={`${step.name} · ${typeLabel}`}
+      data-help-body={helpBody}
+      data-help-placement="right"
+    >
       <div className="flow-node-header">
         <div className="flow-node-title">
           <StepBadge type={step.type} />

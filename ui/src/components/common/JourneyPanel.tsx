@@ -122,6 +122,7 @@ export default function JourneyPanel({
         className="journey-panel journey-collapsed"
         aria-label="Director journey"
         data-help
+        data-help-indicator
         data-tour="journey"
         data-help-title="Director journey"
         data-help-body="A guided path from observation to replay. Use it to show newcomers what to do first."
@@ -154,6 +155,7 @@ export default function JourneyPanel({
       className="journey-panel"
       aria-label="Director journey"
       data-help
+      data-help-indicator
       data-tour="journey"
       data-help-title="Director journey"
       data-help-body="A three-act flow that teaches the story: observe, inspect, direct. Each act jumps to the right place."

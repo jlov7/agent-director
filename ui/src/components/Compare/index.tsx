@@ -55,6 +55,7 @@ export default function Compare({ baseTrace, compareTrace, playheadMs, onExit, s
     <section
       className="compare-view"
       data-help
+      data-help-indicator
       data-tour="compare-view"
       data-help-title="Compare runs"
       data-help-body="Side-by-side playback showing deltas in steps, cost, and wall time after a replay."
@@ -73,16 +74,34 @@ export default function Compare({ baseTrace, compareTrace, playheadMs, onExit, s
             type="button"
             onClick={() => downloadJson(`agent-director-diff-${baseTrace.id}-${compareTrace.id}.json`, diffSummary)}
             title="Export diff summary"
+            data-help
+            data-help-title="Export diff"
+            data-help-body="Download a JSON summary you can share or archive."
+            data-help-placement="bottom"
           >
             Export diff
           </button>
-          <button className="ghost-button" type="button" onClick={onExit}>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={onExit}
+            data-help
+            data-help-title="Exit compare"
+            data-help-body="Return to the primary run timeline."
+            data-help-placement="bottom"
+          >
             Exit compare
           </button>
         </div>
       </div>
       <div className="compare-grid">
-        <div className="compare-pane">
+        <div
+          className="compare-pane"
+          data-help
+          data-help-title="Base run"
+          data-help-body="Original timeline for baseline comparison."
+          data-help-placement="top"
+        >
           <div className="compare-pane-title">Base run</div>
           <TimestampTimeline
             trace={baseTrace}
@@ -94,7 +113,13 @@ export default function Compare({ baseTrace, compareTrace, playheadMs, onExit, s
             windowRange={null}
           />
         </div>
-        <div className="compare-pane">
+        <div
+          className="compare-pane"
+          data-help
+          data-help-title="Replay run"
+          data-help-body="Replay timeline to validate improvements."
+          data-help-placement="top"
+        >
           <div className="compare-pane-title">Replay run</div>
           <TimestampTimeline
             trace={compareTrace}

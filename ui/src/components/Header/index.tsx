@@ -29,6 +29,7 @@ export default function Header({
     <header
       className="header"
       data-help
+      data-help-indicator
       data-tour="header"
       data-help-title="Mission control"
       data-help-body="Trace identity, status, and live controls live here. Use Guide or Explain to orient new viewers."
@@ -48,6 +49,10 @@ export default function Header({
               value={selectedTraceId ?? trace?.id ?? ''}
               aria-label="Select trace"
               onChange={(event) => onSelectTrace?.(event.target.value)}
+              data-help
+              data-help-title="Trace selector"
+              data-help-body="Switch between available runs to compare different sessions."
+              data-help-placement="bottom"
             >
               {traces.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -70,7 +75,16 @@ export default function Header({
         </div>
       </div>
       <div className="header-actions">
-        <button className="ghost-button" type="button" onClick={onStartTour} aria-label="Start guided tour">
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={onStartTour}
+          aria-label="Start guided tour"
+          data-help
+          data-help-title="Guided tour"
+          data-help-body="Walk through the interface step by step."
+          data-help-placement="bottom"
+        >
           Guide
         </button>
         <button
@@ -79,10 +93,24 @@ export default function Header({
           onClick={onToggleExplain}
           aria-pressed={explainMode}
           aria-label="Toggle explain mode"
+          data-help
+          data-help-title="Explain mode"
+          data-help-body="Hover any control to see contextual guidance."
+          data-help-placement="bottom"
         >
           Explain
         </button>
-        <button className="ghost-button" onClick={onReload} type="button" aria-label="Refresh traces" title="Refresh traces">
+        <button
+          className="ghost-button"
+          onClick={onReload}
+          type="button"
+          aria-label="Refresh traces"
+          title="Refresh traces"
+          data-help
+          data-help-title="Refresh"
+          data-help-body="Reload traces from the data store."
+          data-help-placement="bottom"
+        >
           Refresh
         </button>
         {!hideBuildDate ? <span className="header-build">Build: {buildDate.slice(0, 19)}</span> : null}

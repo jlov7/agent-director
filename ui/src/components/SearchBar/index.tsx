@@ -23,12 +23,20 @@ export default function SearchBar({
         aria-label="Search steps"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
+        data-help
+        data-help-title="Search"
+        data-help-body="Filter steps by name, tool, or payload preview. Great for fast recall."
+        data-help-placement="bottom"
       />
       <select
         className="search-select"
         value={typeFilter}
         aria-label="Filter by step type"
         onChange={(event) => onTypeFilterChange(event.target.value as StepType | 'all')}
+        data-help
+        data-help-title="Type filter"
+        data-help-body="Narrow the timeline to a specific class of steps (LLM, tool, decision, handoff)."
+        data-help-placement="bottom"
       >
         {TYPES.map((type) => (
           <option key={type} value={type}>

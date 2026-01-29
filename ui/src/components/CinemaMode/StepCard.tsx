@@ -30,6 +30,11 @@ export default function StepCard({
   const diffClass = diffStatus ? `step-diff-${diffStatus}` : '';
   const variantClass = variant === 'ghost' ? 'step-ghost' : '';
   const compactClass = interval.wPct < 8 ? 'step-compact' : '';
+  const typeLabel = step.type.replace('_', ' ').toUpperCase();
+  const tokenLabel = step.metrics?.tokensTotal != null ? `${step.metrics.tokensTotal} tokens` : null;
+  const durationLabel = step.durationMs != null ? `${step.durationMs}ms` : null;
+  const helpBits = [tokenLabel, durationLabel, costLabel].filter(Boolean).join(' · ');
+  const helpBody = `Click to inspect inputs/outputs and replay from this moment.${helpBits ? ` ${helpBits}.` : ''}`;
   return (
     <button
       type="button"
@@ -39,6 +44,10 @@ export default function StepCard({
       aria-pressed={selected}
       aria-hidden={variant === 'ghost'}
       disabled={disabled}
+      data-help
+      data-help-title={`${step.name} · ${typeLabel}`}
+      data-help-body={helpBody}
+      data-help-placement="top"
       style={{
         left: `${interval.xPct}%`,
         width: `${interval.wPct}%`,

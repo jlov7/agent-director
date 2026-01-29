@@ -1545,11 +1545,11 @@ pre {
   line-height: 1.4;
 }
 
-.explain-mode [data-help] {
+.explain-mode [data-help][data-help-indicator] {
   position: relative;
 }
 
-.explain-mode [data-help]::after {
+.explain-mode [data-help][data-help-indicator]::after {
   content: 'i';
   position: absolute;
   top: 10px;

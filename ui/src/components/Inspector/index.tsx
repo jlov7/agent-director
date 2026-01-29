@@ -55,6 +55,7 @@ export default function Inspector({ traceId, step, safeExport, onClose, onReplay
     <aside
       className="inspector"
       data-help
+      data-help-indicator
       data-tour="inspector"
       data-help-title="Inspector panel"
       data-help-body="Deep dive into a single step: payloads, redaction, metrics, and replay."
@@ -96,7 +97,13 @@ export default function Inspector({ traceId, step, safeExport, onClose, onReplay
       <div className="inspector-section">
         <div className="inspector-section-title">Payload</div>
         <div className="inspector-controls">
-          <label title={safeExport ? 'Safe export enabled: raw view disabled.' : 'Toggle raw payload view.'}>
+          <label
+            title={safeExport ? 'Safe export enabled: raw view disabled.' : 'Toggle raw payload view.'}
+            data-help
+            data-help-title="Raw payload"
+            data-help-body="Switch between redacted and raw payloads when Safe export is off."
+            data-help-placement="top"
+          >
             <input
               type="checkbox"
               checked={mode === 'raw'}
@@ -113,6 +120,10 @@ export default function Inspector({ traceId, step, safeExport, onClose, onReplay
               if (!details) return;
               await navigator.clipboard.writeText(JSON.stringify(details.data, null, 2));
             }}
+            data-help
+            data-help-title="Copy JSON"
+            data-help-body="Copy the payload to your clipboard."
+            data-help-placement="top"
           >
             Copy JSON
           </button>
@@ -122,6 +133,10 @@ export default function Inspector({ traceId, step, safeExport, onClose, onReplay
               type="button"
               aria-label="Reset revealed fields"
               onClick={() => setRevealedPaths([])}
+              data-help
+              data-help-title="Reset reveals"
+              data-help-body="Re-hide any fields you temporarily revealed."
+              data-help-placement="top"
             >
               Reset reveals
             </button>
@@ -172,7 +187,15 @@ export default function Inspector({ traceId, step, safeExport, onClose, onReplay
       </div>
 
       <div className="inspector-section">
-        <button className="primary-button" type="button" onClick={() => onReplay(step.id)}>
+        <button
+          className="primary-button"
+          type="button"
+          onClick={() => onReplay(step.id)}
+          data-help
+          data-help-title="Replay"
+          data-help-body="Branch a new run starting from this step."
+          data-help-placement="top"
+        >
           Replay from this step
         </button>
       </div>

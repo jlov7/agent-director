@@ -493,6 +493,7 @@ export default function App() {
       <div
         className="toolbar"
         data-help
+        data-help-indicator
         data-tour="toolbar"
         data-help-title="Search + filters"
         data-help-body="Filter by step type, enable Safe export, and jump between Cinema, Flow, and Compare."
@@ -506,6 +507,10 @@ export default function App() {
             aria-pressed={mode === 'cinema'}
             title="Timeline playback"
             onClick={() => handleModeChange('cinema')}
+            data-help
+            data-help-title="Cinema mode"
+            data-help-body="Timeline view with step cards ordered by time."
+            data-help-placement="bottom"
           >
             Cinema
           </button>
@@ -515,6 +520,10 @@ export default function App() {
             aria-pressed={mode === 'flow'}
             title="Graph view"
             onClick={() => handleModeChange('flow')}
+            data-help
+            data-help-title="Flow mode"
+            data-help-body="Dependency graph of steps and tool calls."
+            data-help-placement="bottom"
           >
             Flow
           </button>
@@ -526,21 +535,46 @@ export default function App() {
             onClick={() => handleModeChange('compare')}
             disabled={!compareTrace}
             data-tour="compare"
+            data-help
+            data-help-title="Compare mode"
+            data-help-body="Side-by-side view after a replay. Enabled once you replay."
+            data-help-placement="bottom"
           >
             Compare
           </button>
-          <label className="toggle" title="Redact payloads and disable raw views for safe sharing">
+          <label
+            className="toggle"
+            title="Redact payloads and disable raw views for safe sharing"
+            data-help
+            data-help-title="Safe export"
+            data-help-body="Redacts secrets and disables raw payload views for safe sharing."
+            data-help-placement="bottom"
+          >
             <input type="checkbox" checked={safeExport} onChange={() => setSafeExport((prev) => !prev)} />
             Safe export
           </label>
           {trace.steps.length > 200 || windowed ? (
-            <label className="toggle" title="Window steps around the playhead for large traces">
+            <label
+              className="toggle"
+              title="Window steps around the playhead for large traces"
+              data-help
+              data-help-title="Windowed mode"
+              data-help-body="Limits rendering to a playhead window for large traces."
+              data-help-placement="bottom"
+            >
               <input type="checkbox" checked={windowed} onChange={() => setWindowed((prev) => !prev)} />
               Windowed
             </label>
           ) : null}
           {compareTrace ? (
-            <label className="toggle" title="Show ghost overlay of replay in Cinema/Flow">
+            <label
+              className="toggle"
+              title="Show ghost overlay of replay in Cinema/Flow"
+              data-help
+              data-help-title="Overlay replay"
+              data-help-body="Layer the replay over the base run to spot differences."
+              data-help-placement="bottom"
+            >
               <input
                 type="checkbox"
                 checked={overlayEnabled}
@@ -615,6 +649,7 @@ export default function App() {
           className="main"
           ref={viewportRef}
           data-help
+          data-help-indicator
           data-tour="stage"
           data-help-title="Trace stage"
           data-help-body="Every step becomes a scene. Hover or click to open deep inspection."

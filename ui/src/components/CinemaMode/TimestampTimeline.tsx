@@ -74,7 +74,14 @@ export default function TimestampTimeline({
 
   return (
     <div className="timeline">
-      <div className="timeline-grid" style={{ height: `${laneCount * LANE_HEIGHT}px` }}>
+      <div
+        className="timeline-grid"
+        style={{ height: `${laneCount * LANE_HEIGHT}px` }}
+        data-help
+        data-help-title="Timeline lanes"
+        data-help-body="Each lane stacks overlapping steps; width reflects duration."
+        data-help-placement="top"
+      >
         <div className="playback-cursor" style={{ left: `${playheadPct}%` }} />
         {sortedSteps
           .filter((step) => visibleStepIds.has(step.id))

@@ -35,6 +35,7 @@ export default function DirectorBrief({
     <aside
       className="inspector inspector-empty"
       data-help
+      data-help-indicator
       data-tour="inspector"
       data-help-title="Inspector panel"
       data-help-body="Select a step to open detailed payloads, redaction controls, and replay actions."
@@ -66,10 +67,26 @@ export default function DirectorBrief({
       <div className="inspector-section">
         <div className="inspector-section-title">Next actions</div>
         <div className="director-actions">
-          <button className="primary-button" type="button" onClick={() => onModeChange('cinema')}>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => onModeChange('cinema')}
+            data-help
+            data-help-title="Open cinema"
+            data-help-body="Jump straight into the timeline."
+            data-help-placement="right"
+          >
             Open cinema
           </button>
-          <button className="ghost-button" type="button" onClick={() => onModeChange('flow')}>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => onModeChange('flow')}
+            data-help
+            data-help-title="Open flow"
+            data-help-body="See the dependency graph of the run."
+            data-help-placement="right"
+          >
             Switch to flow
           </button>
           <button
@@ -86,6 +103,10 @@ export default function DirectorBrief({
               }
             }}
             disabled={!primaryStepId || Boolean(selectedStepId)}
+            data-help
+            data-help-title="Jump to bottleneck"
+            data-help-body="Select the slowest step for inspection."
+            data-help-placement="right"
           >
             {selectedStepId ? 'Inspector open' : bottleneck ? 'Jump to bottleneck' : 'Select first step'}
           </button>
@@ -94,6 +115,10 @@ export default function DirectorBrief({
             type="button"
             onClick={() => primaryStepId && onReplay(primaryStepId)}
             disabled={!primaryStepId}
+            data-help
+            data-help-title="Replay"
+            data-help-body="Branch a replay from a decisive step."
+            data-help-placement="right"
           >
             Replay from step
           </button>
@@ -107,6 +132,10 @@ export default function DirectorBrief({
             className={`ghost-button ${mode === 'cinema' ? 'active' : ''}`}
             type="button"
             onClick={() => onModeChange('cinema')}
+            data-help
+            data-help-title="Cinema mode"
+            data-help-body="Timeline view for pacing and sequence."
+            data-help-placement="right"
           >
             Cinema
           </button>
@@ -114,6 +143,10 @@ export default function DirectorBrief({
             className={`ghost-button ${mode === 'flow' ? 'active' : ''}`}
             type="button"
             onClick={() => onModeChange('flow')}
+            data-help
+            data-help-title="Flow mode"
+            data-help-body="Graph view for dependencies."
+            data-help-placement="right"
           >
             Flow
           </button>

@@ -51,7 +51,15 @@ export default function MiniTimeline({
 
   return (
     <div className="mini-timeline">
-      <div className="mini-track" onClick={handleClick} role="presentation">
+      <div
+        className="mini-track"
+        onClick={handleClick}
+        role="presentation"
+        data-help
+        data-help-title="Density map"
+        data-help-body="A compact view of activity density. Click to jump the playhead."
+        data-help-placement="top"
+      >
         <div className="mini-bars">
           {buckets.map((value, index) => (
             <span
@@ -79,6 +87,10 @@ export default function MiniTimeline({
             onToggleWindowed(true);
             onSpanChange(Number(event.target.value));
           }}
+          data-help
+          data-help-title="Zoom window"
+          data-help-body="Tighten the window to focus on hotspots."
+          data-help-placement="top"
         />
         <button
           className="ghost-button"

@@ -20,12 +20,19 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
     <section
       className="insight-strip"
       data-help
+      data-help-indicator
       data-tour="insights"
       data-help-title="Run insights"
       data-help-body="Fast diagnostics for latency, cost, errors, and concurrency. Click chips to jump into the trace."
       data-help-placement="bottom"
     >
-      <div className="insight-block">
+      <div
+        className="insight-block"
+        data-help
+        data-help-title="Top latency"
+        data-help-body="Largest steps by duration; jump straight to the slowest."
+        data-help-placement="bottom"
+      >
         <span className="insight-label">Top latency</span>
         <div className="insight-items">
           {insights.topLatencySteps.map((step) => (
@@ -46,7 +53,13 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
           ) : null}
         </div>
       </div>
-      <div className="insight-block">
+      <div
+        className="insight-block"
+        data-help
+        data-help-title="Cost by type"
+        data-help-body="Aggregated spend by step class."
+        data-help-placement="bottom"
+      >
         <span className="insight-label">Cost by type</span>
         <div className="insight-items">
           {Object.entries(insights.costByType).map(([type, cost]) => (
@@ -57,7 +70,13 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
         </div>
       </div>
       {Object.keys(costByTool).length ? (
-        <div className="insight-block">
+        <div
+          className="insight-block"
+          data-help
+          data-help-title="Cost by tool"
+          data-help-body="Top tools by total spend."
+          data-help-placement="bottom"
+        >
           <span className="insight-label">Cost by tool</span>
           <div className="insight-items">
             {Object.entries(costByTool)
@@ -71,7 +90,13 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
           </div>
         </div>
       ) : null}
-      <div className="insight-block">
+      <div
+        className="insight-block"
+        data-help
+        data-help-title="Errors & retries"
+        data-help-body="Instant visibility into failed or retried steps."
+        data-help-placement="bottom"
+      >
         <span className="insight-label">Errors / retries</span>
         <div className="insight-items">
           <span className="insight-chip">Errors: {insights.errors}</span>
@@ -91,7 +116,13 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
           ) : null}
         </div>
       </div>
-      <div className="insight-block">
+      <div
+        className="insight-block"
+        data-help
+        data-help-title="Wall vs work"
+        data-help-body="Wall time vs summed work to show parallelism."
+        data-help-placement="bottom"
+      >
         <span className="insight-label">Wall vs work</span>
         <div className="insight-items">
           <span className="insight-chip" title="Wall clock duration">
@@ -107,7 +138,13 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
           ) : null}
         </div>
       </div>
-      <div className="insight-block">
+      <div
+        className="insight-block"
+        data-help
+        data-help-title="Health"
+        data-help-body="Timing and I/O anomalies detected in the trace."
+        data-help-placement="bottom"
+      >
         <span className="insight-label">Health</span>
         <div className="insight-items">
           {timing?.degraded ? (
@@ -127,7 +164,13 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
         </div>
       </div>
       {concurrency?.buckets?.length ? (
-        <div className="insight-block">
+        <div
+          className="insight-block"
+          data-help
+          data-help-title="Parallelism"
+          data-help-body="How many steps ran concurrently over time."
+          data-help-placement="bottom"
+        >
           <span className="insight-label">Parallelism</span>
           <div className="insight-items">
             <div className="insight-heatmap" title={`Peak concurrency: ${concurrency.peak}`}>
@@ -144,7 +187,13 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
         </div>
       ) : null}
       {Object.keys(costByModel).length ? (
-        <div className="insight-block">
+        <div
+          className="insight-block"
+          data-help
+          data-help-title="Model cost"
+          data-help-body="Spend by model family."
+          data-help-placement="bottom"
+        >
           <span className="insight-label">Model cost</span>
           <div className="insight-items">
             {Object.entries(costByModel).map(([model, cost]) => (
