@@ -18,6 +18,7 @@ Use the same static build output as GitHub Pages.
 
 - Build command: `pnpm -C ui install && BASE_PATH=/ VITE_FORCE_DEMO=1 pnpm -C ui build`
 - Output folder: `ui/dist`
+- Workflow: `.github/workflows/deploy-cloudflare-pages.yml` (requires `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_PAGES_PROJECT_NAME`)
 
 ## Render (full stack)
 Host the Python API and static UI separately.
