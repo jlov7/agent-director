@@ -55,7 +55,6 @@ export default function Compare({ baseTrace, compareTrace, playheadMs, onExit, s
     <section
       className="compare-view"
       data-help
-      data-help-indicator
       data-tour="compare-view"
       data-help-title="Compare runs"
       data-help-body="Side-by-side playback showing deltas in steps, cost, and wall time after a replay."

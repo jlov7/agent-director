@@ -1315,15 +1315,21 @@ pre {
 }
 
 .compare-view {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
+  overflow: auto;
+  padding-right: 8px;
+  padding-bottom: 6px;
 }
 
 .compare-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
 }
 
 .compare-actions {
@@ -1346,11 +1352,23 @@ pre {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  align-items: start;
+}
+
+.compare-pane {
+  background: rgba(18, 26, 36, 0.75);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  min-height: 260px;
 }
 
 .compare-pane-title {
   margin-bottom: 8px;
   color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.65rem;
 }
 
 .morph-layer {
