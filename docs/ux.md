@@ -20,7 +20,7 @@
 - **Explain mode** adds contextual callouts on hover for every major control.
 
 ## Onboarding stack
-1. **Intro overlay** sets the three-act mental model (Observe → Inspect → Direct).
+1. **Intro overlay** sets the three-act mental model (Observe → Inspect → Direct) and offers Tour or Story mode.
 2. **Guided tour** highlights the main controls in order.
 3. **Explain mode** offers just-in-time help on any element.
 4. **Story mode** runs the full demo hands-free.

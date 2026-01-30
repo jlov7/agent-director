@@ -5,9 +5,10 @@ const INTRO_MS = 2800;
 type IntroOverlayProps = {
   onComplete: () => void;
   onStartTour?: () => void;
+  onStartStory?: () => void;
 };
 
-export default function IntroOverlay({ onComplete, onStartTour }: IntroOverlayProps) {
+export default function IntroOverlay({ onComplete, onStartTour, onStartStory }: IntroOverlayProps) {
   useEffect(() => {
     const timer = window.setTimeout(() => onComplete(), INTRO_MS);
     return () => window.clearTimeout(timer);
@@ -15,6 +16,11 @@ export default function IntroOverlay({ onComplete, onStartTour }: IntroOverlayPr
 
   const handleStartTour = () => {
     onStartTour?.();
+    onComplete();
+  };
+
+  const handleStartStory = () => {
+    onStartStory?.();
     onComplete();
   };
 
@@ -48,6 +54,11 @@ export default function IntroOverlay({ onComplete, onStartTour }: IntroOverlayPr
           <button className="primary-button" type="button" onClick={handleStartTour}>
             Start guided tour
           </button>
+          {onStartStory ? (
+            <button className="ghost-button" type="button" onClick={handleStartStory}>
+              Play story mode
+            </button>
+          ) : null}
           <button className="ghost-button" type="button" onClick={onComplete}>
             Skip intro
           </button>

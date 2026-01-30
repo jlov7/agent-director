@@ -1824,6 +1824,7 @@ pre {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .journey-progress-text {
@@ -1834,6 +1835,15 @@ pre {
 .journey-expand {
   font-size: 0.85rem;
   padding: 8px 14px;
+}
+
+.journey-next {
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tour-overlay {
@@ -2144,6 +2154,11 @@ pre {
   .journey-footer {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .journey-next {
+    max-width: 100%;
+    width: 100%;
   }
 
   .journey-progress {

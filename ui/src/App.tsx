@@ -849,6 +849,7 @@ export default function App() {
             setIntroDismissed(true);
             setTourOpen(true);
           }}
+          onStartStory={startStory}
         />
       ) : null}
       <GuidedTour

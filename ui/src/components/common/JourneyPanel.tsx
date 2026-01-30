@@ -113,6 +113,7 @@ export default function JourneyPanel({
       disabled: !primaryStepId,
     },
   ];
+  const activeStep = journeySteps[currentIndex];
 
   if (collapsed) {
     return (
@@ -132,6 +133,16 @@ export default function JourneyPanel({
         </div>
         <div className="journey-collapsed-actions">
           <span className="journey-progress-text">{progress}/3 complete</span>
+          {activeStep ? (
+            <button
+              className="primary-button journey-next"
+              type="button"
+              onClick={activeStep.action}
+              disabled={activeStep.disabled}
+            >
+              Next: {activeStep.actionLabel}
+            </button>
+          ) : null}
           {onStartTour ? (
             <button className="ghost-button" type="button" onClick={onStartTour}>
               Tour
