@@ -23,3 +23,4 @@ Agent Director’s visuals map directly to the agent’s behavior.
 - Heavy contrast for legibility in dense traces.
 - Use focus glows to guide attention (never rely on color alone).
 - Keep the Insight Strip at the top to provide instant narrative context.
+- A floating Quick Actions rail keeps demo-critical controls within reach.

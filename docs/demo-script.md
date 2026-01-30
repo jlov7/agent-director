@@ -2,6 +2,7 @@
 
 ## Scene 1 — “Show me the run” (0:00–0:15)
 **Narration:** “This is Agent Director. It’s a cinematic, chat-native debugger for AI agents.”
+- Optional: hit **Story mode** to auto-run the walkthrough, then pause to take over.
 - Load the latest trace.
 - Hit Play; point out wall-clock accuracy and overlap lanes.
 

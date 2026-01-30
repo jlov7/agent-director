@@ -11,8 +11,11 @@ type HeaderProps = {
   onSelectTrace?: (traceId: string) => void;
   onReload?: () => void;
   onStartTour?: () => void;
+  onToggleStory?: () => void;
+  onOpenPalette?: () => void;
   onToggleExplain?: () => void;
   explainMode?: boolean;
+  storyActive?: boolean;
 };
 
 export default function Header({
@@ -22,8 +25,11 @@ export default function Header({
   onSelectTrace,
   onReload,
   onStartTour,
+  onToggleStory,
+  onOpenPalette,
   onToggleExplain,
   explainMode = false,
+  storyActive = false,
 }: HeaderProps) {
   return (
     <header
@@ -32,7 +38,7 @@ export default function Header({
       data-help-indicator
       data-tour="header"
       data-help-title="Mission control"
-      data-help-body="Trace identity, status, and live controls live here. Use Guide or Explain to orient new viewers."
+      data-help-body="Trace identity, status, and live controls live here. Use Story, Guide, or Explain to orient new viewers."
       data-help-placement="bottom"
     >
       <div className="header-title">
@@ -76,6 +82,19 @@ export default function Header({
       </div>
       <div className="header-actions">
         <button
+          className={`ghost-button ${storyActive ? 'active' : ''}`}
+          type="button"
+          onClick={onToggleStory}
+          aria-pressed={storyActive}
+          aria-label="Toggle story mode"
+          data-help
+          data-help-title="Story mode"
+          data-help-body="Auto-runs a cinematic walkthrough for demos."
+          data-help-placement="bottom"
+        >
+          Story
+        </button>
+        <button
           className="ghost-button"
           type="button"
           onClick={onStartTour}
@@ -86,6 +105,18 @@ export default function Header({
           data-help-placement="bottom"
         >
           Guide
+        </button>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={onOpenPalette}
+          aria-label="Open command palette"
+          data-help
+          data-help-title="Command palette"
+          data-help-body="Search and trigger any action instantly."
+          data-help-placement="bottom"
+        >
+          Command
         </button>
         <button
           className={`ghost-button ${explainMode ? 'active' : ''}`}

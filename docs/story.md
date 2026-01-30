@@ -28,6 +28,10 @@ Agent Director turns traces into a film strip you can scrub, inspect, and replay
 2. **The Morph** — timeline morphs to graph without flicker (FLIP animation).
 3. **Director’s Cut** — edit a step, choose a strategy, replay and diff.
 
+## The demo accelerants
+- **Story mode** auto-runs the narrative for instant demos.
+- **Command palette** exposes every action in two keystrokes.
+
 ## Storyboard (ASCII)
 ```
 [ Load run ] -> [ Cinema playback ] -> [ Inspect step ]

@@ -6,11 +6,14 @@ import CinemaMode from './components/CinemaMode';
 import PlaybackControls from './components/CinemaMode/PlaybackControls';
 import MiniTimeline from './components/CinemaMode/MiniTimeline';
 import ShortcutsModal from './components/common/ShortcutsModal';
+import CommandPalette, { type CommandAction } from './components/common/CommandPalette';
 import JourneyPanel from './components/common/JourneyPanel';
 import DirectorBrief from './components/common/DirectorBrief';
 import GuidedTour, { type TourStep } from './components/common/GuidedTour';
 import ContextHelpOverlay from './components/common/ContextHelpOverlay';
 import IntroOverlay from './components/common/IntroOverlay';
+import QuickActions from './components/common/QuickActions';
+import StoryModeBanner from './components/common/StoryModeBanner';
 import FlowMode from './components/FlowMode';
 import Compare from './components/Compare';
 import Inspector from './components/Inspector';
@@ -30,6 +33,13 @@ const NODE_HEIGHT = 120;
 type Mode = 'cinema' | 'flow' | 'compare';
 
 type Rect = { left: number; top: number; width: number; height: number };
+
+type StoryBeat = {
+  id: string;
+  label: string;
+  duration: number;
+  action: () => void | Promise<void>;
+};
 
 function buildStructureEdges(steps: StepSummary[]) {
   return steps
@@ -119,6 +129,7 @@ export default function App() {
   const [windowed, setWindowed] = usePersistedState('agentDirector.windowed', false);
   const [windowSpanMs, setWindowSpanMs] = useState(20000);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showPalette, setShowPalette] = useState(false);
   const [overlayEnabled, setOverlayEnabled] = usePersistedState('agentDirector.overlayEnabled', false);
   const [journeyCollapsed, setJourneyCollapsed] = usePersistedState('agentDirector.onboarded', false);
   const [tourCompleted, setTourCompleted] = usePersistedState('agentDirector.tourCompleted', false);
@@ -126,12 +137,16 @@ export default function App() {
   const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
   const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
   const [tourOpen, setTourOpen] = useState(false);
+  const [storyState, setStoryState] = useState<{ active: boolean; step: number } | null>(null);
+  const [storyPlan, setStoryPlan] = useState<StoryBeat[]>([]);
+  const [storyTraceId, setStoryTraceId] = useState<string | null>(null);
   const [morphState, setMorphState] = useState<{
     steps: StepSummary[];
     fromRects: Record<string, Rect>;
     toRects: Record<string, Rect>;
   } | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const compareTraceRef = useRef<TraceSummary | null>(null);
 
   const steps = useMemo(() => (trace ? filterSteps(trace.steps, query, typeFilter) : []), [trace, query, typeFilter]);
   const compareSteps = useMemo(
@@ -151,15 +166,22 @@ export default function App() {
     [trace, selectedStepId]
   );
 
-  const handleReplay = async (stepId: string) => {
-    if (!trace) return;
-    const newTrace = await replayFromStep(trace.id, stepId, 'hybrid', { note: 'UI replay' }, trace);
-    if (newTrace) {
-      setCompareTrace(newTrace);
-      setOverlayEnabled(true);
-      setMode('flow');
-    }
-  };
+  useEffect(() => {
+    compareTraceRef.current = compareTrace;
+  }, [compareTrace]);
+
+  const handleReplay = useCallback(
+    async (stepId: string) => {
+      if (!trace) return;
+      const newTrace = await replayFromStep(trace.id, stepId, 'hybrid', { note: 'UI replay' }, trace);
+      if (newTrace) {
+        setCompareTrace(newTrace);
+        setOverlayEnabled(true);
+        setMode('flow');
+      }
+    },
+    [trace, setCompareTrace, setMode, setOverlayEnabled]
+  );
 
   const jumpToBottleneck = useCallback(() => {
     if (!trace) return;
@@ -170,6 +192,12 @@ export default function App() {
     }
   }, [trace, setMode]);
 
+  const getBottleneckId = useCallback(() => {
+    if (!trace || trace.steps.length === 0) return null;
+    const bottleneck = [...trace.steps].sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0))[0];
+    return bottleneck?.id ?? null;
+  }, [trace]);
+
   const jumpToError = useCallback(() => {
     if (!trace) return;
     const firstError = trace.steps.find((step) => step.status === 'failed');
@@ -178,6 +206,167 @@ export default function App() {
       setMode('cinema');
     }
   }, [trace, setMode]);
+
+  const handleModeChange = useCallback(
+    (next: Mode) => {
+      if (next === mode || !trace) return;
+      if (next === 'flow') setIsPlaying(false);
+      if (next === 'flow' && mode === 'cinema' && viewportRef.current) {
+        const container = viewportRef.current;
+        const fromRects = collectStepRects(container);
+        const toRects = buildFlowRects(trace.steps, container, trace.id);
+        setMorphState({ steps: trace.steps, fromRects, toRects });
+        return;
+      }
+      setMode(next);
+    },
+    [mode, trace, setIsPlaying, setMode]
+  );
+
+  const togglePlayback = useCallback(() => {
+    if (mode === 'flow') {
+      handleModeChange('cinema');
+    }
+    setIsPlaying((prev) => !prev);
+  }, [mode, handleModeChange]);
+
+  const stopStory = useCallback(() => {
+    setStoryState(null);
+    setStoryPlan([]);
+    setStoryTraceId(null);
+    setIsPlaying(false);
+  }, [setIsPlaying]);
+
+  const buildStoryPlan = useCallback(
+    (anchorId: string | null): StoryBeat[] => [
+      {
+        id: 'setup',
+        label: 'Opening the reel',
+        duration: 1100,
+        action: () => {
+          setExplainMode(true);
+          setIsPlaying(false);
+          setPlayheadMs(0);
+          setSelectedStepId(null);
+          setOverlayEnabled(false);
+          setSpeed(1);
+          if (trace && trace.steps.length < 500) setWindowed(false);
+          handleModeChange('cinema');
+        },
+      },
+      {
+        id: 'pace',
+        label: 'Pacing the timeline',
+        duration: 2200,
+        action: () => {
+          handleModeChange('cinema');
+          setIsPlaying(true);
+          setSpeed(1.1);
+        },
+      },
+      {
+        id: 'bottleneck',
+        label: 'Freeze on the bottleneck',
+        duration: 1600,
+        action: () => {
+          setIsPlaying(false);
+          jumpToBottleneck();
+        },
+      },
+      {
+        id: 'inspect',
+        label: 'Inspect the moment',
+        duration: 1600,
+        action: () => {
+          if (!anchorId) return;
+          setSelectedStepId(anchorId);
+        },
+      },
+      {
+        id: 'flow',
+        label: 'Morph into flow',
+        duration: 2100,
+        action: () => {
+          handleModeChange('flow');
+        },
+      },
+      {
+        id: 'replay',
+        label: 'Director’s Cut replay',
+        duration: 2200,
+        action: async () => {
+          if (!trace) return;
+          const currentCompare = compareTraceRef.current;
+          if (!currentCompare && anchorId) {
+            await handleReplay(anchorId);
+          }
+          setOverlayEnabled(true);
+          setMode('compare');
+        },
+      },
+      {
+        id: 'compare',
+        label: 'Compare the cut',
+        duration: 2000,
+        action: () => {
+          setIsPlaying(true);
+          setSpeed(1);
+        },
+      },
+      {
+        id: 'finale',
+        label: 'Final frame',
+        duration: 1100,
+        action: () => {
+          setIsPlaying(false);
+        },
+      },
+    ],
+    [
+      handleModeChange,
+      handleReplay,
+      jumpToBottleneck,
+      setExplainMode,
+      setIsPlaying,
+      setMode,
+      setOverlayEnabled,
+      setPlayheadMs,
+      setSelectedStepId,
+      setSpeed,
+      setWindowed,
+      trace,
+    ]
+  );
+
+  const startStory = useCallback(() => {
+    if (!trace) return;
+    const anchor = selectedStepId ?? getBottleneckId() ?? trace.steps[0]?.id ?? null;
+    setStoryPlan(buildStoryPlan(anchor));
+    setStoryState({ active: true, step: 0 });
+    setStoryTraceId(trace.id);
+    setTourOpen(false);
+    setShowShortcuts(false);
+    setShowPalette(false);
+  }, [
+    buildStoryPlan,
+    getBottleneckId,
+    selectedStepId,
+    trace,
+    setShowPalette,
+    setShowShortcuts,
+    setStoryPlan,
+    setStoryState,
+    setStoryTraceId,
+    setTourOpen,
+  ]);
+
+  const toggleStory = useCallback(() => {
+    if (storyState?.active) {
+      stopStory();
+      return;
+    }
+    startStory();
+  }, [startStory, stopStory, storyState?.active]);
 
   const tourSteps = useMemo<TourStep[]>(
     () => [
@@ -210,6 +399,13 @@ export default function App() {
         placement: 'bottom',
       },
       {
+        id: 'quick-actions',
+        title: 'Quick actions',
+        body: 'Launch Story Mode, open the command palette, or jump to bottlenecks instantly.',
+        target: '[data-tour="quick-actions"]',
+        placement: 'left',
+      },
+      {
         id: 'stage',
         title: 'Cinema stage',
         body: 'The timeline shows every step as a scene. Scrub to see pacing and concurrency.',
@@ -234,22 +430,6 @@ export default function App() {
       },
     ],
     [compareTrace]
-  );
-
-  const handleModeChange = useCallback(
-    (next: Mode) => {
-      if (next === mode || !trace) return;
-      if (next === 'flow') setIsPlaying(false);
-      if (next === 'flow' && mode === 'cinema' && viewportRef.current) {
-        const container = viewportRef.current;
-        const fromRects = collectStepRects(container);
-        const toRects = buildFlowRects(trace.steps, container, trace.id);
-        setMorphState({ steps: trace.steps, fromRects, toRects });
-        return;
-      }
-      setMode(next);
-    },
-    [mode, trace, setIsPlaying, setMode]
   );
 
   const handleMorphComplete = useCallback(() => {
@@ -287,6 +467,35 @@ export default function App() {
       document.body.classList.remove('explain-mode');
     };
   }, [explainMode]);
+
+  useEffect(() => {
+    document.body.classList.toggle('story-mode', Boolean(storyState?.active));
+    return () => {
+      document.body.classList.remove('story-mode');
+    };
+  }, [storyState?.active]);
+
+  useEffect(() => {
+    if (!storyState?.active) return;
+    const beat = storyPlan[storyState.step];
+    if (!beat) {
+      stopStory();
+      return;
+    }
+    void Promise.resolve(beat.action());
+    const timeout = window.setTimeout(() => {
+      setStoryState((prev) => (prev && prev.active ? { ...prev, step: prev.step + 1 } : prev));
+    }, beat.duration);
+    return () => window.clearTimeout(timeout);
+  }, [storyPlan, stopStory, storyState]);
+
+  useEffect(() => {
+    if (!storyState?.active) return;
+    if (!trace || !storyTraceId) return;
+    if (trace.id !== storyTraceId) {
+      stopStory();
+    }
+  }, [storyState?.active, trace, storyTraceId, stopStory]);
 
   useEffect(() => {
     if (!trace) return;
@@ -352,14 +561,39 @@ export default function App() {
       const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || target?.isContentEditable;
       if (isTyping) return;
 
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setShowPalette((prev) => !prev);
+        return;
+      }
+
       if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
         event.preventDefault();
         setShowShortcuts(true);
         return;
       }
 
+      if (event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        toggleStory();
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'e') {
+        event.preventDefault();
+        setExplainMode((prev) => !prev);
+        return;
+      }
+
+      if (event.key.toLowerCase() === 't') {
+        event.preventDefault();
+        setTourOpen(true);
+        return;
+      }
+
       if (event.key === 'Escape') {
         setShowShortcuts(false);
+        setShowPalette(false);
         setSelectedStepId(null);
         return;
       }
@@ -406,7 +640,19 @@ export default function App() {
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [mode, selectedStepId, trace, playheadMs, stepBoundaries, handleModeChange, setMode]);
+  }, [
+    mode,
+    selectedStepId,
+    trace,
+    playheadMs,
+    stepBoundaries,
+    handleModeChange,
+    setMode,
+    setExplainMode,
+    setShowPalette,
+    setTourOpen,
+    toggleStory,
+  ]);
 
   const windowRange = useMemo(() => {
     if (!trace || !windowed || query) return null;
@@ -419,6 +665,145 @@ export default function App() {
     }
     return { startMs, endMs };
   }, [trace, windowed, playheadMs, query, windowSpanMs]);
+
+  const storyActive = Boolean(storyState?.active);
+  const storyStep = storyState?.step ?? 0;
+  const storyLabel = storyPlan[storyStep]?.label ?? 'Wrapping up';
+  const storyTotal = storyPlan.length;
+
+  const commandActions = useMemo<CommandAction[]>(
+    () => [
+      {
+        id: 'story-toggle',
+        label: storyActive ? 'Stop story mode' : 'Start story mode',
+        description: 'Auto-runs a cinematic walkthrough.',
+        group: 'Story',
+        keys: 'S',
+        onTrigger: toggleStory,
+      },
+      {
+        id: 'tour-start',
+        label: 'Start guided tour',
+        description: 'Walk the interface step by step.',
+        group: 'Onboarding',
+        keys: 'T',
+        onTrigger: () => setTourOpen(true),
+      },
+      {
+        id: 'explain-toggle',
+        label: explainMode ? 'Disable explain mode' : 'Enable explain mode',
+        description: 'Toggle contextual overlays.',
+        group: 'Onboarding',
+        keys: 'E',
+        onTrigger: () => setExplainMode((prev) => !prev),
+      },
+      {
+        id: 'shortcuts',
+        label: 'Show shortcuts',
+        description: 'Open the keyboard map.',
+        group: 'Onboarding',
+        keys: '?',
+        onTrigger: () => setShowShortcuts(true),
+      },
+      {
+        id: 'playback-toggle',
+        label: isPlaying ? 'Pause playback' : 'Play playback',
+        description: 'Start or stop the run.',
+        group: 'Playback',
+        keys: 'Space',
+        onTrigger: togglePlayback,
+      },
+      {
+        id: 'mode-cinema',
+        label: 'Switch to Cinema',
+        description: 'Timeline playback view.',
+        group: 'Modes',
+        keys: 'C',
+        onTrigger: () => handleModeChange('cinema'),
+      },
+      {
+        id: 'mode-flow',
+        label: 'Switch to Flow',
+        description: 'Graph dependency view.',
+        group: 'Modes',
+        keys: 'F',
+        onTrigger: () => handleModeChange('flow'),
+      },
+      {
+        id: 'mode-compare',
+        label: 'Open Compare',
+        description: 'Side-by-side diff view.',
+        group: 'Modes',
+        onTrigger: () => handleModeChange('compare'),
+        disabled: !compareTrace,
+      },
+      {
+        id: 'jump-bottleneck',
+        label: 'Jump to bottleneck',
+        description: 'Select the slowest step.',
+        group: 'Navigation',
+        onTrigger: jumpToBottleneck,
+      },
+      {
+        id: 'jump-error',
+        label: 'Jump to error',
+        description: 'Select the first failed step.',
+        group: 'Navigation',
+        onTrigger: jumpToError,
+      },
+      {
+        id: 'replay-step',
+        label: 'Replay from selected step',
+        description: 'Branch a Director’s Cut.',
+        group: 'Tools',
+        onTrigger: () => selectedStepId && handleReplay(selectedStepId),
+        disabled: !selectedStepId,
+      },
+      {
+        id: 'overlay-toggle',
+        label: overlayEnabled ? 'Hide overlay' : 'Show overlay',
+        description: 'Ghost diff in Cinema/Flow.',
+        group: 'Tools',
+        onTrigger: () => setOverlayEnabled((prev) => !prev),
+        disabled: !compareTrace,
+      },
+      {
+        id: 'safe-export',
+        label: safeExport ? 'Disable safe export' : 'Enable safe export',
+        description: 'Redact sensitive payloads.',
+        group: 'Safety',
+        onTrigger: () => setSafeExport((prev) => !prev),
+      },
+      {
+        id: 'reload',
+        label: 'Reload traces',
+        description: 'Refresh trace data.',
+        group: 'Meta',
+        onTrigger: reload,
+      },
+    ],
+    [
+      storyActive,
+      toggleStory,
+      explainMode,
+      isPlaying,
+      togglePlayback,
+      handleModeChange,
+      compareTrace,
+      jumpToBottleneck,
+      jumpToError,
+      selectedStepId,
+      handleReplay,
+      overlayEnabled,
+      safeExport,
+      reload,
+      setExplainMode,
+      setOverlayEnabled,
+      setSafeExport,
+      setShowShortcuts,
+      setTourOpen,
+    ]
+  );
 
   if (loading) {
     return <div className="loading">Loading trace...</div>;
@@ -444,8 +829,11 @@ export default function App() {
         onSelectTrace={setSelectedTraceId}
         onReload={reload}
         onStartTour={() => setTourOpen(true)}
+        onToggleStory={toggleStory}
+        onOpenPalette={() => setShowPalette(true)}
         onToggleExplain={() => setExplainMode((prev) => !prev)}
         explainMode={explainMode}
+        storyActive={storyActive}
       />
       {!introDismissed && !skipIntro ? <IntroOverlay onComplete={() => setIntroDismissed(true)} /> : null}
       <GuidedTour
@@ -461,6 +849,14 @@ export default function App() {
         }}
       />
       <ContextHelpOverlay enabled={explainMode} />
+      <StoryModeBanner
+        active={storyActive}
+        label={storyLabel}
+        step={storyStep}
+        total={storyTotal}
+        onStop={stopStory}
+        onRestart={startStory}
+      />
       <InsightStrip
         insights={insights}
         onSelectStep={(stepId) => {
@@ -488,6 +884,8 @@ export default function App() {
         onReplay={handleReplay}
         onShowShortcuts={() => setShowShortcuts(true)}
         onStartTour={() => setTourOpen(true)}
+        onToggleStory={toggleStory}
+        storyActive={storyActive}
       />
 
       <div
@@ -644,7 +1042,7 @@ export default function App() {
         </div>
       ) : null}
 
-      <div className="stage">
+      <main className="stage" role="main">
         <div
           className="main"
           ref={viewportRef}
@@ -715,7 +1113,22 @@ export default function App() {
             onReplay={handleReplay}
           />
         )}
-      </div>
+      </main>
+      <QuickActions
+        mode={mode}
+        isPlaying={isPlaying}
+        storyActive={storyActive}
+        explainMode={explainMode}
+        onTogglePlay={togglePlayback}
+        onStartStory={startStory}
+        onStopStory={stopStory}
+        onStartTour={() => setTourOpen(true)}
+        onOpenPalette={() => setShowPalette(true)}
+        onShowShortcuts={() => setShowShortcuts(true)}
+        onToggleExplain={() => setExplainMode((prev) => !prev)}
+        onJumpToBottleneck={jumpToBottleneck}
+      />
+      <CommandPalette open={showPalette} onClose={() => setShowPalette(false)} actions={commandActions} />
       <ShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );

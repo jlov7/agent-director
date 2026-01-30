@@ -13,12 +13,21 @@
 3. Switch to Flow → read structure and I/O binding.
 4. Replay a step → compare vs base → export diff.
 
+## Story mode + command palette
+- **Story mode** auto-runs a guided walkthrough for demos and onboarding.
+- **Command palette** (Cmd/Ctrl + K) exposes every action, mode, and safety toggle.
+- **Quick actions rail** keeps critical controls within reach during live demos.
+
 ## Keyboard shortcuts
 - `Space` — Play / pause
 - `← / →` — Step boundary back / forward
 - `Shift + ← / →` — Jump to start / end
 - `F` — Toggle Flow mode
 - `I` — Toggle Inspector
+- `S` — Story mode
+- `E` — Explain mode
+- `T` — Start tour
+- `Cmd/Ctrl + K` — Command palette
 - `?` — Show shortcuts
 - `Esc` — Close modal / inspector
 
