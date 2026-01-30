@@ -6,6 +6,8 @@ type QuickActionsProps = {
   storyActive: boolean;
   explainMode: boolean;
   hidden?: boolean;
+  open: boolean;
+  onToggleOpen: () => void;
   onTogglePlay: () => void;
   onStartStory: () => void;
   onStopStory: () => void;
@@ -22,6 +24,8 @@ export default function QuickActions({
   storyActive,
   explainMode,
   hidden = false,
+  open,
+  onToggleOpen,
   onTogglePlay,
   onStartStory,
   onStopStory,
@@ -35,6 +39,25 @@ export default function QuickActions({
   const playLabel = isPlaying ? 'Pause' : 'Play';
   const storyLabel = storyActive ? 'Stop story' : 'Story mode';
 
+  if (!open) {
+    return (
+      <button
+        className="quick-actions-toggle"
+        type="button"
+        onClick={onToggleOpen}
+        aria-label="Open quick actions"
+        aria-expanded="false"
+        data-help
+        data-tour="quick-actions"
+        data-help-title="Quick actions"
+        data-help-body="Open the dock to access demos, shortcuts, and instant actions."
+        data-help-placement="left"
+      >
+        Dock
+      </button>
+    );
+  }
+
   return (
     <aside
       className="quick-actions"
@@ -46,6 +69,20 @@ export default function QuickActions({
       data-help-body="Launch story mode, open the command palette, or jump to the bottleneck instantly."
       data-help-placement="left"
     >
+      <div className="quick-actions-header">
+        <div>
+          <div className="quick-actions-title">Quick actions</div>
+          <div className="quick-actions-subtitle">Pin demo controls close at hand.</div>
+        </div>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={onToggleOpen}
+          aria-label="Collapse quick actions"
+        >
+          Collapse
+        </button>
+      </div>
       <button
         className={`quick-action ${isPlaying ? 'active' : ''}`}
         type="button"

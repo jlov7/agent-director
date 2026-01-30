@@ -134,6 +134,7 @@ export default function App() {
   const [journeyCollapsed, setJourneyCollapsed] = usePersistedState('agentDirector.onboarded', false);
   const [tourCompleted, setTourCompleted] = usePersistedState('agentDirector.tourCompleted', false);
   const [explainMode, setExplainMode] = usePersistedState('agentDirector.explainMode', true);
+  const [dockOpen, setDockOpen] = usePersistedState('agentDirector.dockOpen', false);
   const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
   const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
   const [tourOpen, setTourOpen] = useState(false);
@@ -169,6 +170,12 @@ export default function App() {
   useEffect(() => {
     compareTraceRef.current = compareTrace;
   }, [compareTrace]);
+
+  useEffect(() => {
+    if (mode === 'compare') {
+      setDockOpen(false);
+    }
+  }, [mode, setDockOpen]);
 
   const handleReplay = useCallback(
     async (stepId: string) => {
@@ -882,10 +889,7 @@ export default function App() {
         }}
         onJumpToBottleneck={jumpToBottleneck}
         onReplay={handleReplay}
-        onShowShortcuts={() => setShowShortcuts(true)}
         onStartTour={() => setTourOpen(true)}
-        onToggleStory={toggleStory}
-        storyActive={storyActive}
       />
 
       <div
@@ -1120,6 +1124,8 @@ export default function App() {
         storyActive={storyActive}
         explainMode={explainMode}
         hidden={mode === 'compare'}
+        open={dockOpen}
+        onToggleOpen={() => setDockOpen((prev) => !prev)}
         onTogglePlay={togglePlayback}
         onStartStory={startStory}
         onStopStory={stopStory}

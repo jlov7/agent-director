@@ -14,10 +14,7 @@ type JourneyPanelProps = {
   onSelectStep: (stepId: string) => void;
   onJumpToBottleneck: () => void;
   onReplay: (stepId: string) => void;
-  onShowShortcuts: () => void;
   onStartTour?: () => void;
-  onToggleStory?: () => void;
-  storyActive?: boolean;
 };
 
 type JourneyStatus = 'done' | 'active' | 'next';
@@ -49,10 +46,7 @@ export default function JourneyPanel({
   onSelectStep,
   onJumpToBottleneck,
   onReplay,
-  onShowShortcuts,
   onStartTour,
-  onToggleStory,
-  storyActive = false,
 }: JourneyPanelProps) {
   const steps = trace.steps ?? [];
   const bottleneck = pickBottleneck(steps);
@@ -138,22 +132,6 @@ export default function JourneyPanel({
         </div>
         <div className="journey-collapsed-actions">
           <span className="journey-progress-text">{progress}/3 complete</span>
-          <button className="ghost-button" type="button" onClick={onShowShortcuts}>
-            Shortcuts
-          </button>
-          {onToggleStory ? (
-            <button
-              className={`ghost-button ${storyActive ? 'active' : ''}`}
-              type="button"
-              onClick={onToggleStory}
-              data-help
-              data-help-title="Story mode"
-              data-help-body="Auto-play the walkthrough for new viewers."
-              data-help-placement="bottom"
-            >
-              Story
-            </button>
-          ) : null}
           {onStartTour ? (
             <button className="ghost-button" type="button" onClick={onStartTour}>
               Tour
@@ -187,22 +165,6 @@ export default function JourneyPanel({
           </p>
         </div>
         <div className="journey-head-actions">
-          <button className="ghost-button" type="button" onClick={onShowShortcuts}>
-            Shortcuts
-          </button>
-          {onToggleStory ? (
-            <button
-              className={`ghost-button ${storyActive ? 'active' : ''}`}
-              type="button"
-              onClick={onToggleStory}
-              data-help
-              data-help-title="Story mode"
-              data-help-body="Auto-play the walkthrough for new viewers."
-              data-help-placement="bottom"
-            >
-              {storyActive ? 'Stop story' : 'Story mode'}
-            </button>
-          ) : null}
           {onStartTour ? (
             <button className="ghost-button" type="button" onClick={onStartTour}>
               Start tour
