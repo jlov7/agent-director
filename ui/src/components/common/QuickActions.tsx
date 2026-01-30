@@ -5,6 +5,7 @@ type QuickActionsProps = {
   isPlaying: boolean;
   storyActive: boolean;
   explainMode: boolean;
+  hidden?: boolean;
   onTogglePlay: () => void;
   onStartStory: () => void;
   onStopStory: () => void;
@@ -20,6 +21,7 @@ export default function QuickActions({
   isPlaying,
   storyActive,
   explainMode,
+  hidden = false,
   onTogglePlay,
   onStartStory,
   onStopStory,
@@ -29,6 +31,7 @@ export default function QuickActions({
   onToggleExplain,
   onJumpToBottleneck,
 }: QuickActionsProps) {
+  if (hidden) return null;
   const playLabel = isPlaying ? 'Pause' : 'Play';
   const storyLabel = storyActive ? 'Stop story' : 'Story mode';
 

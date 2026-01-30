@@ -821,7 +821,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app ${explainMode ? 'explain-mode' : ''}`}>
+    <div className={`app ${explainMode ? 'explain-mode' : ''} ${mode === 'compare' ? 'mode-compare' : ''}`}>
       <Header
         trace={trace}
         traces={traces}
@@ -1042,7 +1042,7 @@ export default function App() {
         </div>
       ) : null}
 
-      <main className="stage" role="main">
+      <main className={`stage ${mode === 'compare' ? 'stage-compare' : ''}`} role="main">
         <div
           className="main"
           ref={viewportRef}
@@ -1094,7 +1094,7 @@ export default function App() {
           </MorphOrchestrator>
         </div>
 
-        {selectedStep ? (
+        {mode === 'compare' ? null : selectedStep ? (
           <Inspector
             traceId={trace.id}
             step={selectedStep}
@@ -1119,6 +1119,7 @@ export default function App() {
         isPlaying={isPlaying}
         storyActive={storyActive}
         explainMode={explainMode}
+        hidden={mode === 'compare'}
         onTogglePlay={togglePlayback}
         onStartStory={startStory}
         onStopStory={stopStory}

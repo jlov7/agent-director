@@ -648,6 +648,10 @@ pre {
   align-items: stretch;
 }
 
+.stage-compare {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .main {
   position: relative;
   background: linear-gradient(135deg, rgba(15, 22, 32, 0.9), rgba(18, 26, 38, 0.9));
@@ -1323,6 +1327,18 @@ pre {
   gap: 16px;
   height: 100%;
   overflow: hidden;
+}
+
+.mode-compare .main {
+  padding: 12px;
+}
+
+.mode-compare .compare-view {
+  gap: 12px;
+}
+
+.mode-compare .compare-grid {
+  gap: 12px;
 }
 
 .compare-header {
