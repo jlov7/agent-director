@@ -27,6 +27,7 @@ type JourneyStep = {
   actionLabel: string;
   action?: () => void;
   disabled?: boolean;
+  tasks?: { label: string; done: boolean }[];
 };
 
 function pickBottleneck(steps: StepSummary[]) {
@@ -72,6 +73,10 @@ export default function JourneyPanel({
       status: statuses[0],
       actionLabel: 'Enter cinema',
       action: () => onModeChange('cinema'),
+      tasks: [
+        { label: 'Scrub the timeline', done: playheadMs > 0 },
+        { label: 'Stay in Cinema mode', done: mode === 'cinema' },
+      ],
     },
     {
       id: 'inspect',
@@ -94,6 +99,10 @@ export default function JourneyPanel({
         }
       },
       disabled: !primaryStepId,
+      tasks: [
+        { label: 'Open the Inspector', done: Boolean(selectedStepId) },
+        { label: 'Jump to the bottleneck', done: Boolean(bottleneck && selectedStepId === bottleneck.id) },
+      ],
     },
     {
       id: 'direct',
@@ -111,6 +120,10 @@ export default function JourneyPanel({
         }
       },
       disabled: !primaryStepId,
+      tasks: [
+        { label: 'Replay from a step', done: Boolean(compareTrace) },
+        { label: 'Compare runs side-by-side', done: Boolean(compareTrace && mode === 'compare') },
+      ],
     },
   ];
   const activeStep = journeySteps[currentIndex];
@@ -188,19 +201,31 @@ export default function JourneyPanel({
       </div>
       <div className="journey-track">
         {journeySteps.map((step, index) => (
-          <div key={step.id} className="journey-card" data-status={step.status}>
-            <div className="journey-card-top">
-              <span className="journey-index">0{index + 1}</span>
-              <span className="journey-status">{step.status}</span>
-            </div>
-            <h3 className="journey-card-title">{step.title}</h3>
-            <p className="journey-card-body">{step.summary}</p>
-            <button
-              className="primary-button journey-action"
-              type="button"
-              onClick={step.action}
-              disabled={step.disabled}
-            >
+            <div key={step.id} className="journey-card" data-status={step.status}>
+              <div className="journey-card-top">
+                <span className="journey-index">0{index + 1}</span>
+                <span className="journey-status">{step.status}</span>
+              </div>
+              <h3 className="journey-card-title">{step.title}</h3>
+              <p className="journey-card-body">{step.summary}</p>
+              {step.tasks?.length ? (
+                <ul className="journey-tasks">
+                  {step.tasks.map((task) => (
+                    <li key={task.label} className={`journey-task ${task.done ? 'done' : ''}`}>
+                      <span className="journey-task-icon" aria-hidden="true">
+                        {task.done ? '✓' : '○'}
+                      </span>
+                      <span>{task.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <button
+                className="primary-button journey-action"
+                type="button"
+                onClick={step.action}
+                disabled={step.disabled}
+              >
               {step.actionLabel}
             </button>
           </div>

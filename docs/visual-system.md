@@ -25,3 +25,4 @@ Agent Director’s visuals map directly to the agent’s behavior.
 - Keep the Insight Strip at the top to provide instant narrative context.
 - A floating Quick Actions dock keeps demo-critical controls within reach.
 - Explain overlays use a consistent glow + arrowed callout to teach without clutter.
+- The Director briefing ribbon uses a subtle sweep to draw attention once, then gets out of the way.

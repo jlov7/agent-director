@@ -33,6 +33,7 @@ Agent Director turns traces into a film strip you can scrub, inspect, and replay
 - **Command palette** exposes every action in two keystrokes.
 - **Intro overlay + guided tour** give first-time viewers a perfect runway.
 - **Explain mode** offers contextual callouts without training docs.
+- **Director briefing** keeps Tour, Story, and Explain one click away.
 
 ## Storyboard (ASCII)
 ```

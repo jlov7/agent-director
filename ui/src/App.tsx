@@ -12,6 +12,7 @@ import DirectorBrief from './components/common/DirectorBrief';
 import GuidedTour, { type TourStep } from './components/common/GuidedTour';
 import ContextHelpOverlay from './components/common/ContextHelpOverlay';
 import IntroOverlay from './components/common/IntroOverlay';
+import HeroRibbon from './components/common/HeroRibbon';
 import QuickActions from './components/common/QuickActions';
 import StoryModeBanner from './components/common/StoryModeBanner';
 import FlowMode from './components/FlowMode';
@@ -134,6 +135,7 @@ export default function App() {
   const [journeyCollapsed, setJourneyCollapsed] = usePersistedState('agentDirector.onboarded', false);
   const [tourCompleted, setTourCompleted] = usePersistedState('agentDirector.tourCompleted', false);
   const [explainMode, setExplainMode] = usePersistedState('agentDirector.explainMode', true);
+  const [heroDismissed, setHeroDismissed] = usePersistedState('agentDirector.heroDismissed', false);
   const [dockOpen, setDockOpen] = usePersistedState('agentDirector.dockOpen', false);
   const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
   const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
@@ -850,6 +852,22 @@ export default function App() {
             setTourOpen(true);
           }}
           onStartStory={startStory}
+        />
+      ) : null}
+      {introDismissed && !heroDismissed ? (
+        <HeroRibbon
+          explainMode={explainMode}
+          storyActive={storyActive}
+          onStartTour={() => {
+            setHeroDismissed(true);
+            setTourOpen(true);
+          }}
+          onStartStory={() => {
+            setHeroDismissed(true);
+            startStory();
+          }}
+          onToggleExplain={() => setExplainMode((prev) => !prev)}
+          onDismiss={() => setHeroDismissed(true)}
         />
       ) : null}
       <GuidedTour

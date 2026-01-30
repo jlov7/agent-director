@@ -27,6 +27,7 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 - Insight Strip with critical path, concurrency heatmap, and IO/timing warnings
 - Story Mode autopilot, quick actions dock, and command palette for instant demos
 - Explain mode contextual overlays + guided tour for zero-guess onboarding
+- Director briefing hero with the 3‑act flow and instant Tour / Story entry points
 - CI + strict verification gates with mutation testing
 
 ## Quick demo (90 seconds)
@@ -37,6 +38,12 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 5. Toggle Flow to morph into the graph, then enable I/O edges.
 6. Replay from a tool step (Hybrid) and switch to Compare.
 7. Export the diff summary and highlight the ghost overlay.
+
+## Onboarding stack
+- **Intro overlay** frames the three‑act journey (Observe → Inspect → Direct).
+- **Director briefing** offers Tour, Story, and Explain entry points.
+- **Guided tour** walks the interface end‑to‑end.
+- **Explain mode** provides just‑in‑time help for every control.
 
 ## Screenshots + Demo
 ![Cinema mode](docs/screenshots/cinema.png)

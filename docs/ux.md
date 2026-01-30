@@ -21,16 +21,18 @@
 
 ## Onboarding stack
 1. **Intro overlay** sets the three-act mental model (Observe → Inspect → Direct) and offers Tour or Story mode.
-2. **Guided tour** highlights the main controls in order.
-3. **Explain mode** offers just-in-time help on any element.
-4. **Story mode** runs the full demo hands-free.
+2. **Director briefing** surfaces Tour, Story, and Explain in one place.
+3. **Guided tour** highlights the main controls in order.
+4. **Explain mode** offers just-in-time help on any element.
+5. **Story mode** runs the full demo hands-free.
 
 ```mermaid
 flowchart LR
-  A[Intro overlay] --> B[Guided tour]
-  B --> C[Explain mode]
-  C --> D[Story mode]
-  D --> E[Hands-on exploration]
+  A[Intro overlay] --> B[Director briefing]
+  B --> C[Guided tour]
+  C --> D[Explain mode]
+  D --> E[Story mode]
+  E --> F[Hands-on exploration]
 ```
 
 ## Keyboard shortcuts

@@ -18,6 +18,7 @@ Agent Director turns traces into a film strip and a semantic graph, with replay 
 - **Replay integrity:** strategies are explicit, invalidation is deterministic, diffs are exportable.
 - **Safe by default:** redaction-first with explicit reveal and safe export enforcement.
 - **Instant insight:** top latency, cost, errors, critical path, and concurrency at a glance.
+- **Instant onboarding:** intro overlay, director briefing, guided tour, and explain mode.
 
 ## Proof of quality
 - Full `make verify` and `make verify-strict` suites are green.

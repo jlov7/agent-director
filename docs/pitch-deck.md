@@ -66,6 +66,15 @@ If you can **watch** a run unfold, you can **direct** it.
 
 ---
 
+# Onboarding that lands fast
+
+- Intro overlay frames Observe → Inspect → Direct.
+- Director briefing offers Tour, Story, and Explain instantly.
+- Guided tour + explain overlays remove guesswork.
+- Story mode runs the full demo hands-free.
+
+---
+
 # Why It Wins
 
 - **Truthful time**: real timestamps + overlap lanes.
