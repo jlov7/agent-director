@@ -16,7 +16,22 @@
 ## Story mode + command palette
 - **Story mode** auto-runs a guided walkthrough for demos and onboarding.
 - **Command palette** (Cmd/Ctrl + K) exposes every action, mode, and safety toggle.
-- **Quick actions rail** keeps critical controls within reach during live demos.
+- **Quick actions dock** keeps critical controls within reach during live demos (and can collapse to a single button).
+- **Explain mode** adds contextual callouts on hover for every major control.
+
+## Onboarding stack
+1. **Intro overlay** sets the three-act mental model (Observe → Inspect → Direct).
+2. **Guided tour** highlights the main controls in order.
+3. **Explain mode** offers just-in-time help on any element.
+4. **Story mode** runs the full demo hands-free.
+
+```mermaid
+flowchart LR
+  A[Intro overlay] --> B[Guided tour]
+  B --> C[Explain mode]
+  C --> D[Story mode]
+  D --> E[Hands-on exploration]
+```
 
 ## Keyboard shortcuts
 - `Space` — Play / pause

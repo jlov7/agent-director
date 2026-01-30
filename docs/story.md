@@ -31,6 +31,8 @@ Agent Director turns traces into a film strip you can scrub, inspect, and replay
 ## The demo accelerants
 - **Story mode** auto-runs the narrative for instant demos.
 - **Command palette** exposes every action in two keystrokes.
+- **Intro overlay + guided tour** give first-time viewers a perfect runway.
+- **Explain mode** offers contextual callouts without training docs.
 
 ## Storyboard (ASCII)
 ```

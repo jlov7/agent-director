@@ -148,7 +148,12 @@ export default function ContextHelpOverlay({ enabled }: ContextHelpOverlayProps)
           height: active.rect.height + 12,
         }}
       />
-      <div className="help-bubble" ref={bubbleRef} style={bubblePos ?? undefined}>
+      <div
+        className="help-bubble"
+        ref={bubbleRef}
+        style={bubblePos ?? undefined}
+        data-placement={active.placement}
+      >
         <div className="help-title">{active.title}</div>
         <div className="help-body">{active.body}</div>
       </div>

@@ -1,6 +1,6 @@
 Agent Director is a cinematic, chat‑native debugger for AI agents.
 
-Optional: I can hit Story mode to auto‑run the walkthrough, then pause and take over.
+Optional: I can start the guided tour or hit Story mode to auto‑run the walkthrough, then pause and take over.
 
 Here’s a live run. I’ll hit play—notice the playback is driven by real timestamps,
 so overlaps are honest and timing is trustworthy.

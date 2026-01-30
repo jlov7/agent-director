@@ -53,7 +53,8 @@ export default function QuickActions({
         data-help-body="Open the dock to access demos, shortcuts, and instant actions."
         data-help-placement="left"
       >
-        Dock
+        <span className="quick-actions-toggle-label">Actions</span>
+        <span className="quick-actions-toggle-meta">Dock</span>
       </button>
     );
   }

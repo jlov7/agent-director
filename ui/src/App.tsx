@@ -842,7 +842,15 @@ export default function App() {
         explainMode={explainMode}
         storyActive={storyActive}
       />
-      {!introDismissed && !skipIntro ? <IntroOverlay onComplete={() => setIntroDismissed(true)} /> : null}
+      {!introDismissed && !skipIntro ? (
+        <IntroOverlay
+          onComplete={() => setIntroDismissed(true)}
+          onStartTour={() => {
+            setIntroDismissed(true);
+            setTourOpen(true);
+          }}
+        />
+      ) : null}
       <GuidedTour
         steps={tourSteps}
         open={tourOpen}
