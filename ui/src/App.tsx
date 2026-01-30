@@ -377,8 +377,8 @@ export default function App() {
     startStory();
   }, [startStory, stopStory, storyState?.active]);
 
-  const tourSteps = useMemo<TourStep[]>(
-    () => [
+  const tourSteps = useMemo<TourStep[]>(() => {
+    const steps: TourStep[] = [
       {
         id: 'header',
         title: 'Mission control',
@@ -386,6 +386,19 @@ export default function App() {
         target: '[data-tour="header"]',
         placement: 'bottom',
       },
+    ];
+
+    if (!heroDismissed) {
+      steps.push({
+        id: 'hero',
+        title: 'Director briefing',
+        body: 'Choose Tour, Story mode, or Explain to ramp up quickly.',
+        target: '[data-tour="hero"]',
+        placement: 'bottom',
+      });
+    }
+
+    steps.push(
       {
         id: 'insights',
         title: 'Fast diagnosis',
@@ -436,10 +449,11 @@ export default function App() {
           : 'Replay from a step to unlock compare mode and validate improvements.',
         target: '[data-tour="compare"]',
         placement: 'top',
-      },
-    ],
-    [compareTrace]
-  );
+      }
+    );
+
+    return steps;
+  }, [compareTrace, heroDismissed]);
 
   const handleMorphComplete = useCallback(() => {
     setMorphState(null);

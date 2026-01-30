@@ -21,6 +21,7 @@ export default function HeroRibbon({
       aria-label="Director briefing"
       data-help
       data-help-indicator
+      data-tour="hero"
       data-help-title="Director briefing"
       data-help-body="Start the tour, play story mode, or enable explain to learn the interface instantly."
       data-help-placement="bottom"
