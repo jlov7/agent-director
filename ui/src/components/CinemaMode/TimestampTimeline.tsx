@@ -1,9 +1,12 @@
+import type { CSSProperties } from 'react';
 import type { StepSummary, TraceSummary } from '../../types';
 import { buildIntervals } from '../../utils/timingUtils';
 import StepCard from './StepCard';
 import { derivePlaybackState } from '../../utils/playback';
 
 const LANE_HEIGHT = 140;
+const CARD_HEIGHT = 132;
+const COMPACT_HEIGHT = 96;
 
 const typeOrder: Record<string, number> = {
   llm_call: 1,
@@ -32,6 +35,9 @@ type TimestampTimelineProps = {
     changedSteps: string[];
     changedPairs?: Array<{ leftId: string; rightId: string }>;
   } | null;
+  laneHeight?: number;
+  cardHeight?: number;
+  compactHeight?: number;
 };
 
 export default function TimestampTimeline({
@@ -44,6 +50,9 @@ export default function TimestampTimeline({
   windowRange,
   ghostTrace,
   diff,
+  laneHeight = LANE_HEIGHT,
+  cardHeight = CARD_HEIGHT,
+  compactHeight = COMPACT_HEIGHT,
 }: TimestampTimelineProps) {
   const { intervals, laneCount } = buildIntervals(trace.startedAt, trace.endedAt, steps);
   const intervalMap = new Map(intervals.map((interval) => [interval.stepId, interval]));
@@ -73,10 +82,18 @@ export default function TimestampTimeline({
   const visibleStepIds = new Set(visibleIntervals.map((interval) => interval.stepId));
 
   return (
-    <div className="timeline">
+    <div
+      className="timeline"
+      style={
+        {
+          '--step-card-height': `${cardHeight}px`,
+          '--step-compact-height': `${compactHeight}px`,
+        } as CSSProperties
+      }
+    >
       <div
         className="timeline-grid"
-        style={{ height: `${laneCount * LANE_HEIGHT}px` }}
+        style={{ height: `${laneCount * laneHeight}px` }}
         data-help
         data-help-title="Timeline lanes"
         data-help-body="Each lane stacks overlapping steps; width reflects duration."
@@ -99,6 +116,7 @@ export default function TimestampTimeline({
               diffStatus={
                 diffRemoved.has(step.id) ? 'removed' : diffChangedLeft.has(step.id) ? 'changed' : null
               }
+              laneHeight={laneHeight}
               onSelect={onSelectStep}
             />
           );
@@ -111,6 +129,7 @@ export default function TimestampTimeline({
             windowRange={windowRange}
             diffAdded={diffAdded}
             diffChanged={diffChangedRight}
+            laneHeight={laneHeight}
           />
         ) : null}
       </div>
@@ -125,6 +144,7 @@ function GhostOverlay({
   windowRange,
   diffAdded,
   diffChanged,
+  laneHeight,
 }: {
   ghostTrace: TraceSummary;
   baseWallTimeMs: number;
@@ -132,6 +152,7 @@ function GhostOverlay({
   windowRange?: { startMs: number; endMs: number } | null;
   diffAdded: Set<string>;
   diffChanged: Set<string>;
+  laneHeight: number;
 }) {
   const { intervals, laneCount } = buildIntervals(ghostTrace.startedAt, ghostTrace.endedAt, ghostTrace.steps);
   const intervalMap = new Map(intervals.map((interval) => [interval.stepId, interval]));
@@ -155,7 +176,7 @@ function GhostOverlay({
 
   return (
     <>
-      <div className="ghost-lanes" style={{ height: `${laneCount * LANE_HEIGHT}px` }} />
+      <div className="ghost-lanes" style={{ height: `${laneCount * laneHeight}px` }} />
       {sortedGhostSteps
         .filter((step) => visibleStepIds.has(step.id))
         .map((step) => {
@@ -173,6 +194,7 @@ function GhostOverlay({
               diffStatus={diffStatus}
               variant="ghost"
               disabled
+              laneHeight={laneHeight}
               onSelect={() => undefined}
             />
           );

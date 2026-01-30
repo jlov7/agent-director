@@ -110,6 +110,9 @@ export default function Compare({ baseTrace, compareTrace, playheadMs, onExit, s
             playheadPct={basePct}
             playheadMs={playheadMs}
             windowRange={null}
+            laneHeight={110}
+            cardHeight={100}
+            compactHeight={78}
           />
         </div>
         <div
@@ -128,6 +131,9 @@ export default function Compare({ baseTrace, compareTrace, playheadMs, onExit, s
             playheadPct={comparePct}
             playheadMs={playheadMs}
             windowRange={null}
+            laneHeight={110}
+            cardHeight={100}
+            compactHeight={78}
           />
         </div>
       </div>

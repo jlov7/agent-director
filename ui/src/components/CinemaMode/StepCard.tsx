@@ -12,6 +12,7 @@ type StepCardProps = {
   variant?: 'base' | 'ghost';
   diffStatus?: 'changed' | 'added' | 'removed' | null;
   disabled?: boolean;
+  laneHeight?: number;
 };
 
 export default function StepCard({
@@ -23,6 +24,7 @@ export default function StepCard({
   variant = 'base',
   diffStatus,
   disabled = false,
+  laneHeight = 140,
 }: StepCardProps) {
   const costLabel = stepCostLabel(step);
   const subtitle = step.preview?.subtitle ?? step.preview?.title ?? '';
@@ -51,7 +53,7 @@ export default function StepCard({
       style={{
         left: `${interval.xPct}%`,
         width: `${interval.wPct}%`,
-        top: `${interval.lane * 140}px`,
+        top: `${interval.lane * laneHeight}px`,
       }}
       onClick={() => {
         if (disabled) return;

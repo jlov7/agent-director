@@ -679,6 +679,8 @@ pre {
 .timeline {
   position: relative;
   padding-bottom: 20px;
+  --step-card-height: 132px;
+  --step-compact-height: 96px;
 }
 
 .timeline-grid {
@@ -721,7 +723,7 @@ pre {
   cursor: pointer;
   transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
   overflow: hidden;
-  height: 132px;
+  height: var(--step-card-height);
 }
 
 .step-card:hover {
@@ -907,7 +909,7 @@ pre {
 }
 
 .step-compact {
-  height: 96px;
+  height: var(--step-compact-height);
 }
 
 .step-compact .step-subtitle,
@@ -1320,9 +1322,7 @@ pre {
   flex-direction: column;
   gap: 16px;
   height: 100%;
-  overflow: auto;
-  padding-right: 8px;
-  padding-bottom: 6px;
+  overflow: hidden;
 }
 
 .compare-header {
@@ -1361,6 +1361,7 @@ pre {
   border-radius: var(--radius-md);
   padding: 12px;
   min-height: 260px;
+  overflow: hidden;
 }
 
 .compare-pane-title {
@@ -1369,6 +1370,29 @@ pre {
   text-transform: uppercase;
   letter-spacing: 0.16em;
   font-size: 0.65rem;
+}
+
+.compare-view .timeline-grid {
+  background-size: 100px 100%;
+}
+
+.compare-view .step-card {
+  padding: 10px;
+}
+
+.compare-view .step-subtitle {
+  font-size: 0.7rem;
+  margin-bottom: 4px;
+}
+
+.compare-view .step-metrics {
+  font-size: 0.7rem;
+  margin-bottom: 4px;
+}
+
+.compare-view .step-preview {
+  -webkit-line-clamp: 1;
+  font-size: 0.75rem;
 }
 
 .morph-layer {
