@@ -41,6 +41,109 @@ export async function fetchTrace(traceId: string): Promise<{ trace: TraceSummary
   return { trace: demoTrace as TraceSummary };
 }
 
+// Demo payload data for step details
+const demoPayloads: Record<string, Record<string, unknown>> = {
+  s1: {
+    role: 'assistant',
+    content: "I'll analyze the user's request and create a plan to fetch information from two sources: a web search for current EU AI Act updates and a database query for historical compliance data.",
+    model: 'gpt-4o-2024-11-20',
+    usage: { prompt_tokens: 150, completion_tokens: 150, total_tokens: 300 },
+    reasoning: "The user wants comprehensive information about AI regulations. I'll use parallel tool calls to maximize efficiency.",
+  },
+  s2: {
+    role: 'assistant',
+    content: null,
+    tool_calls: [
+      { id: 'tc-001', type: 'function', function: { name: 'web_search', arguments: '{"q":"EU AI Act latest updates 2026"}' } },
+      { id: 'tc-002', type: 'function', function: { name: 'database_query', arguments: '{"sql":"SELECT * FROM compliance_records WHERE region=\'EU\' ORDER BY date DESC LIMIT 10"}' } },
+    ],
+    model: 'gpt-4o-2024-11-20',
+    usage: { prompt_tokens: 80, completion_tokens: 40, total_tokens: 120 },
+  },
+  s3: {
+    tool_call_id: 'tc-001',
+    tool_name: 'web_search',
+    input: { q: 'EU AI Act latest updates 2026' },
+    output: {
+      results: [
+        { title: 'EU AI Act Implementation Timeline', url: 'https://example.com/ai-act', snippet: 'The EU AI Act enters full force in 2026...' },
+        { title: 'High-Risk AI Systems Classification', url: 'https://example.com/classification', snippet: 'New guidance on high-risk categorization...' },
+        { title: 'Compliance Deadlines Approaching', url: 'https://example.com/deadlines', snippet: 'Organizations must comply by August 2026...' },
+      ],
+      total_results: 3,
+      search_time_ms: 1850,
+    },
+    status: 'success',
+  },
+  s4: {
+    tool_call_id: 'tc-002',
+    tool_name: 'database_query',
+    input: { sql: "SELECT * FROM compliance_records WHERE region='EU' ORDER BY date DESC LIMIT 10" },
+    output: {
+      rows: [
+        { id: 1, company: 'TechCorp', status: 'compliant', date: '2026-01-15' },
+        { id: 2, company: 'AIStartup', status: 'in_progress', date: '2026-01-10' },
+        { id: 3, company: 'DataCo', status: 'compliant', date: '2026-01-05' },
+      ],
+      row_count: 42,
+      query_time_ms: 1100,
+    },
+    status: 'success',
+  },
+  s5: {
+    role: 'assistant',
+    content: "Based on my analysis of the web search results and database records:\n\n**Key Findings:**\n1. The EU AI Act is now in full effect as of 2026\n2. High-risk AI systems require specific compliance measures\n3. 42 organizations in our database have compliance records\n\n**Recommendations:**\n- Review classification of AI systems\n- Ensure documentation is complete\n- Schedule compliance audit before August deadline",
+    model: 'gpt-4o-2024-11-20',
+    usage: { prompt_tokens: 450, completion_tokens: 250, total_tokens: 700 },
+    reasoning: "Synthesized information from both the web search (3 relevant articles) and database query (42 compliance records) to provide actionable insights.",
+  },
+};
+
+function getDemoStepDetails(stepId: string, safeExport: boolean): StepDetails | null {
+  const step = (demoTrace as TraceSummary).steps.find((s) => s.id === stepId);
+  if (!step) return null;
+
+  const rawData = demoPayloads[stepId];
+  if (!rawData) return null;
+
+  // Apply redaction for safe export
+  const data = safeExport ? redactSensitiveData(rawData) : rawData;
+
+  return {
+    id: stepId,
+    traceId: (demoTrace as TraceSummary).id,
+    data,
+    redactedPaths: safeExport ? ['output.rows', 'input.sql', 'tool_calls'] : [],
+    rawAvailable: !safeExport,
+  };
+}
+
+function redactSensitiveData(data: Record<string, unknown>): Record<string, unknown> {
+  const redacted = JSON.parse(JSON.stringify(data));
+  // Redact SQL queries
+  if (redacted.input?.sql) {
+    redacted.input.sql = '[REDACTED]';
+  }
+  // Redact database rows
+  if (redacted.output?.rows) {
+    redacted.output.rows = redacted.output.rows.map((row: Record<string, unknown>) => ({
+      ...row,
+      company: '[REDACTED]',
+    }));
+  }
+  // Redact tool call arguments
+  if (redacted.tool_calls) {
+    redacted.tool_calls = redacted.tool_calls.map((tc: Record<string, unknown>) => ({
+      ...tc,
+      function: {
+        ...(tc.function as Record<string, unknown>),
+        arguments: '[REDACTED]',
+      },
+    }));
+  }
+  return redacted;
+}
+
 export async function fetchStepDetails(
   traceId: string,
   stepId: string,
@@ -48,7 +151,11 @@ export async function fetchStepDetails(
   revealPaths: string[] = [],
   safeExport: boolean = false
 ): Promise<StepDetails | null> {
-  if (FORCE_DEMO) return null;
+  if (FORCE_DEMO) {
+    // Simulate network delay for realism
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    return getDemoStepDetails(stepId, safeExport);
+  }
   const effectiveMode = safeExport ? 'redacted' : redactionMode;
   const effectiveRevealPaths = effectiveMode === 'redacted' && !safeExport ? revealPaths : [];
   const cacheKey = `${traceId}:${stepId}:${effectiveMode}:${safeExport}:${effectiveRevealPaths.join('|')}`;
@@ -69,8 +176,14 @@ export async function fetchStepDetails(
   )
     .then((payload) => {
       const step = payload?.step ?? null;
-      if (step) stepDetailsCache.set(cacheKey, step);
-      return step;
+      if (step) {
+        stepDetailsCache.set(cacheKey, step);
+        return step;
+      }
+      // Fallback to demo data when API is unavailable
+      const demoStep = getDemoStepDetails(stepId, safeExport);
+      if (demoStep) stepDetailsCache.set(cacheKey, demoStep);
+      return demoStep;
     })
     .finally(() => {
       stepDetailsInflight.delete(cacheKey);

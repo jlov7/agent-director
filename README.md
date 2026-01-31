@@ -129,6 +129,15 @@ For deep UX review (traces + Lighthouse + optional Percy):
 make verify-ux
 ```
 
+### Test Coverage
+
+| Category | Tests | Coverage |
+|----------|-------|----------|
+| Unit (Vitest) | 206 | Components, hooks, API, utilities |
+| E2E (Playwright) | 40+ | Onboarding, keyboard, inspector, flow |
+| Visual | 3 | Cinema, Flow, Compare snapshots |
+| Accessibility | 1 | Axe violations scan |
+
 See `TESTING.md` for details.
 
 ## Docs (story + diagrams)
