@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 // TODO: Fix selector issues - these tests need proper element selectors
-test.skip(({ browserName }) => true, 'Temporarily disabled pending selector fixes');
+test.skip(() => true, 'Temporarily disabled pending selector fixes');
 
 /**
  * Helper to initialize localStorage for a fully onboarded user.
