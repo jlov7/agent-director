@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePersistedState } from './usePersistedState';
 import type { StepSummary, TraceSummary } from '../types';
 import { prefetchStepDetails } from '../store/api';
-import { collectBoundaries } from '../utils/playbackBoundaries';
+import { collectStepBoundaries } from '../utils/playbackBoundaries';
 
 export type PlaybackState = {
   isPlaying: boolean;
@@ -121,16 +121,16 @@ export function usePlaybackState(
   const seekToBoundary = useCallback((direction: 'prev' | 'next', steps: StepSummary[]) => {
     if (!trace) return;
 
-    const boundaries = collectBoundaries(steps, trace);
+    const boundaries = collectStepBoundaries(trace.startedAt, trace.endedAt, steps);
     const traceStart = new Date(trace.startedAt).getTime();
 
     if (direction === 'next') {
-      const next = boundaries.find((b) => b > playheadMs + traceStart);
+      const next = boundaries.find((b: number) => b > playheadMs + traceStart);
       if (next !== undefined) {
         setPlayheadMs(next - traceStart);
       }
     } else {
-      const prevBoundaries = boundaries.filter((b) => b < playheadMs + traceStart - 50);
+      const prevBoundaries = boundaries.filter((b: number) => b < playheadMs + traceStart - 50);
       const prev = prevBoundaries[prevBoundaries.length - 1];
       if (prev !== undefined) {
         setPlayheadMs(prev - traceStart);

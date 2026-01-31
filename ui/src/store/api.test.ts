@@ -188,7 +188,6 @@ describe('API Layer', () => {
   describe('fetchStepDetails', () => {
     const createMockStepDetails = (overrides: Partial<StepDetails> = {}): StepDetails => ({
       id: 's1',
-      traceId: 'trace-1',
       index: 0,
       type: 'llm_call',
       name: 'plan',
@@ -222,7 +221,7 @@ describe('API Layer', () => {
       // Falls back to demo data for step s1
       expect(result).not.toBeNull();
       expect(result?.id).toBe('s1');
-      expect(result?.traceId).toBe('demo-trace-overlap-001');
+      expect(result?.name).toBe('plan');
     });
 
     it('falls back to demo data on network failure', async () => {
@@ -232,7 +231,7 @@ describe('API Layer', () => {
       // Falls back to demo data for step s1
       expect(result).not.toBeNull();
       expect(result?.id).toBe('s1');
-      expect(result?.traceId).toBe('demo-trace-overlap-001');
+      expect(result?.name).toBe('plan');
     });
 
     it('returns null when step not in demo data', async () => {

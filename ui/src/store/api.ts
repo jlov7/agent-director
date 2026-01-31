@@ -110,11 +110,8 @@ function getDemoStepDetails(stepId: string, safeExport: boolean): StepDetails | 
   const data = safeExport ? redactSensitiveData(rawData) : rawData;
 
   return {
-    id: stepId,
-    traceId: (demoTrace as TraceSummary).id,
+    ...step,
     data,
-    redactedPaths: safeExport ? ['output.rows', 'input.sql', 'tool_calls'] : [],
-    rawAvailable: !safeExport,
   };
 }
 

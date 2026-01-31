@@ -12,5 +12,6 @@
     "skipLibCheck": true,
     "types": ["vitest/globals"]
   },
-  "include": ["src", "playwright.config.ts", "vite.config.ts", "tests"]
+  "include": ["src", "playwright.config.ts", "vite.config.ts"],
+  "exclude": ["tests/e2e"]
 }

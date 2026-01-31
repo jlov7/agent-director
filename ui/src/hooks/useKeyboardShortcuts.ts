@@ -83,7 +83,7 @@ export function useKeyboardShortcuts(
       // Command palette toggle (Cmd/Ctrl + K)
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        setShowPalette((prev) => !prev);
+        setShowPalette(!showPalette);
         return;
       }
 

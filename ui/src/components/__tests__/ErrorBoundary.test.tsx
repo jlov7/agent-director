@@ -10,24 +10,6 @@ function ThrowingComponent({ shouldThrow = true }: { shouldThrow?: boolean }) {
   return <div>Child content rendered successfully</div>;
 }
 
-// Component that throws on a specific condition (used for potential future tests)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function ConditionalThrowingComponent({ errorOnClick }: { errorOnClick?: boolean }) {
-  const [shouldThrow, setShouldThrow] = React.useState(false);
-
-  if (shouldThrow) {
-    throw new Error('Conditional error');
-  }
-
-  return (
-    <button onClick={() => errorOnClick && setShouldThrow(true)}>
-      Trigger Error
-    </button>
-  );
-}
-
-// Need to import React for the useState hook
-import React from 'react';
 
 describe('ErrorBoundary', () => {
   const mockOnError = vi.fn();
@@ -152,7 +134,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('shows generic error message when error has no message', () => {
-    function NoMessageErrorComponent() {
+    function NoMessageErrorComponent(): JSX.Element {
       throw new Error();
     }
 
