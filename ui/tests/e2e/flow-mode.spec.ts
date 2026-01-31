@@ -209,9 +209,6 @@ test.describe('Flow Mode - Edge Layer Toggles', () => {
     await page.keyboard.press('f');
     await expect(page.locator('.flow-canvas')).toBeVisible();
 
-    // Edges should be visible
-    const edges = page.locator('.react-flow__edge');
-
     // Toggle off all edge types
     const structureToggle = page.locator('.edge-toggles').getByLabel('Structure');
     const ioToggle = page.locator('.edge-toggles').getByLabel('I/O Binding');

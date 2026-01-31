@@ -10,7 +10,8 @@ function ThrowingComponent({ shouldThrow = true }: { shouldThrow?: boolean }) {
   return <div>Child content rendered successfully</div>;
 }
 
-// Component that throws on a specific condition
+// Component that throws on a specific condition (used for potential future tests)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function ConditionalThrowingComponent({ errorOnClick }: { errorOnClick?: boolean }) {
   const [shouldThrow, setShouldThrow] = React.useState(false);
 

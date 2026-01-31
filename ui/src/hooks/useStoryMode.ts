@@ -173,6 +173,7 @@ export function useStoryMode(
       setStoryState(null);
     }
     storyTraceIdRef.current = trace?.id ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trace?.id]);
 
   const startStory = useCallback(() => {
