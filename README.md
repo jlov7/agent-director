@@ -109,6 +109,27 @@ python3 -m server.mcp_server
 Set `AGENT_DIRECTOR_MCP_TRANSPORT` to `stdio` if your host requires stdio.
 Set `AGENT_DIRECTOR_UI_URL` to the UI entrypoint that the host should load (defaults to `http://127.0.0.1:5173`).
 
+## Environment variables
+
+### Server
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `AGENT_DIRECTOR_DATA_DIR` | `~/.agent-director` | Overrides trace/data storage path. |
+| `AGENT_DIRECTOR_SAFE_EXPORT` | `0` | Forces redaction-safe exports on all step detail responses. |
+| `AGENT_DIRECTOR_MCP_TRANSPORT` | host default | MCP transport (`stdio` when required by host). |
+| `AGENT_DIRECTOR_UI_URL` | `http://127.0.0.1:5173` | UI URL surfaced by MCP resource metadata. |
+
+### UI
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `VITE_API_BASE` | `http://127.0.0.1:8787` | Base URL for server API calls. |
+| `VITE_FORCE_DEMO` | `0` | Forces embedded demo trace mode (useful for deterministic demos/tests). |
+| `VITE_SKIP_INTRO` | `0` | Skips intro overlay for controlled environments. |
+| `VITE_HIDE_BUILD_DATE` | `0` | Hides build timestamp in the header. |
+| `BASE_PATH` | `/` | Build-time base path for static hosting (for example GitHub Pages). |
+
 ## Testing
 
 Run the full verification suite:
@@ -164,6 +185,16 @@ Clean up old traces and export snapshots:
 python3 scripts/store_maintenance.py cleanup --keep 20
 python3 scripts/store_maintenance.py snapshot --output ./agent-director-snapshot.zip
 ```
+
+## Deployment notes
+
+### Vercel
+- The repository includes `vercel.json` with the UI build configured.
+- Deploy by connecting the repo in Vercel or running `vercel --prod`.
+
+### GitHub Pages
+- The `deploy-pages` workflow builds `ui` with `BASE_PATH=/<repo>/` and publishes `ui/dist`.
+- Push to `main` to trigger deployment.
 
 ---
 

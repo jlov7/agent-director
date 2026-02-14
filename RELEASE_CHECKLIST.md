@@ -1,13 +1,13 @@
 # Release Checklist (v1)
 
 ## Core User Journeys
-- [ ] Happy path is coherent end-to-end.
-- [ ] Key failure states are coherent end-to-end.
-- [ ] UX and copy are clear in both success and failure states.
+- [x] Happy path is coherent end-to-end.
+- [x] Key failure states are coherent end-to-end.
+- [x] UX and copy are clear in both success and failure states.
 
 ## Onboarding
 - [x] First-run onboarding is implemented.
-- [ ] Empty states are implemented.
+- [x] Empty states are implemented.
 - [x] Progressive disclosure is implemented.
 
 ## Help
@@ -23,24 +23,24 @@
 - [ ] CI is green.
 
 ## Accessibility Basics
-- [ ] Keyboard navigation works for primary flows.
-- [ ] Focus states are sensible.
-- [ ] Labels/aria attributes exist where needed.
+- [x] Keyboard navigation works for primary flows.
+- [x] Focus states are sensible.
+- [x] Labels/aria attributes exist where needed.
 
 ## Performance Basics
-- [ ] No obvious slow pages.
-- [ ] Unnecessary re-renders are avoided on critical flows.
+- [x] No obvious slow pages.
+- [x] Unnecessary re-renders are avoided on critical flows.
 - [ ] Bundle size is reasonable for stack.
 
 ## Security Hygiene
-- [ ] No secrets in repo.
-- [ ] Inputs are validated.
-- [ ] Error handling is safe.
-- [ ] Auth boundaries are respected (if applicable).
+- [x] No secrets in repo.
+- [x] Inputs are validated.
+- [x] Error handling is safe.
+- [x] Auth boundaries are respected (if applicable).
 
 ## Docs
-- [ ] `README.md` includes local setup notes.
-- [ ] `README.md` includes run notes.
-- [ ] `README.md` includes test notes.
-- [ ] `README.md` includes deploy notes.
-- [ ] `README.md` includes env vars.
+- [x] `README.md` includes local setup notes.
+- [x] `README.md` includes run notes.
+- [x] `README.md` includes test notes.
+- [x] `README.md` includes deploy notes.
+- [x] `README.md` includes env vars.

@@ -55,15 +55,14 @@ describe('API Layer', () => {
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/traces'));
     });
 
-    it('returns demo trace on empty API response', async () => {
+    it('returns empty list on empty API response', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ traces: [] }),
       });
 
       const traces = await fetchTraces();
-      expect(traces).toHaveLength(1);
-      expect(traces[0].id).toBe(demoTrace.id);
+      expect(traces).toHaveLength(0);
     });
 
     it('returns demo trace on API error response', async () => {

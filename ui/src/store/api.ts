@@ -19,7 +19,7 @@ async function safeFetchJson<T>(url: string): Promise<T | null> {
 export async function fetchTraces(): Promise<TraceSummary[]> {
   if (FORCE_DEMO) return [demoTrace as TraceSummary];
   const payload = await safeFetchJson<{ traces: TraceSummary[] }>(`${API_BASE}/api/traces`);
-  if (payload?.traces?.length) return payload.traces;
+  if (payload && Array.isArray(payload.traces)) return payload.traces;
   return [demoTrace as TraceSummary];
 }
 

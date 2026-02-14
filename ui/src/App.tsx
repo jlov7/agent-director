@@ -832,13 +832,35 @@ export default function App() {
     return <div className="loading">Loading trace...</div>;
   }
 
+  if (!error && !trace && traces.length === 0) {
+    return (
+      <div className="error">
+        <h2>No traces yet</h2>
+        <p>Ingest your first trace, then reload to begin the Observe → Inspect → Direct workflow.</p>
+        <div className="error-actions">
+          <button className="primary-button" type="button" onClick={reload}>
+            Retry
+          </button>
+          <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
+            Open help
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   if (error || !trace) {
     return (
       <div className="error">
         <p>{error ?? 'Failed to load trace.'}</p>
-        <button className="primary-button" type="button" onClick={reload}>
-          Retry
-        </button>
+        <div className="error-actions">
+          <button className="primary-button" type="button" onClick={reload}>
+            Retry
+          </button>
+          <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
+            Open help
+          </a>
+        </div>
       </div>
     );
   }

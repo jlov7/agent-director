@@ -2233,6 +2233,14 @@ pre {
   text-align: center;
 }
 
+.error-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

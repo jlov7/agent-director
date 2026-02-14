@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from json import JSONDecodeError
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict
 from urllib.parse import parse_qs, urlparse
@@ -62,6 +63,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "Not found"})
         except FileNotFoundError as exc:
             self._send_json(404, {"error": str(exc)})
+        except ValueError as exc:
+            self._send_json(400, {"error": str(exc)})
         except Exception as exc:  # pragma: no cover - generic handler
             self._send_json(500, {"error": str(exc)})
 
@@ -91,6 +94,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "Not found"})
         except FileNotFoundError as exc:
             self._send_json(404, {"error": str(exc)})
+        except ValueError as exc:
+            self._send_json(400, {"error": str(exc)})
         except Exception as exc:  # pragma: no cover
             self._send_json(500, {"error": str(exc)})
 
@@ -99,7 +104,10 @@ class ApiHandler(BaseHTTPRequestHandler):
         if length == 0:
             return {}
         body = self.rfile.read(length)
-        return json.loads(body.decode("utf-8"))
+        try:
+            return json.loads(body.decode("utf-8"))
+        except JSONDecodeError as exc:
+            raise ValueError("Malformed JSON payload") from exc
 
     def _send_json(self, status: int, payload: Dict[str, Any]) -> None:
         body = json.dumps(payload).encode("utf-8")

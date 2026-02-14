@@ -67,6 +67,30 @@ class TestApi(unittest.TestCase):
         self.assertEqual(len(data["traces"]), 1)
         conn.close()
 
+    def test_replay_invalid_strategy_returns_400(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = json.dumps({"step_id": "s1", "strategy": "invalid", "modifications": {}})
+        conn.request("POST", "/api/traces/trace-1/replay", body=body, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 400)
+        self.assertIn("error", payload)
+        conn.close()
+
+    def test_replay_malformed_json_returns_400(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        conn.request(
+            "POST",
+            "/api/traces/trace-1/replay",
+            body="{not json}",
+            headers={"Content-Type": "application/json"},
+        )
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 400)
+        self.assertIn("error", payload)
+        conn.close()
+
 
 if __name__ == "__main__":
     unittest.main()
