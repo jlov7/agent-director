@@ -45,7 +45,7 @@ export default function QuickActions({
         className="quick-actions-toggle"
         type="button"
         onClick={onToggleOpen}
-        aria-label="Open quick actions"
+        title="Open quick actions"
         aria-expanded="false"
         data-help
         data-tour="quick-actions"

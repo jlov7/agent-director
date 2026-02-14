@@ -616,6 +616,11 @@ export default function App() {
       }
 
       if (event.key === 'Escape') {
+        if (tourOpen) {
+          setTourOpen(false);
+          setTourCompleted(true);
+          return;
+        }
         setShowShortcuts(false);
         setShowPalette(false);
         setSelectedStepId(null);
@@ -675,6 +680,8 @@ export default function App() {
     setExplainMode,
     setShowPalette,
     setTourOpen,
+    setTourCompleted,
+    tourOpen,
     toggleStory,
   ]);
 

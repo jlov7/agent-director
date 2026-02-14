@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 
 export type TourStep = {
   id: string;
@@ -23,6 +24,7 @@ export default function GuidedTour({ steps, open, onClose, onComplete }: GuidedT
   const [cardPos, setCardPos] = useState<{ top: number; left: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const activeTargetRef = useRef<HTMLElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const step = useMemo(() => steps[index], [steps, index]);
 
@@ -82,6 +84,19 @@ export default function GuidedTour({ steps, open, onClose, onComplete }: GuidedT
   }, [open]);
 
   useEffect(() => {
+    if (!open) {
+      previousFocusRef.current?.focus?.();
+      return;
+    }
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    const timer = window.setTimeout(() => {
+      const focusable = cardRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      (focusable ?? cardRef.current)?.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
     const element = document.querySelector(step.target) as HTMLElement | null;
     if (element) {
@@ -111,6 +126,29 @@ export default function GuidedTour({ steps, open, onClose, onComplete }: GuidedT
 
   if (!open || !step) return null;
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(
+      cardRef.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') ?? []
+    );
+    if (focusable.length === 0) return;
+    const active = document.activeElement as HTMLElement | null;
+    const currentIndex = focusable.indexOf(active as HTMLElement);
+    const nextIndex = event.shiftKey
+      ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+      : (currentIndex + 1) % focusable.length;
+    focusable[nextIndex]?.focus();
+    event.preventDefault();
+  };
+
+  const titleId = `tour-title-${step.id}`;
+  const bodyId = `tour-body-${step.id}`;
+
   const highlightStyle = targetRect
     ? {
         top: targetRect.top - 6,
@@ -121,17 +159,26 @@ export default function GuidedTour({ steps, open, onClose, onComplete }: GuidedT
     : undefined;
 
   return (
-    <div className="tour-overlay" role="dialog" aria-modal="true" aria-label="Guided tour">
+    <div
+      className="tour-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Guided tour"
+      aria-labelledby={titleId}
+      aria-describedby={bodyId}
+      onKeyDown={handleKeyDown}
+    >
       <div className="tour-backdrop" onClick={onClose} />
       {targetRect ? <div className="tour-spotlight" style={highlightStyle} /> : null}
       <div
         className={`tour-card ${cardPos ? 'tour-card-anchored' : ''}`}
         ref={cardRef}
         style={cardPos ?? undefined}
+        tabIndex={-1}
       >
         <div className="tour-step">Step {index + 1} of {steps.length}</div>
-        <div className="tour-title">{step.title}</div>
-        <p className="tour-body">{step.body}</p>
+        <div className="tour-title" id={titleId}>{step.title}</div>
+        <p className="tour-body" id={bodyId}>{step.body}</p>
         <div className="tour-actions">
           <button
             className="ghost-button"

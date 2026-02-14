@@ -42,7 +42,6 @@ export default function StepCard({
       type="button"
       className={`step-card step-${step.type} step-${playbackState} ${selected ? 'step-selected' : ''} ${diffClass} ${variantClass} ${compactClass}`}
       data-step-id={step.id}
-      aria-label={`${step.name} (${step.type})`}
       aria-pressed={selected}
       aria-hidden={variant === 'ghost'}
       disabled={disabled}
