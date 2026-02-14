@@ -16,6 +16,24 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: Add `RELEASE_GATES.md` with gate IDs, pass criteria, and evidence mapping to `artifacts/doctor.json`.
 - Status: `Closed` (2026-02-14, `RELEASE_GATES.md` added and wired to doctor output)
 
+### GAP-P0-003: `verify_strict` failing in `make doctor` due to sandboxed runtime permissions
+- Evidence: Prior run had local runtime permission errors that prevented strict verification.
+- Impacted journey: Core journeys, quality, accessibility, and performance gates (`G1`, `G3`, `G4`, `G5`).
+- Fix strategy: Re-run in fully permitted environment and confirm strict verification is stable.
+- Status: `Closed` (2026-02-14, no longer reproducible; `make verify-strict` and `make doctor` passing)
+
+### GAP-P0-004: Dependency audit blocked by offline registry access
+- Evidence: Prior run had transient registry connectivity issues during `pnpm audit`.
+- Impacted journey: Security gate (`G6`).
+- Fix strategy: Re-run release checks in online environment and confirm dependency audit pass.
+- Status: `Closed` (2026-02-14, `dependency_audit=pass` in current `artifacts/doctor.json`)
+
+### GAP-P0-005: CI status check blocked by GitHub API access
+- Evidence: Prior run had transient GitHub API connectivity errors from `gh pr view`.
+- Impacted journey: CI gate (`G8`).
+- Fix strategy: Re-run CI evidence checks and confirm active PR status is green.
+- Status: `Closed` (2026-02-14, `ci_status=pass` in `artifacts/doctor.json` and PR checks green)
+
 ## P1
 
 ### GAP-P1-006: Replay engine emitted invalid UTC timestamp format (`+00:00Z`)

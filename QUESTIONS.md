@@ -34,3 +34,5 @@
   Decision: enforce non-empty ID validation (`trace_id`, `step_id`, `left_trace_id`, `right_trace_id`) and add API 400 regression tests.
 - 2026-02-14: User requested strict 10/10 scorecards across journey and backend/system.
   Decision: implement executable scorecards (`make scorecard`) with hard all-perfect requirement and machine-readable artifact output.
+- 2026-02-14: Release verification had transient environment-level access failures (socket/DB/registry/GitHub API).
+  Decision: rerun full verification in the current environment; all gates now pass (`make verify-strict`, `make doctor`, `make scorecard`, CI green).
