@@ -30,7 +30,7 @@
 ## Performance Basics
 - [x] No obvious slow pages.
 - [x] Unnecessary re-renders are avoided on critical flows.
-- [ ] Bundle size is reasonable for stack.
+- [x] Bundle size is reasonable for stack.
 
 ## Security Hygiene
 - [x] No secrets in repo.

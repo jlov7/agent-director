@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Header from './components/Header';
 import InsightStrip from './components/InsightStrip';
 import SearchBar from './components/SearchBar';
@@ -15,9 +15,6 @@ import IntroOverlay from './components/common/IntroOverlay';
 import HeroRibbon from './components/common/HeroRibbon';
 import QuickActions from './components/common/QuickActions';
 import StoryModeBanner from './components/common/StoryModeBanner';
-import FlowMode from './components/FlowMode';
-import Compare from './components/Compare';
-import Inspector from './components/Inspector';
 import MorphOrchestrator from './components/Morph/MorphOrchestrator';
 import { useTrace } from './hooks/useTrace';
 import type { StepSummary, StepType, TraceSummary } from './types';
@@ -41,6 +38,10 @@ type StoryBeat = {
   duration: number;
   action: () => void | Promise<void>;
 };
+
+const FlowMode = lazy(() => import('./components/FlowMode'));
+const Compare = lazy(() => import('./components/Compare'));
+const Inspector = lazy(() => import('./components/Inspector'));
 
 function buildStructureEdges(steps: StepSummary[]) {
   return steps
@@ -1121,65 +1122,69 @@ export default function App() {
           data-help-placement="top"
         >
           <MorphOrchestrator morph={morphState} onComplete={handleMorphComplete}>
-            {mode === 'cinema' ? (
-              <CinemaMode
-                trace={trace}
-                steps={steps}
-                selectedStepId={selectedStepId}
-                onSelectStep={(stepId) => setSelectedStepId(stepId)}
-                playheadMs={playheadMs}
-                windowRange={windowRange}
-                timing={insights?.timing}
-                ghostTrace={overlayEnabled ? compareTrace : null}
-                diff={diff}
-              />
-            ) : null}
-            {mode === 'flow' ? (
-              <FlowMode
-                steps={steps}
-                selectedStepId={selectedStepId}
-                onSelectStep={(stepId) => setSelectedStepId(stepId)}
-                baseTrace={trace}
-                compareTrace={compareTrace}
-                compareSteps={compareSteps}
-                overlayEnabled={overlayEnabled}
-                onToggleOverlay={() => setOverlayEnabled((prev) => !prev)}
-              />
-            ) : null}
-            {mode === 'compare' && compareTrace ? (
-              <Compare
-                baseTrace={trace}
-                compareTrace={compareTrace}
-                playheadMs={playheadMs}
-                safeExport={safeExport}
-                onExit={() => {
-                  setMode('cinema');
-                  setCompareTrace(null);
-                }}
-              />
-            ) : null}
+            <Suspense fallback={<div className="loading">Loading view...</div>}>
+              {mode === 'cinema' ? (
+                <CinemaMode
+                  trace={trace}
+                  steps={steps}
+                  selectedStepId={selectedStepId}
+                  onSelectStep={(stepId) => setSelectedStepId(stepId)}
+                  playheadMs={playheadMs}
+                  windowRange={windowRange}
+                  timing={insights?.timing}
+                  ghostTrace={overlayEnabled ? compareTrace : null}
+                  diff={diff}
+                />
+              ) : null}
+              {mode === 'flow' ? (
+                <FlowMode
+                  steps={steps}
+                  selectedStepId={selectedStepId}
+                  onSelectStep={(stepId) => setSelectedStepId(stepId)}
+                  baseTrace={trace}
+                  compareTrace={compareTrace}
+                  compareSteps={compareSteps}
+                  overlayEnabled={overlayEnabled}
+                  onToggleOverlay={() => setOverlayEnabled((prev) => !prev)}
+                />
+              ) : null}
+              {mode === 'compare' && compareTrace ? (
+                <Compare
+                  baseTrace={trace}
+                  compareTrace={compareTrace}
+                  playheadMs={playheadMs}
+                  safeExport={safeExport}
+                  onExit={() => {
+                    setMode('cinema');
+                    setCompareTrace(null);
+                  }}
+                />
+              ) : null}
+            </Suspense>
           </MorphOrchestrator>
         </div>
 
-        {mode === 'compare' ? null : selectedStep ? (
-          <Inspector
-            traceId={trace.id}
-            step={selectedStep}
-            safeExport={safeExport}
-            onClose={() => setSelectedStepId(null)}
-            onReplay={handleReplay}
-          />
-        ) : (
-          <DirectorBrief
-            trace={trace}
-            mode={mode}
-            selectedStepId={selectedStepId}
-            onModeChange={handleModeChange}
-            onSelectStep={(stepId) => setSelectedStepId(stepId)}
-            onJumpToBottleneck={jumpToBottleneck}
-            onReplay={handleReplay}
-          />
-        )}
+        <Suspense fallback={<div className="loading">Loading panel...</div>}>
+          {mode === 'compare' ? null : selectedStep ? (
+            <Inspector
+              traceId={trace.id}
+              step={selectedStep}
+              safeExport={safeExport}
+              onClose={() => setSelectedStepId(null)}
+              onReplay={handleReplay}
+            />
+          ) : (
+            <DirectorBrief
+              trace={trace}
+              mode={mode}
+              selectedStepId={selectedStepId}
+              onModeChange={handleModeChange}
+              onSelectStep={(stepId) => setSelectedStepId(stepId)}
+              onJumpToBottleneck={jumpToBottleneck}
+              onReplay={handleReplay}
+            />
+          )}
+        </Suspense>
       </main>
       <QuickActions
         mode={mode}

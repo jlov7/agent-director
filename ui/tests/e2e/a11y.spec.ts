@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const axeSourcePath = require.resolve('axe-core/axe.min.js');
 
 async function initStorage(page: import('@playwright/test').Page) {
   await page.addInitScript(() => {
@@ -15,18 +19,17 @@ async function initStorage(page: import('@playwright/test').Page) {
 }
 
 test('homepage has no detectable a11y violations', async ({ page }) => {
-  let AxeBuilder: typeof import('@axe-core/playwright').default;
-  try {
-    ({ default: AxeBuilder } = await import('@axe-core/playwright'));
-  } catch (error) {
-    test.skip(true, `@axe-core/playwright unavailable: ${(error as Error)?.message ?? 'unknown error'}`);
-    return;
-  }
-
   await initStorage(page);
   await page.goto('/');
   await expect(page.locator('.app')).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).include('.app').analyze();
+  await page.addScriptTag({ path: axeSourcePath });
+  const results = await page.evaluate(async () => {
+    const axe = (window as Window & { axe?: { run: (context?: string) => Promise<{ violations: unknown[] }> } }).axe;
+    if (!axe) {
+      return { violations: [{ id: 'axe-unavailable' }] };
+    }
+    return axe.run('.app');
+  });
   expect(results.violations).toEqual([]);
 });
