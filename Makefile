@@ -9,3 +9,6 @@ verify-ux:
 
 doctor:
 	python3 ./scripts/doctor.py
+
+scorecard:
+	python3 ./scripts/scorecard.py --refresh

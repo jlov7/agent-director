@@ -150,6 +150,12 @@ For release-gate evidence (writes `artifacts/doctor.json`):
 make doctor
 ```
 
+For full 10/10 system scorecards (writes `artifacts/scorecards.json`):
+
+```bash
+make scorecard
+```
+
 For deep UX review (traces + Lighthouse + optional Percy):
 
 ```bash

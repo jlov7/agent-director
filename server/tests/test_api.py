@@ -91,6 +91,26 @@ class TestApi(unittest.TestCase):
         self.assertIn("error", payload)
         conn.close()
 
+    def test_replay_missing_step_id_returns_400(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = json.dumps({"strategy": "recorded", "modifications": {}})
+        conn.request("POST", "/api/traces/trace-1/replay", body=body, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 400)
+        self.assertIn("error", payload)
+        conn.close()
+
+    def test_compare_missing_trace_ids_returns_400(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = json.dumps({})
+        conn.request("POST", "/api/compare", body=body, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 400)
+        self.assertIn("error", payload)
+        conn.close()
+
 
 if __name__ == "__main__":
     unittest.main()

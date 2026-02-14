@@ -24,6 +24,7 @@ Ship a production-ready v1 of Agent Director with coherent end-to-end journeys, 
 - `GAPS.md` has no open P0 or P1 gaps.
 - Any blocked gap is logged in `QUESTIONS.md` with clear decision needed.
 - `make doctor` passes and emits a fresh `artifacts/doctor.json`.
+- `make scorecard` passes with all domains at `10/10`.
 
 ## Non-Stop Conditions
 - Writing plans alone.
@@ -44,6 +45,7 @@ Ship a production-ready v1 of Agent Director with coherent end-to-end journeys, 
 - Strict verification: `make verify-strict`
 - UX verification: `make verify-ux`
 - Doctor loop evidence: `make doctor`
+- 10/10 scorecards: `make scorecard`
 
 ## Quality Bar
 - No regressions in `make verify`.
@@ -52,6 +54,7 @@ Ship a production-ready v1 of Agent Director with coherent end-to-end journeys, 
 - Accessibility basics are enforced on primary flows (keyboard/focus/labels/aria).
 - Security defaults remain safe (redaction-first, no secrets, validated inputs).
 - Documentation remains accurate for setup/run/test/deploy/env vars.
+- Scorecard artifact reports `70/70` with all domains at `10/10`.
 
 ## Execution Rules
 - Work in small, reviewable increments.

@@ -28,3 +28,9 @@
   Decision: keep quick-actions toggle and panel fixed to viewport on narrow breakpoints.
 - 2026-02-14: LHCI surfaced console-error noise and failed performance threshold due layout instability.
   Decision: run LHCI in deterministic demo mode, add inline favicon, and use optional font-display to reduce CLS.
+- 2026-02-14: Replay traces were serialized with invalid timestamps (`+00:00Z`) in replay engine output.
+  Decision: normalize replay timestamps to strict millisecond UTC Z format and add replay engine regression tests.
+- 2026-02-14: API validation accepted empty identifiers and produced inconsistent downstream error semantics.
+  Decision: enforce non-empty ID validation (`trace_id`, `step_id`, `left_trace_id`, `right_trace_id`) and add API 400 regression tests.
+- 2026-02-14: User requested strict 10/10 scorecards across journey and backend/system.
+  Decision: implement executable scorecards (`make scorecard`) with hard all-perfect requirement and machine-readable artifact output.

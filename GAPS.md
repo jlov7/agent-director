@@ -18,6 +18,24 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 
 ## P1
 
+### GAP-P1-006: Replay engine emitted invalid UTC timestamp format (`+00:00Z`)
+- Evidence: replay traces serialized times like `2026-...+00:00Z`, which is not valid strict ISO-8601 UTC Z form.
+- Impacted journey: Replay/compare timeline parsing and backend contract consistency.
+- Fix strategy: Normalize replay timestamp serialization to millisecond UTC Z format and add regression coverage.
+- Status: `Closed` (2026-02-14, fixed in `server/replay/engine.py` with `test_replay_engine.py`)
+
+### GAP-P1-007: API accepted empty IDs and returned inconsistent error semantics
+- Evidence: validation allowed empty strings for trace/step IDs, causing downstream 404s instead of input 400s.
+- Impacted journey: API consumer clarity and failure-state predictability.
+- Fix strategy: enforce non-empty string validation for IDs in MCP schema and add API regression tests.
+- Status: `Closed` (2026-02-14, fixed in `server/mcp/schema.py` and `server/tests/test_api.py`)
+
+### GAP-P1-008: No executable 10/10 scorecard across journey + backend + system quality
+- Evidence: release gates existed, but there was no single pass/fail score artifact requiring 10/10 in each domain.
+- Impacted journey: Autonomous completion confidence and repeatable release sign-off.
+- Fix strategy: add `scripts/scorecard.py`, `SCORECARDS.md`, and `make scorecard` with artifact output and strict all-perfect requirement.
+- Status: `Closed` (2026-02-14, scorecards now generated in `artifacts/scorecards.json`)
+
 ### GAP-P1-003: Guided tour keyboard behavior blocked accessibility primary flow
 - Evidence: Deep UX probe reported focus escaping tour card and `Escape` not closing the tour.
 - Impacted journey: First-run onboarding for keyboard-only and assistive-tech users.

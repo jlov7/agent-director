@@ -35,6 +35,7 @@ Prepare Agent Director for a v1 launch by closing release-critical gaps while mi
 - Onboarding and contextual in-app help are implemented in UI, but no dedicated minimal help page is currently exposed from the app shell.
 - Playwright had `VITE_SKIP_INTRO=1` globally configured, which prevented first-run onboarding coverage from running.
 - `make verify` did not run `pnpm -C ui build`, which left one release quality gate unenforced.
+- Forcing Lighthouse to use Playwright Chromium (`CHROME_PATH`) caused repeated `NO_FCP` flake in this environment; system Chrome proved stable.
 
 ## Decision Log
 - Prioritize high-signal, minimal-risk release fixes first: restore key test coverage and add explicit help surface before broader UX polish.
@@ -68,3 +69,4 @@ Per milestone, run:
 - Final hard-gap pass shipped: bundle-size warning removed via lazy loading, accessibility check runs without conditional skip, and previously skipped `flow-mode`/`inspector` suites are now active and passing.
 - CI closure shipped: PR #1 created and GitHub `verify` check confirmed green.
 - Final polish pass shipped: verification now enforces build by default, dependency audit reports no high vulnerabilities, and inspector unit tests no longer emit async `act` warning noise.
+- Final 10/10 pass shipped: backend timestamp/validation regressions closed, executable scorecards added (`make scorecard`), and LHCI runtime stabilized with robust retry/fallback behavior.

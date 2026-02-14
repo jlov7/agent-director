@@ -8,6 +8,10 @@ from uuid import uuid4
 from ..trace.schema import ReplayInfo, StepSummary, TraceMetadata, TraceSummary
 
 
+def _to_utc_z(dt: datetime) -> str:
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+
 def replay_from_step(
     trace: TraceSummary,
     step_id: str,
@@ -58,7 +62,7 @@ def _shift_times(trace: TraceSummary, new_start: datetime) -> None:
         old_start = old_start.replace(tzinfo=timezone.utc)
     delta = new_start - old_start
 
-    trace.startedAt = (old_start + delta).isoformat(timespec="milliseconds") + "Z"
+    trace.startedAt = _to_utc_z(old_start + delta)
     if trace.endedAt:
         try:
             old_end = datetime.strptime(trace.endedAt, fmt)
@@ -66,7 +70,7 @@ def _shift_times(trace: TraceSummary, new_start: datetime) -> None:
             old_end = old_start
         if old_end.tzinfo is None:
             old_end = old_end.replace(tzinfo=timezone.utc)
-        trace.endedAt = (old_end + delta).isoformat(timespec="milliseconds") + "Z"
+        trace.endedAt = _to_utc_z(old_end + delta)
 
     for step in trace.steps:
         try:
@@ -75,7 +79,7 @@ def _shift_times(trace: TraceSummary, new_start: datetime) -> None:
             continue
         if step_start.tzinfo is None:
             step_start = step_start.replace(tzinfo=timezone.utc)
-        step.startedAt = (step_start + delta).isoformat(timespec="milliseconds") + "Z"
+        step.startedAt = _to_utc_z(step_start + delta)
         if step.endedAt:
             try:
                 step_end = datetime.strptime(step.endedAt, fmt)
@@ -83,7 +87,7 @@ def _shift_times(trace: TraceSummary, new_start: datetime) -> None:
                 step_end = step_start
             if step_end.tzinfo is None:
                 step_end = step_end.replace(tzinfo=timezone.utc)
-            step.endedAt = (step_end + delta).isoformat(timespec="milliseconds") + "Z"
+            step.endedAt = _to_utc_z(step_end + delta)
 
 
 def _apply_modifications(
