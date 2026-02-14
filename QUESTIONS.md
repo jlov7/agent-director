@@ -1,7 +1,7 @@
 # Open Questions
 
 ## Active (non-blocking)
-- 2026-02-14: CI status for this branch has not been checked from this workspace; verify GitHub Actions are green before final release cut.
+- None at this time.
 
 ## Resolved During Execution
 - 2026-02-14: Should help docs be a full routed page or minimal static page for v1?
@@ -12,3 +12,5 @@
   Decision: switch to direct `axe-core` injection to keep accessibility checks active in all environments.
 - 2026-02-14: Legacy broad suites (`flow-mode.spec.ts`, `inspector.spec.ts`) were fully skipped.
   Decision: replace with stable critical-path E2E suites and run them in the default verify pipeline.
+- 2026-02-14: CI status for this branch had not been checked from this workspace.
+  Decision: open PR #1 and wait for checks; `verify` and deployment checks are green.

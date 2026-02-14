@@ -20,7 +20,7 @@
 - [x] Lint passes.
 - [x] Typecheck passes.
 - [x] Build passes.
-- [ ] CI is green.
+- [x] CI is green.
 
 ## Accessibility Basics
 - [x] Keyboard navigation works for primary flows.

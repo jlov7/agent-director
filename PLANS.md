@@ -62,3 +62,4 @@ Per milestone, run:
 - Milestone 4 shipped: full `make verify` now passes locally after test/snapshot updates.
 - Milestone 5 shipped: README now includes explicit environment variables and deployment notes.
 - Final hard-gap pass shipped: bundle-size warning removed via lazy loading, accessibility check runs without conditional skip, and previously skipped `flow-mode`/`inspector` suites are now active and passing.
+- CI closure shipped: PR #1 created and GitHub `verify` check confirmed green.
