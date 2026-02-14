@@ -6,3 +6,6 @@ verify-strict:
 
 verify-ux:
 	./scripts/verify-ux.sh
+
+doctor:
+	python3 ./scripts/doctor.py

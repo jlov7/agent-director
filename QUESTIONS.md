@@ -18,3 +18,5 @@
   Decision: add `pnpm -C ui build` to `scripts/verify.sh` so build is validated on every verify run.
 - 2026-02-14: Inspector unit tests emitted noisy async `act` warnings when mocked fetches resolved after assertions.
   Decision: default mocked detail fetches to unresolved promises and opt into resolved responses per test that requires loaded details.
+- 2026-02-14: New doctor secret scan failed due scanner self-matching and compiled cache artifacts.
+  Decision: exclude `scripts/doctor.py`, `.pyc`, and known-safe test fixture paths from static secret scanning.

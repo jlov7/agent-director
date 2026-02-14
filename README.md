@@ -144,6 +144,12 @@ For stricter checks (includes mutation checks):
 make verify-strict
 ```
 
+For release-gate evidence (writes `artifacts/doctor.json`):
+
+```bash
+make doctor
+```
+
 For deep UX review (traces + Lighthouse + optional Percy):
 
 ```bash
