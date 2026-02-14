@@ -14,3 +14,7 @@
   Decision: replace with stable critical-path E2E suites and run them in the default verify pipeline.
 - 2026-02-14: CI status for this branch had not been checked from this workspace.
   Decision: open PR #1 and wait for checks; `verify` and deployment checks are green.
+- 2026-02-14: `make verify` omitted a production build step, leaving a checklist gap.
+  Decision: add `pnpm -C ui build` to `scripts/verify.sh` so build is validated on every verify run.
+- 2026-02-14: Inspector unit tests emitted noisy async `act` warnings when mocked fetches resolved after assertions.
+  Decision: default mocked detail fetches to unresolved promises and opt into resolved responses per test that requires loaded details.

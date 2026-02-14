@@ -34,6 +34,7 @@ Prepare Agent Director for a v1 launch by closing release-critical gaps while mi
 - Several large key-flow Playwright suites exist but are globally skipped (`onboarding`, `keyboard`, `flow-mode`, `inspector`).
 - Onboarding and contextual in-app help are implemented in UI, but no dedicated minimal help page is currently exposed from the app shell.
 - Playwright had `VITE_SKIP_INTRO=1` globally configured, which prevented first-run onboarding coverage from running.
+- `make verify` did not run `pnpm -C ui build`, which left one release quality gate unenforced.
 
 ## Decision Log
 - Prioritize high-signal, minimal-risk release fixes first: restore key test coverage and add explicit help surface before broader UX polish.
@@ -41,6 +42,8 @@ Prepare Agent Director for a v1 launch by closing release-critical gaps while mi
 - Keep onboarding E2E focused and stable (critical-path assertions only) instead of reviving the previous oversized flaky suite.
 - Convert previously skipped keyboard flow coverage into a compact always-on suite for accessibility confidence.
 - Treat visual snapshot diffs as expected release-artifact updates when intentional UI changes land.
+- Fold `pnpm -C ui build` into `scripts/verify.sh` so every standard verify run enforces the full lint/typecheck/build/test requirement.
+- Stabilize async inspector unit tests by defaulting mocked detail fetches to unresolved promises unless a test explicitly expects loaded details.
 
 ## Risks
 - Unskipping broad E2E suites may reveal flaky selectors and increase CI time.
@@ -50,6 +53,7 @@ Prepare Agent Director for a v1 launch by closing release-critical gaps while mi
 Per milestone, run:
 - `pnpm -C ui lint`
 - `pnpm -C ui typecheck`
+- `pnpm -C ui build`
 - `pnpm -C ui test`
 - Targeted `pnpm -C ui test:e2e -- <specs>` for changed flows
 - `python3 -m unittest discover -s server/tests` when server changes
@@ -63,3 +67,4 @@ Per milestone, run:
 - Milestone 5 shipped: README now includes explicit environment variables and deployment notes.
 - Final hard-gap pass shipped: bundle-size warning removed via lazy loading, accessibility check runs without conditional skip, and previously skipped `flow-mode`/`inspector` suites are now active and passing.
 - CI closure shipped: PR #1 created and GitHub `verify` check confirmed green.
+- Final polish pass shipped: verification now enforces build by default, dependency audit reports no high vulnerabilities, and inspector unit tests no longer emit async `act` warning noise.

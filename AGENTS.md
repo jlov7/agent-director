@@ -9,6 +9,7 @@ Ship a production-ready v1 of Agent Director with coherent end-to-end journeys, 
 - Run UI locally: `pnpm -C ui dev`
 - Lint UI: `pnpm -C ui lint`
 - Typecheck UI: `pnpm -C ui typecheck`
+- Build UI: `pnpm -C ui build`
 - Unit tests (UI): `pnpm -C ui test`
 - E2E tests (UI): `pnpm -C ui test:e2e`
 - Python tests: `python3 -m unittest discover -s server/tests`

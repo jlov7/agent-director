@@ -50,7 +50,7 @@ describe('Inspector', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFetchStepDetails.mockResolvedValue(mockDetails);
+    mockFetchStepDetails.mockImplementation(() => new Promise(() => {}));
   });
 
   it('renders nothing when step is null', () => {
@@ -213,6 +213,8 @@ describe('Inspector', () => {
   });
 
   it('displays JSON payload when details are loaded', async () => {
+    mockFetchStepDetails.mockResolvedValue(mockDetails);
+
     render(
       <Inspector
         traceId="trace-1"
@@ -297,6 +299,8 @@ describe('Inspector', () => {
   });
 
   it('copies JSON to clipboard when Copy JSON is clicked', async () => {
+    mockFetchStepDetails.mockResolvedValue(mockDetails);
+
     const mockWriteText = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {
       clipboard: { writeText: mockWriteText },
@@ -324,6 +328,8 @@ describe('Inspector', () => {
   });
 
   it('displays redacted fields list', async () => {
+    mockFetchStepDetails.mockResolvedValue(mockDetails);
+
     render(
       <Inspector
         traceId="trace-1"
@@ -343,6 +349,8 @@ describe('Inspector', () => {
   });
 
   it('shows reveal buttons for redacted fields when not in safeExport mode', async () => {
+    mockFetchStepDetails.mockResolvedValue(mockDetails);
+
     render(
       <Inspector
         traceId="trace-1"
@@ -363,6 +371,8 @@ describe('Inspector', () => {
   });
 
   it('hides reveal buttons when in safeExport mode', async () => {
+    mockFetchStepDetails.mockResolvedValue(mockDetails);
+
     render(
       <Inspector
         traceId="trace-1"
@@ -383,6 +393,8 @@ describe('Inspector', () => {
   });
 
   it('reveals field when Reveal button is clicked', async () => {
+    mockFetchStepDetails.mockResolvedValue(mockDetails);
+
     render(
       <Inspector
         traceId="trace-1"
@@ -485,6 +497,8 @@ describe('Inspector', () => {
   });
 
   it('resets state when step changes', async () => {
+    mockFetchStepDetails.mockResolvedValue(mockDetails);
+
     const { rerender } = render(
       <Inspector
         traceId="trace-1"

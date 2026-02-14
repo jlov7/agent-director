@@ -17,6 +17,7 @@ fi
 
 pnpm -C ui lint
 pnpm -C ui typecheck
+pnpm -C ui build
 pnpm -C ui test
 pnpm -C ui test:e2e
 
