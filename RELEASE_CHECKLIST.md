@@ -6,20 +6,20 @@
 - [ ] UX and copy are clear in both success and failure states.
 
 ## Onboarding
-- [ ] First-run onboarding is implemented.
+- [x] First-run onboarding is implemented.
 - [ ] Empty states are implemented.
-- [ ] Progressive disclosure is implemented.
+- [x] Progressive disclosure is implemented.
 
 ## Help
-- [ ] In-app help/tooltips are implemented.
-- [ ] Minimal docs/help page is implemented.
+- [x] In-app help/tooltips are implemented.
+- [x] Minimal docs/help page is implemented.
 
 ## Quality Gates
-- [ ] Tests exist for critical logic.
-- [ ] Tests exist for key UI flows.
-- [ ] Lint passes.
-- [ ] Typecheck passes.
-- [ ] Build passes.
+- [x] Tests exist for critical logic.
+- [x] Tests exist for key UI flows.
+- [x] Lint passes.
+- [x] Typecheck passes.
+- [x] Build passes.
 - [ ] CI is green.
 
 ## Accessibility Basics

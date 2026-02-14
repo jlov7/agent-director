@@ -144,6 +144,18 @@ export default function Header({
         >
           Refresh
         </button>
+        <a
+          className="ghost-button"
+          href="/help.html"
+          target="_blank"
+          rel="noreferrer"
+          data-help
+          data-help-title="Help"
+          data-help-body="Open quick docs for first run, key flows, troubleshooting, and shortcuts."
+          data-help-placement="bottom"
+        >
+          Help
+        </a>
         {!hideBuildDate ? <span className="header-build">Build: {buildDate.slice(0, 19)}</span> : null}
       </div>
     </header>

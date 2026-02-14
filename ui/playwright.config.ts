@@ -20,7 +20,6 @@ export default defineConfig({
     timeout: 60_000,
     env: {
       VITE_HIDE_BUILD_DATE: '1',
-      VITE_SKIP_INTRO: '1',
       VITE_FORCE_DEMO: '1',
     },
   },

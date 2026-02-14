@@ -24,7 +24,7 @@ Prepare Agent Director for a v1 launch by closing release-critical gaps while mi
 ## Progress
 - [x] Read repository structure, test/build scripts, and CI workflows.
 - [x] Create release steering files (`AGENTS.md`, `PLANS.md`, `RELEASE_CHECKLIST.md`, `QUESTIONS.md`).
-- [ ] Milestone 1: Baseline + immediate blockers.
+- [x] Milestone 1: Baseline + immediate blockers.
 - [ ] Milestone 2: Core journey UX hardening.
 - [ ] Milestone 3: Onboarding/help + accessibility completion.
 - [ ] Milestone 4: Quality gate hardening.
@@ -33,10 +33,12 @@ Prepare Agent Director for a v1 launch by closing release-critical gaps while mi
 ## Surprises & Discoveries
 - Several large key-flow Playwright suites exist but are globally skipped (`onboarding`, `keyboard`, `flow-mode`, `inspector`).
 - Onboarding and contextual in-app help are implemented in UI, but no dedicated minimal help page is currently exposed from the app shell.
+- Playwright had `VITE_SKIP_INTRO=1` globally configured, which prevented first-run onboarding coverage from running.
 
 ## Decision Log
 - Prioritize high-signal, minimal-risk release fixes first: restore key test coverage and add explicit help surface before broader UX polish.
 - Use milestone commits to keep review and rollback simple.
+- Keep onboarding E2E focused and stable (critical-path assertions only) instead of reviving the previous oversized flaky suite.
 
 ## Risks
 - Unskipping broad E2E suites may reveal flaky selectors and increase CI time.
@@ -52,4 +54,4 @@ Per milestone, run:
 - `make verify` at major checkpoints
 
 ## Outcomes & Retrospective
-- In progress.
+- Milestone 1 shipped: release steering files created, in-app Help link added, minimal help page added, onboarding E2E restored as a stable critical-path suite, and key UI checks passing (lint/typecheck/unit/e2e/build).
