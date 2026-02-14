@@ -1,7 +1,3 @@
-import { useEffect } from 'react';
-
-const INTRO_MS = 2800;
-
 type IntroOverlayProps = {
   onComplete: () => void;
   onStartTour?: () => void;
@@ -9,11 +5,6 @@ type IntroOverlayProps = {
 };
 
 export default function IntroOverlay({ onComplete, onStartTour, onStartStory }: IntroOverlayProps) {
-  useEffect(() => {
-    const timer = window.setTimeout(() => onComplete(), INTRO_MS);
-    return () => window.clearTimeout(timer);
-  }, [onComplete]);
-
   const handleStartTour = () => {
     onStartTour?.();
     onComplete();

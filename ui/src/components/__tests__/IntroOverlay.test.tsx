@@ -37,40 +37,18 @@ describe('IntroOverlay', () => {
     expect(screen.getByText('Replay from a decisive step and compare runs.')).toBeInTheDocument();
   });
 
-  it('auto-completes after timeout period', () => {
+  it('does not auto-complete without explicit user action', () => {
     render(<IntroOverlay onComplete={mockOnComplete} />);
 
     expect(mockOnComplete).not.toHaveBeenCalled();
 
-    // Fast forward past the INTRO_MS timeout (2800ms)
     act(() => {
-      vi.advanceTimersByTime(2800);
-    });
-
-    expect(mockOnComplete).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not call onComplete before timeout', () => {
-    render(<IntroOverlay onComplete={mockOnComplete} />);
-
-    act(() => {
-      vi.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(10000);
     });
 
     expect(mockOnComplete).not.toHaveBeenCalled();
   });
 
-  it('clears timeout on unmount', () => {
-    const { unmount } = render(<IntroOverlay onComplete={mockOnComplete} />);
-
-    unmount();
-
-    act(() => {
-      vi.advanceTimersByTime(3000);
-    });
-
-    expect(mockOnComplete).not.toHaveBeenCalled();
-  });
 
   it('calls onComplete when Skip intro button is clicked', () => {
     render(<IntroOverlay onComplete={mockOnComplete} />);

@@ -15,6 +15,7 @@ Welcome to the Agent Director documentation hub.
 - `demo-script.md` — 90s demo script
 - `demo-script-teleprompter.txt` — teleprompter-friendly narration
 - `hosting.md` — live demo hosting options
+- `ux-audit-2026-02-14.md` — deep multi-persona UX audit findings, fixes, and verification evidence
 
 ## Project hygiene
 - `../CONTRIBUTING.md` — dev flow + tests

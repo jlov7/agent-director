@@ -134,7 +134,7 @@ export default function App() {
   const [showPalette, setShowPalette] = useState(false);
   const [overlayEnabled, setOverlayEnabled] = usePersistedState('agentDirector.overlayEnabled', false);
   const [journeyCollapsed, setJourneyCollapsed] = usePersistedState('agentDirector.onboarded', false);
-  const [tourCompleted, setTourCompleted] = usePersistedState('agentDirector.tourCompleted', false);
+  const [, setTourCompleted] = usePersistedState('agentDirector.tourCompleted', false);
   const [explainMode, setExplainMode] = usePersistedState('agentDirector.explainMode', true);
   const [heroDismissed, setHeroDismissed] = usePersistedState('agentDirector.heroDismissed', false);
   const [dockOpen, setDockOpen] = usePersistedState('agentDirector.dockOpen', false);
@@ -480,12 +480,6 @@ export default function App() {
   }, [trace, compareTrace, mode, setMode, setWindowed, setOverlayEnabled]);
 
   useEffect(() => {
-    if (!tourCompleted && introDismissed) {
-      setTourOpen(true);
-    }
-  }, [tourCompleted, introDismissed]);
-
-  useEffect(() => {
     document.body.classList.toggle('explain-mode', explainMode);
     return () => {
       document.body.classList.remove('explain-mode');
@@ -637,6 +631,12 @@ export default function App() {
         event.preventDefault();
         if (mode === 'flow') setMode('cinema');
         else if (mode === 'cinema') handleModeChange('flow');
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'c') {
+        event.preventDefault();
+        if (mode !== 'cinema') setMode('cinema');
         return;
       }
 

@@ -18,6 +18,24 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 
 ## P1
 
+### GAP-P1-003: Guided tour keyboard behavior blocked accessibility primary flow
+- Evidence: Deep UX probe reported focus escaping tour card and `Escape` not closing the tour.
+- Impacted journey: First-run onboarding for keyboard-only and assistive-tech users.
+- Fix strategy: Add focus trapping + `Escape` close handling within guided tour and app-level shortcut routing.
+- Status: `Closed` (2026-02-14, fixed in `GuidedTour.tsx` and `App.tsx`, validated by new E2E regression tests)
+
+### GAP-P1-004: Mobile quick-actions entry point was off-screen on initial viewport
+- Evidence: Deep UX probe at `390x844` found quick-actions toggle out of viewport.
+- Impacted journey: Mobile user discoverability for core controls.
+- Fix strategy: Keep quick-actions toggle/panel fixed to viewport on narrow breakpoints with bounded panel height.
+- Status: `Closed` (2026-02-14, fixed in `main.css`, validated by regression test)
+
+### GAP-P1-005: UX quality signals showed avoidable Lighthouse errors
+- Evidence: LHCI flagged console errors from API connection attempts and missing favicon.
+- Impacted journey: Release reviewer confidence and quality-gate reliability.
+- Fix strategy: Run LHCI in deterministic demo mode, add inline favicon, and tune font-loading to reduce layout shift noise.
+- Status: `Closed` (2026-02-14, `pnpm -C ui lhci` passing with clean console audit)
+
 ### GAP-P1-001: AGENTS workflow did not enforce a non-terminating gap loop
 - Evidence: Existing `AGENTS.md` had milestone guidance but no strict algorithm or stop conditions.
 - Impacted journey: Autonomous release execution cadence.

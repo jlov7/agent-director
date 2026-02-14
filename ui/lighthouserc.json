@@ -2,7 +2,7 @@
   "ci": {
     "collect": {
       "numberOfRuns": 3,
-      "startServerCommand": "pnpm build && pnpm preview --host 127.0.0.1 --port 4173",
+      "startServerCommand": "VITE_FORCE_DEMO=1 VITE_HIDE_BUILD_DATE=1 pnpm build && pnpm preview --host 127.0.0.1 --port 4173",
       "startServerReadyPattern": "Local:",
       "url": ["http://127.0.0.1:4173/"],
       "settings": {

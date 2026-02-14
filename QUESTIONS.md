@@ -20,3 +20,11 @@
   Decision: default mocked detail fetches to unresolved promises and opt into resolved responses per test that requires loaded details.
 - 2026-02-14: New doctor secret scan failed due scanner self-matching and compiled cache artifacts.
   Decision: exclude `scripts/doctor.py`, `.pyc`, and known-safe test fixture paths from static secret scanning.
+- 2026-02-14: Deep UX audit found onboarding force-advanced after intro timeout and conflicted with first-run comprehension.
+  Decision: remove intro auto-dismiss and require explicit user action (`Start guided tour`, `Play story mode`, or `Skip intro`).
+- 2026-02-14: Deep UX audit found guided tour focus escape and no `Escape` close path.
+  Decision: add focus trap and keyboard close handling in guided tour and route app-level `Escape` to close tour first.
+- 2026-02-14: Deep UX audit found mobile quick-actions toggle rendered out of viewport.
+  Decision: keep quick-actions toggle and panel fixed to viewport on narrow breakpoints.
+- 2026-02-14: LHCI surfaced console-error noise and failed performance threshold due layout instability.
+  Decision: run LHCI in deterministic demo mode, add inline favicon, and use optional font-display to reduce CLS.

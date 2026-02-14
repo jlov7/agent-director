@@ -1,5 +1,6 @@
 import type { StepSummary } from '../../types';
 import { buildDensity } from '../../utils/density';
+import type { KeyboardEvent, MouseEvent } from 'react';
 
 const MIN_SPAN = 5000;
 
@@ -42,11 +43,38 @@ export default function MiniTimeline({
   const windowWidth = wallTimeMs ? ((rangeEnd - rangeStart) / wallTimeMs) * 100 : 100;
   const playheadLeft = wallTimeMs ? (playheadMs / wallTimeMs) * 100 : 0;
 
-  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+  const handleClick = (event: MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const ratio = (event.clientX - rect.left) / rect.width;
     const next = clamp(Math.round(ratio * wallTimeMs), 0, wallTimeMs);
     onScrub(next);
+  };
+
+  const handleTrackKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      onScrub(clamp(playheadMs - Math.max(250, Math.round(wallTimeMs * 0.02)), 0, wallTimeMs));
+      return;
+    }
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      onScrub(clamp(playheadMs + Math.max(250, Math.round(wallTimeMs * 0.02)), 0, wallTimeMs));
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      onScrub(0);
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      onScrub(wallTimeMs);
+      return;
+    }
+    if (event.key === ' ' || event.key === 'Enter') {
+      event.preventDefault();
+      onScrub(playheadMs);
+    }
   };
 
   return (
@@ -54,7 +82,14 @@ export default function MiniTimeline({
       <div
         className="mini-track"
         onClick={handleClick}
-        role="presentation"
+        role="slider"
+        tabIndex={0}
+        aria-label="Timeline density map"
+        aria-valuemin={0}
+        aria-valuemax={wallTimeMs}
+        aria-valuenow={playheadMs}
+        aria-valuetext={`${playheadMs} milliseconds`}
+        onKeyDown={handleTrackKeyDown}
         data-help
         data-help-title="Density map"
         data-help-body="A compact view of activity density. Click to jump the playhead."

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=optional');
 
 :root {
   --font-display: 'Unbounded', 'Space Grotesk', sans-serif;
@@ -2378,17 +2378,26 @@ pre {
   }
 
   .quick-actions {
-    position: static;
-    margin-top: 12px;
+    position: fixed;
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    margin-top: 0;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: space-between;
+    max-height: 62vh;
+    overflow: auto;
+    z-index: 100;
   }
 
   .quick-actions-toggle {
-    position: static;
-    margin-top: 12px;
-    align-self: flex-end;
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    margin-top: 0;
+    align-self: auto;
+    z-index: 100;
   }
 
   .quick-action {
