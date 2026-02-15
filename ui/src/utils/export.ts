@@ -9,3 +9,15 @@ export function downloadJson(filename: string, payload: unknown) {
   anchor.remove();
   URL.revokeObjectURL(url);
 }
+
+export function downloadText(filename: string, content: string, type = 'text/plain') {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}

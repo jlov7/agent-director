@@ -5,7 +5,7 @@ Welcome to the Agent Director documentation hub.
 ## Start here
 - `story.md` — product narrative, positioning, and the “why now”
 - `architecture.md` — system diagrams, data flow, and storage layout
-- `ux.md` — interaction model, shortcuts, and magic moments
+- `ux.md` — interaction model, shortcuts, magic moments, and Matrix mode workflow
 - `brand.md` — logo, voice, and visual tone
 - `visual-system.md` — color, motion, and composition rules
 - `pitch-deck.md` — presentation deck source

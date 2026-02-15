@@ -1,6 +1,9 @@
 import type {
   ExtensionDefinition,
   InvestigationReport,
+  ReplayJob,
+  ReplayMatrix,
+  ReplayScenarioInput,
   StepDetails,
   TraceComment,
   TraceInsights,
@@ -8,11 +11,13 @@ import type {
   TraceSummary,
 } from '../types';
 import demoTrace from '../data/demoTrace.json';
+import { diffTraces } from '../utils/diff';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8787';
 const FORCE_DEMO = import.meta.env.VITE_FORCE_DEMO === '1';
 const stepDetailsCache = new Map<string, StepDetails>();
 const stepDetailsInflight = new Map<string, Promise<StepDetails | null>>();
+const replayJobCache = new Map<string, { job: ReplayJob; matrix: ReplayMatrix }>();
 
 async function safeFetchJson<T>(url: string): Promise<T | null> {
   try {
@@ -425,4 +430,183 @@ export async function compareTraces(
   } catch {
     return null;
   }
+}
+
+export async function createReplayJob(input: {
+  traceId: string;
+  stepId: string;
+  scenarios: ReplayScenarioInput[];
+  execute?: boolean;
+}): Promise<ReplayJob | null> {
+  if (FORCE_DEMO) {
+    return buildDemoReplayJob(input);
+  }
+  try {
+    const response = await fetch(`${API_BASE}/api/replay-jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        trace_id: input.traceId,
+        step_id: input.stepId,
+        scenarios: input.scenarios,
+        execute: input.execute ?? true,
+      }),
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { job: ReplayJob };
+    return payload.job;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchReplayJob(jobId: string): Promise<ReplayJob | null> {
+  if (FORCE_DEMO) {
+    return replayJobCache.get(jobId)?.job ?? null;
+  }
+  const payload = await safeFetchJson<{ job: ReplayJob }>(`${API_BASE}/api/replay-jobs/${jobId}`);
+  return payload?.job ?? null;
+}
+
+export async function fetchReplayMatrix(jobId: string): Promise<ReplayMatrix | null> {
+  if (FORCE_DEMO) {
+    return replayJobCache.get(jobId)?.matrix ?? null;
+  }
+  const payload = await safeFetchJson<{ matrix: ReplayMatrix }>(`${API_BASE}/api/replay-jobs/${jobId}/matrix`);
+  return payload?.matrix ?? null;
+}
+
+export async function cancelReplayJob(jobId: string): Promise<ReplayJob | null> {
+  if (FORCE_DEMO) {
+    const cached = replayJobCache.get(jobId);
+    if (!cached) return null;
+    const canceled = {
+      ...cached.job,
+      status: 'canceled' as const,
+      scenarios: cached.job.scenarios.map((scenario) => ({
+        ...scenario,
+        status: 'canceled' as const,
+        endedAt: scenario.endedAt ?? new Date().toISOString(),
+      })),
+    };
+    replayJobCache.set(jobId, { ...cached, job: canceled });
+    return canceled;
+  }
+  try {
+    const response = await fetch(`${API_BASE}/api/replay-jobs/${jobId}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { job: ReplayJob };
+    return payload.job;
+  } catch {
+    return null;
+  }
+}
+
+function buildDemoReplayJob(input: {
+  traceId: string;
+  stepId: string;
+  scenarios: ReplayScenarioInput[];
+  execute?: boolean;
+}): ReplayJob {
+  const jobId = `demo-job-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const baseTrace = demoTrace as TraceSummary;
+  const startedAt = new Date().toISOString();
+  const scenarios = input.scenarios.map((scenario, index) => ({
+    id: `demo-scn-${index + 1}`,
+    name: scenario.name,
+    strategy: scenario.strategy,
+    modifications: scenario.modifications,
+    status: 'running' as const,
+    startedAt,
+    endedAt: null,
+    replayTraceId: `${jobId}-replay-${index + 1}`,
+  }));
+
+  const job: ReplayJob = {
+    id: jobId,
+    traceId: input.traceId,
+    stepId: input.stepId,
+    status: 'running',
+    createdAt: startedAt,
+    startedAt,
+    endedAt: null,
+    scenarioCount: scenarios.length,
+    completedCount: 0,
+    failedCount: 0,
+    canceledCount: 0,
+    scenarios,
+  };
+
+  const rows = scenarios.map((scenario) => {
+    const replayTrace = buildLocalReplay(baseTrace, input.stepId, scenario.strategy, scenario.modifications);
+    replayTrace.id = scenario.replayTraceId;
+    const diff = diffTraces(baseTrace, replayTrace);
+    const baseCost = baseTrace.metadata.totalCostUsd ?? 0;
+    const replayCost = replayTrace.metadata.totalCostUsd ?? baseCost;
+    const baseErrors = baseTrace.metadata.errorCount ?? 0;
+    const replayErrors = replayTrace.metadata.errorCount ?? baseErrors;
+    const baseRetries = baseTrace.metadata.retryCount ?? 0;
+    const replayRetries = replayTrace.metadata.retryCount ?? baseRetries;
+    const invalidated = replayTrace.steps.filter((step) => step.status === 'pending').length;
+
+    return {
+      scenarioId: scenario.id,
+      name: scenario.name,
+      strategy: scenario.strategy,
+      status: 'completed' as const,
+      replayTraceId: scenario.replayTraceId,
+      modifications: scenario.modifications,
+      error: null,
+      changedStepIds: diff.changedSteps,
+      addedStepIds: diff.addedSteps,
+      removedStepIds: diff.removedSteps,
+      metrics: {
+        costDeltaUsd: replayCost - baseCost,
+        wallTimeDeltaMs: (replayTrace.metadata.wallTimeMs ?? 0) - (baseTrace.metadata.wallTimeMs ?? 0),
+        errorDelta: replayErrors - baseErrors,
+        retryDelta: replayRetries - baseRetries,
+        changedSteps: diff.changedSteps.length,
+        addedSteps: diff.addedSteps.length,
+        removedSteps: diff.removedSteps.length,
+        invalidatedStepCount: invalidated,
+      },
+    };
+  });
+
+  const matrix: ReplayMatrix = {
+    jobId,
+    traceId: input.traceId,
+    stepId: input.stepId,
+    rows,
+    causalRanking: [],
+  };
+
+  replayJobCache.set(jobId, { job, matrix });
+  window.setTimeout(() => {
+    const cached = replayJobCache.get(jobId);
+    if (!cached) return;
+    const finishedAt = new Date().toISOString();
+    const completedScenarios = cached.job.scenarios.map((scenario) => ({
+      ...scenario,
+      status: 'completed' as const,
+      endedAt: finishedAt,
+    }));
+    const completedJob: ReplayJob = {
+      ...cached.job,
+      status: 'completed',
+      endedAt: finishedAt,
+      completedCount: completedScenarios.length,
+      scenarios: completedScenarios,
+    };
+    const completedMatrix: ReplayMatrix = {
+      ...cached.matrix,
+      rows: cached.matrix.rows.map((row) => ({ ...row, status: 'completed' as const })),
+    };
+    replayJobCache.set(jobId, { job: completedJob, matrix: completedMatrix });
+  }, 600);
+  return job;
 }

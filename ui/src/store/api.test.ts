@@ -27,6 +27,10 @@ import {
   createComment,
   listExtensions,
   runExtension,
+  createReplayJob,
+  fetchReplayJob,
+  fetchReplayMatrix,
+  cancelReplayJob,
   clearStepDetailsCache,
 } from './api';
 
@@ -564,6 +568,130 @@ describe('API Layer', () => {
         // The ID includes a timestamp component
         expect(result?.id).toMatch(/-replay-\d+$/);
       });
+    });
+  });
+
+  describe('replay jobs', () => {
+    it('creates replay job with expected payload', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job: {
+            id: 'job-1',
+            status: 'queued',
+            traceId: 'trace-1',
+            stepId: 's1',
+            scenarioCount: 1,
+            completedCount: 0,
+            failedCount: 0,
+            canceledCount: 0,
+            scenarios: [],
+          },
+        }),
+      });
+
+      const result = await createReplayJob({
+        traceId: 'trace-1',
+        stepId: 's1',
+        scenarios: [{ name: 'Prompt tweak', strategy: 'hybrid', modifications: { prompt: 'shorter' } }],
+      });
+
+      expect(result?.id).toBe('job-1');
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/replay-jobs'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+    });
+
+    it('fetches replay job by id', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job: {
+            id: 'job-1',
+            status: 'running',
+            traceId: 'trace-1',
+            stepId: 's1',
+            scenarioCount: 1,
+            completedCount: 0,
+            failedCount: 0,
+            canceledCount: 0,
+            scenarios: [],
+          },
+        }),
+      });
+
+      const result = await fetchReplayJob('job-1');
+      expect(result?.id).toBe('job-1');
+      expect(result?.status).toBe('running');
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/replay-jobs/job-1'));
+    });
+
+    it('fetches replay matrix payload', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          matrix: {
+            jobId: 'job-1',
+            traceId: 'trace-1',
+            stepId: 's1',
+            rows: [],
+            causalRanking: [],
+          },
+        }),
+      });
+
+      const result = await fetchReplayMatrix('job-1');
+      expect(result?.jobId).toBe('job-1');
+      expect(result?.rows).toEqual([]);
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/replay-jobs/job-1/matrix'));
+    });
+
+    it('cancels replay job', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          job: {
+            id: 'job-1',
+            status: 'canceled',
+            traceId: 'trace-1',
+            stepId: 's1',
+            scenarioCount: 1,
+            completedCount: 0,
+            failedCount: 0,
+            canceledCount: 1,
+            scenarios: [],
+          },
+        }),
+      });
+
+      const result = await cancelReplayJob('job-1');
+      expect(result?.status).toBe('canceled');
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/replay-jobs/job-1/cancel'),
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('returns null when replay job APIs fail', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+
+      expect(
+        await createReplayJob({
+          traceId: 'trace-1',
+          stepId: 's1',
+          scenarios: [{ name: 'x', strategy: 'hybrid', modifications: {} }],
+        })
+      ).toBeNull();
+      expect(await fetchReplayJob('job-1')).toBeNull();
+      expect(await fetchReplayMatrix('job-1')).toBeNull();
+      expect(await cancelReplayJob('job-1')).toBeNull();
     });
   });
 

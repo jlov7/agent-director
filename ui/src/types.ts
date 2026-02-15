@@ -2,6 +2,7 @@ export type StepType = 'llm_call' | 'tool_call' | 'decision' | 'handoff' | 'guar
 export type StepStatus = 'pending' | 'running' | 'completed' | 'failed';
 export type TraceStatus = 'running' | 'completed' | 'failed';
 export type ReplayStrategy = 'recorded' | 'live' | 'hybrid';
+export type ReplayJobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled';
 
 export interface TraceMetadata {
   source: 'openai_agents' | 'langsmith' | 'langfuse' | 'manual' | string;
@@ -57,6 +58,79 @@ export interface ReplayInfo {
   modifiedStepId: string;
   modifications: Record<string, unknown>;
   createdAt: string;
+}
+
+export interface ReplayScenarioInput {
+  name: string;
+  strategy: ReplayStrategy;
+  modifications: Record<string, unknown>;
+}
+
+export interface ReplayScenarioStatus extends ReplayScenarioInput {
+  id: string;
+  status: ReplayJobStatus;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  replayTraceId?: string | null;
+  error?: string | null;
+}
+
+export interface ReplayJob {
+  id: string;
+  traceId: string;
+  stepId: string;
+  status: ReplayJobStatus;
+  createdAt: string;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  scenarioCount: number;
+  completedCount: number;
+  failedCount: number;
+  canceledCount: number;
+  scenarios: ReplayScenarioStatus[];
+}
+
+export interface ReplayMatrixRow {
+  scenarioId: string;
+  name: string;
+  strategy: ReplayStrategy;
+  status: ReplayJobStatus;
+  replayTraceId?: string | null;
+  modifications: Record<string, unknown>;
+  error?: string | null;
+  changedStepIds: string[];
+  addedStepIds: string[];
+  removedStepIds: string[];
+  metrics: {
+    costDeltaUsd: number | null;
+    wallTimeDeltaMs: number | null;
+    errorDelta: number | null;
+    retryDelta: number | null;
+    changedSteps: number;
+    addedSteps: number;
+    removedSteps: number;
+    invalidatedStepCount: number;
+  };
+}
+
+export interface CausalFactor {
+  factor: string;
+  score: number;
+  confidence: number;
+  evidence: {
+    samples: number;
+    examples: string[];
+    positive: number;
+    negative: number;
+  };
+}
+
+export interface ReplayMatrix {
+  jobId: string;
+  traceId: string;
+  stepId: string;
+  rows: ReplayMatrixRow[];
+  causalRanking: CausalFactor[];
 }
 
 export interface TraceSummary {

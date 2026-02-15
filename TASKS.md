@@ -51,3 +51,66 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] Critical path computation + concurrency heatmap
 - [x] Cost breakdown by model/tool + trend deltas
 - [x] Step retry patterns and reliability highlights
+
+## Next-Level Program — Counterfactual Replay Matrix + Causal Diff (Active)
+
+### P0 — Batch Replay Platform (Backend)
+- [x] Add replay job domain model (`queued`, `running`, `completed`, `failed`, `canceled`) and scenario schema.
+- [x] Add in-memory replay job registry with deterministic IDs and timestamps.
+- [x] Add `POST /api/replay-jobs` to submit N replay scenarios against one base trace + anchor step.
+- [x] Add `GET /api/replay-jobs/{job_id}` for job status + per-scenario progress.
+- [x] Add `POST /api/replay-jobs/{job_id}/cancel` and cancel propagation to pending scenarios.
+- [x] Execute scenarios sequentially for v1 with structured progress events and error capture.
+- [x] Persist generated replay traces with provenance linking scenario IDs and job ID.
+- [x] Add job-level validation errors for invalid strategy, missing anchor step, and empty scenarios.
+- [x] Add backend contract tests for replay job endpoints and state transitions.
+
+### P0 — N-Way Diff + Causal Analysis (Backend)
+- [x] Add matrix summary model for base vs all scenarios (wall time, cost, errors, retries, changed step counts).
+- [x] Extend diff engine to produce stable pairwise deltas for every scenario vs base.
+- [x] Add causal impact scoring heuristic (metric movement normalized by scenario changes).
+- [x] Rank likely root-cause factors and return confidence + evidence fields.
+- [x] Add safeguards for missing metrics and partially invalidated replays.
+- [x] Add unit tests for ranking edge cases (ties, sparse data, contradictory outcomes).
+
+### P1 — Matrix Mode (UI)
+- [x] Add `matrix` mode to app state and command palette.
+- [x] Add replay-job API client (`createReplayJob`, `getReplayJob`, `cancelReplayJob`).
+- [x] Add matrix summary panel with sortable columns (latency, cost, errors, invalidated steps).
+- [x] Add scenario detail drawer with modifications JSON and top changed steps.
+- [x] Add causal ranking panel with factor, score, confidence, and evidence chips.
+- [x] Add compare jump actions from matrix row to existing Compare mode.
+- [x] Add loading, partial-failure, and canceled-job states.
+- [x] Add responsive layout for desktop + tablet + mobile.
+
+### P1 — Scenario Authoring UX
+- [x] Add scenario builder UI to define 2-N modifications from one anchor step.
+- [x] Add presets for common experiments (prompt tweak, tool timeout, strategy flip).
+- [x] Add validation UI for duplicate scenario names and malformed modification payloads.
+- [x] Add import/export of scenario sets as JSON.
+- [x] Add keyboard support and explain-mode help for all matrix controls.
+
+### P1 — Safety, Governance, and Sharing
+- [x] Enforce safe export behavior in matrix views (redacted fields only when safe mode is on).
+- [x] Disable raw payload reveal paths when safe export is enabled.
+- [x] Add matrix export artifact (JSON + summary markdown) with explicit redaction metadata.
+- [x] Add warnings when scenario modifications include likely sensitive keys.
+- [x] Add docs for safe-share workflow for replay matrices.
+
+### P2 — Performance and Reliability
+- [x] Add trace-size guardrails and server-side limits for scenario counts.
+- [x] Add caching for repeated base-vs-scenario diff computations.
+- [x] Add incremental polling with backoff for long-running replay jobs.
+- [x] Add timeout handling + retry policy for scenario execution failures.
+- [x] Add performance tests for 10/25/50 scenario batches.
+
+### P2 — Testing and Release Readiness
+- [x] Add backend unit tests for replay jobs, matrix summary, and causal ranking.
+- [x] Add UI unit tests for matrix reducers, sorting, and causal panel rendering.
+- [x] Add Playwright E2E for scenario creation → run → matrix inspect → compare jump.
+- [x] Add snapshot/visual tests for matrix mode empty/loading/loaded/error states.
+- [x] Update README + docs with matrix mode quickstart and troubleshooting.
+- [x] Run `make verify` and close all regressions before merge.
+
+### Kickoff Now
+- [x] Task 1 tonight: implement backend replay job primitives + failing tests first.

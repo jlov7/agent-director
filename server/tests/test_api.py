@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 
 import server.main as server_main
 from server.main import ApiHandler
+from server.replay.jobs import ReplayJobStore
 from server.trace.schema import StepDetails, StepSummary, TraceMetadata, TraceSummary
 from server.trace.store import TraceStore
 from http.server import ThreadingHTTPServer
@@ -55,6 +56,7 @@ class TestApi(unittest.TestCase):
         )
 
         ApiHandler.store = self.store
+        ApiHandler.replay_jobs = ReplayJobStore()
         ApiHandler.live_broker = server_main.LiveTraceBroker()
         ApiHandler.extension_registry = server_main.ExtensionRegistry()
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), ApiHandler)
@@ -70,13 +72,126 @@ class TestApi(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_list_traces(self) -> None:
-        conn = HTTPConnection("127.0.0.1", self.port)
-        conn.request("GET", "/api/traces")
-        resp = conn.getresponse()
-        data = json.loads(resp.read().decode("utf-8"))
-        self.assertEqual(resp.status, 200)
+        status, data = self._request("GET", "/api/traces")
+        self.assertEqual(status, 200)
         self.assertEqual(len(data["traces"]), 1)
+
+    def test_create_replay_job_and_get_status(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/replay-jobs",
+            {
+                "trace_id": "trace-1",
+                "step_id": "s1",
+                "scenarios": [
+                    {"name": "Prompt tweak", "strategy": "hybrid", "modifications": {"prompt": "shorter"}}
+                ],
+            },
+        )
+        self.assertEqual(status, 202)
+        job = data["job"]
+        self.assertEqual(job["traceId"], "trace-1")
+        self.assertEqual(job["stepId"], "s1")
+        self.assertEqual(len(job["scenarios"]), 1)
+        self.assertIn(job["status"], {"queued", "running", "completed"})
+
+        status, data = self._request("GET", f"/api/replay-jobs/{job['id']}")
+        self.assertEqual(status, 200)
+        self.assertEqual(data["job"]["id"], job["id"])
+        self.assertEqual(data["job"]["traceId"], "trace-1")
+
+    def test_create_replay_job_validation_error(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/replay-jobs",
+            {"trace_id": "trace-1", "step_id": "s1", "scenarios": []},
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("error", data)
+
+    def test_create_replay_job_invalid_step(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/replay-jobs",
+            {
+                "trace_id": "trace-1",
+                "step_id": "missing-step",
+                "scenarios": [{"name": "Prompt tweak", "strategy": "hybrid", "modifications": {"prompt": "shorter"}}],
+            },
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("step_id", data.get("error", ""))
+
+    def test_create_replay_job_too_many_scenarios(self) -> None:
+        scenarios = [
+            {"name": f"Scenario {idx}", "strategy": "hybrid", "modifications": {"note": idx}}
+            for idx in range(60)
+        ]
+        status, data = self._request(
+            "POST",
+            "/api/replay-jobs",
+            {"trace_id": "trace-1", "step_id": "s1", "scenarios": scenarios},
+        )
+        self.assertEqual(status, 400)
+        self.assertIn("scenarios", data.get("error", ""))
+
+    def test_cancel_replay_job(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/replay-jobs",
+            {
+                "trace_id": "trace-1",
+                "step_id": "s1",
+                "execute": False,
+                "scenarios": [
+                    {"name": "Prompt tweak", "strategy": "hybrid", "modifications": {"prompt": "shorter"}}
+                ],
+            },
+        )
+        self.assertEqual(status, 202)
+        job_id = data["job"]["id"]
+        self.assertEqual(data["job"]["status"], "queued")
+
+        status, data = self._request("POST", f"/api/replay-jobs/{job_id}/cancel", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(data["job"]["status"], "canceled")
+
+    def test_replay_job_matrix_summary(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/replay-jobs",
+            {
+                "trace_id": "trace-1",
+                "step_id": "s1",
+                "scenarios": [
+                    {"name": "Prompt tweak", "strategy": "recorded", "modifications": {"prompt": "shorter"}},
+                    {"name": "Live strategy", "strategy": "live", "modifications": {"max_tokens": 120}},
+                ],
+            },
+        )
+        self.assertEqual(status, 202)
+        job_id = data["job"]["id"]
+
+        status, data = self._request("GET", f"/api/replay-jobs/{job_id}/matrix")
+        self.assertEqual(status, 200)
+        self.assertIn("rows", data["matrix"])
+        self.assertEqual(len(data["matrix"]["rows"]), 2)
+        self.assertIn("causalRanking", data["matrix"])
+
+    def _request(self, method: str, path: str, payload: dict | None = None) -> tuple[int, dict]:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = None
+        headers = {}
+        if payload is not None:
+            body = json.dumps(payload)
+            headers["Content-Type"] = "application/json"
+        conn.request(method, path, body=body, headers=headers)
+        resp = conn.getresponse()
+        raw = resp.read().decode("utf-8")
+        data = json.loads(raw) if raw else {}
+        status = resp.status
         conn.close()
+        return status, data
 
     def test_replay_invalid_strategy_returns_400(self) -> None:
         conn = HTTPConnection("127.0.0.1", self.port)
