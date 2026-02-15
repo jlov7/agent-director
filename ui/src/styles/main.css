@@ -40,6 +40,35 @@
   --transition-medium: 280ms ease;
 }
 
+body[data-theme='focus'] {
+  --bg-base: #0a1118;
+  --bg-veil: #0f1620;
+  --bg-surface: #152333;
+  --bg-surface-2: #162838;
+  --bg-card: #1d3044;
+  --bg-card-soft: #1a2738;
+  --bg-glass: rgba(18, 30, 42, 0.82);
+  --accent-primary: #42c4ff;
+  --accent-secondary: #e2be73;
+}
+
+body[data-theme='contrast'] {
+  --bg-base: #080b10;
+  --bg-veil: #0d1118;
+  --bg-surface: #111823;
+  --bg-surface-2: #15202d;
+  --bg-card: #1b2634;
+  --bg-card-soft: #17202c;
+  --bg-glass: rgba(14, 21, 31, 0.88);
+  --text-primary: #f8fbff;
+  --text-secondary: #d8e2ef;
+  --text-muted: #b8c6d8;
+  --border: rgba(255, 255, 255, 0.2);
+  --border-strong: rgba(255, 255, 255, 0.34);
+  --accent-primary: #6ad9ff;
+  --accent-secondary: #ffd47a;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -169,6 +198,35 @@ pre {
   justify-content: center;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+.intro-personas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.intro-persona {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  padding: 10px;
+}
+
+.intro-persona-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.intro-persona-body {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
 }
 
 .intro-grid {
@@ -503,6 +561,28 @@ pre {
   overflow-wrap: anywhere;
 }
 
+.header-presence {
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 168, 245, 0.45);
+  background: rgba(95, 168, 245, 0.12);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+}
+
+.header-share-status {
+  color: #9fe3c4;
+  font-size: 0.75rem;
+}
+
+.theme-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
 .trace-select {
   padding: 4px 8px;
   border-radius: var(--radius-sm);
@@ -726,6 +806,33 @@ pre {
   bottom: 0;
   border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(96, 168, 245, 0.12);
+}
+
+.mini-clip-window {
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  border-radius: 8px;
+  border: 1px solid rgba(240, 200, 109, 0.7);
+  background: rgba(240, 200, 109, 0.18);
+}
+
+.mini-bookmark-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.mini-bookmark-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  margin-left: -4px;
+  border: none;
+  background: rgba(123, 211, 137, 0.85);
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .mini-playhead {
@@ -1283,6 +1390,44 @@ pre {
   flex-wrap: wrap;
 }
 
+.director-recommendations {
+  display: grid;
+  gap: 10px;
+}
+
+.director-recommendation {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 10px;
+  background: rgba(12, 18, 28, 0.72);
+  display: grid;
+  gap: 8px;
+}
+
+.director-recommendation.tone-priority {
+  border-color: rgba(95, 168, 245, 0.55);
+}
+
+.director-recommendation.tone-warning {
+  border-color: rgba(240, 124, 130, 0.55);
+}
+
+.director-recommendation.tone-info {
+  border-color: rgba(123, 211, 137, 0.48);
+}
+
+.director-recommendation-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.director-recommendation-body {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
 .inspector-json {
   background: #10151b;
   padding: 12px;
@@ -1751,6 +1896,12 @@ pre {
   color: var(--text-secondary);
 }
 
+.matrix-scenario-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .matrix-file-input {
   display: none;
 }
@@ -1844,6 +1995,28 @@ pre {
   font-size: 0.75rem;
   color: var(--text-secondary);
   margin-top: 4px;
+}
+
+.factor-bar-track {
+  margin-top: 6px;
+  height: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(8, 13, 21, 0.95);
+  overflow: hidden;
+}
+
+.factor-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.factor-bar-fill.positive {
+  background: linear-gradient(90deg, rgba(123, 211, 137, 0.88), rgba(59, 183, 173, 0.88));
+}
+
+.factor-bar-fill.negative {
+  background: linear-gradient(90deg, rgba(240, 124, 130, 0.88), rgba(242, 143, 59, 0.88));
 }
 
 .factor-chips {

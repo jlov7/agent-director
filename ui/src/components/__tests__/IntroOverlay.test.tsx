@@ -126,4 +126,12 @@ describe('IntroOverlay', () => {
     expect(container.querySelector('.intro-scan')).toBeInTheDocument();
     expect(container.querySelector('.intro-grid')).toBeInTheDocument();
   });
+
+  it('supports selecting an onboarding persona before starting', () => {
+    const onPersonaChange = vi.fn();
+    render(<IntroOverlay onComplete={mockOnComplete} onPersonaChange={onPersonaChange} persona="builder" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Executive lens' }));
+    expect(onPersonaChange).toHaveBeenCalledWith('executive');
+  });
 });

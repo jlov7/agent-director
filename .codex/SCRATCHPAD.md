@@ -1,43 +1,41 @@
 ## Current Task
 
-Implement all seven next-level Agent Director feature tracks in a single coordinated execution:
-1) deterministic branchable replay v2
-2) live trace streaming
-3) TraceQL
-4) root-cause investigator
-5) collaboration primitives
-6) policy redaction engine
-7) extension SDK foundation
+Implement the full world-class frontend upgrade program and track every task exhaustively:
+1) Timeline Studio
+2) Causality Lab
+3) Scenario Workbench v2
+4) Collaboration Layer v2
+5) AI Director Layer
+6) Adaptive Onboarding
+7) Visual System Upgrade
+8) Performance Lift
 
 ## Status
 
-Completed
+Complete (local verification green)
 
 ## Plan
 
-1. [x] Build exhaustive planning/tracking files
-2. [x] Implement replay v2 foundation + tests
-3. [x] Implement live streaming foundation + tests
-4. [x] Implement TraceQL foundation + tests
-5. [x] Implement investigator foundation + tests
-6. [x] Implement collaboration comments foundation + tests
-7. [x] Implement policy-grade redaction + tests
-8. [x] Implement extension SDK foundation + tests
-9. [x] Wire minimal UI surfaces for all new capabilities
-10. [x] Run strict verification and release evidence refresh
+1. [x] Write exhaustive tracking artifacts (`.codex`, `TASKS.md`, docs plan)
+2. [x] Implement timeline studio controls and clip export
+3. [x] Implement matrix causality map and scenario-workbench controls
+4. [x] Implement collaboration presence/share and AI recommendations panel
+5. [x] Implement persona-aware onboarding and theme controls
+6. [x] Implement deferred filtering/performance improvements
+7. [x] Add/adjust tests for upgraded UX behavior
+8. [x] Run verification gates and prepare final state for push to `main`
 
 ## Decisions Made
 
-- Treated the request as explicit approval for broad multi-file execution.
-- Delivered each feature as a production-capable v1 with backend contracts, tests, and minimal UI controls.
-- Preserved existing architecture and focused on additive changes to limit regressions.
+- Treat user request as explicit approval for multi-file full-program execution.
+- Use additive upgrades in existing components for fastest path to complete delivery tonight.
 
 ## Open Questions
 
-- None blocking.
+- None blocking. Execute all tracks in current sprint.
 
 ## Verification Gates
 
+- `pnpm -C ui test -- src/components/__tests__/MiniTimeline.test.tsx src/components/__tests__/IntroOverlay.test.tsx src/components/__tests__/Matrix.test.tsx` passed.
+- `pnpm -C ui typecheck` passed.
 - `make verify` passed.
-- `make doctor` passed and updated `artifacts/doctor.json`.
-- `make scorecard` passed and updated `artifacts/scorecards.json` with `70/70`.

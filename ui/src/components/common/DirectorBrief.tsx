@@ -1,6 +1,16 @@
 import type { StepSummary, TraceSummary } from '../../types';
 
 type Mode = 'cinema' | 'flow' | 'compare';
+type IntroPersona = 'builder' | 'executive' | 'operator';
+
+type DirectorRecommendation = {
+  id: string;
+  title: string;
+  body: string;
+  actionLabel: string;
+  tone: 'priority' | 'warning' | 'info';
+  action: () => void;
+};
 
 type DirectorBriefProps = {
   trace: TraceSummary;
@@ -10,6 +20,8 @@ type DirectorBriefProps = {
   onSelectStep: (stepId: string) => void;
   onJumpToBottleneck: () => void;
   onReplay: (stepId: string) => void;
+  recommendations?: DirectorRecommendation[];
+  persona?: IntroPersona;
 };
 
 function pickBottleneck(steps: StepSummary[]) {
@@ -25,11 +37,15 @@ export default function DirectorBrief({
   onSelectStep,
   onJumpToBottleneck,
   onReplay,
+  recommendations = [],
+  persona = 'builder',
 }: DirectorBriefProps) {
   const steps = trace.steps ?? [];
   const bottleneck = pickBottleneck(steps);
   const primaryStepId = selectedStepId ?? bottleneck?.id ?? steps[0]?.id ?? null;
   const wall = trace.metadata.wallTimeMs ?? 0;
+  const personaLabel =
+    persona === 'executive' ? 'Executive lens' : persona === 'operator' ? 'Operator lens' : 'Builder lens';
 
   return (
     <aside
@@ -44,7 +60,9 @@ export default function DirectorBrief({
       <div className="inspector-header">
         <div>
           <div className="inspector-title">Director's notes</div>
-          <div className="inspector-subtitle">Select a step to open deep inspection.</div>
+          <div className="inspector-subtitle">
+            {personaLabel}. Select a step to open deep inspection.
+          </div>
         </div>
       </div>
 
@@ -155,6 +173,23 @@ export default function DirectorBrief({
           </button>
         </div>
       </div>
+
+      {recommendations.length ? (
+        <div className="inspector-section">
+          <div className="inspector-section-title">Recommended next moves</div>
+          <div className="director-recommendations">
+            {recommendations.map((item) => (
+              <article key={item.id} className={`director-recommendation tone-${item.tone}`}>
+                <div className="director-recommendation-title">{item.title}</div>
+                <p className="director-recommendation-body">{item.body}</p>
+                <button className="ghost-button" type="button" onClick={item.action}>
+                  {item.actionLabel}
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </aside>
   );
 }

@@ -53,7 +53,7 @@ test.describe('Onboarding', () => {
     await expect(page.locator('.tour-overlay')).toBeVisible();
     await expect(page.getByText('Step 1 of')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Next' }).click();
+    await page.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(page.getByText('Step 2 of')).toBeVisible();
 
     await page.getByRole('button', { name: 'Back', exact: true }).click();

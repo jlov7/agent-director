@@ -18,7 +18,7 @@ async function initStorage(page: import('@playwright/test').Page) {
 async function openMatrix(page: import('@playwright/test').Page) {
   await initStorage(page);
   await page.goto('/');
-  await page.getByRole('button', { name: 'Matrix' }).click();
+  await page.getByRole('button', { name: 'Matrix', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Counterfactual Replay Matrix' })).toBeVisible();
 }
 

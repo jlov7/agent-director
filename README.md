@@ -26,6 +26,9 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 - Counterfactual replay matrix with causal ranking across scenarios
 - Compare mode with stable alignment, ghost overlays, and diff export
 - Matrix presets, scenario import/export, and redacted matrix exports
+- Timeline studio bookmarks, clip ranges, and clip export artifacts
+- Live session presence + share link for collaborative review sessions
+- Adaptive onboarding persona lenses and theme modes (studio/focus/contrast)
 - Insight Strip with critical path, concurrency heatmap, and IO/timing warnings
 - Story Mode autopilot, quick actions dock, and command palette for instant demos
 - Explain mode contextual overlays + guided tour for zero-guess onboarding
@@ -178,9 +181,9 @@ make verify-ux
 
 | Category | Tests | Coverage |
 |----------|-------|----------|
-| Unit (Vitest) | 206 | Components, hooks, API, utilities |
-| E2E (Playwright) | 40+ | Onboarding, keyboard, inspector, flow |
-| Visual | 3 | Cinema, Flow, Compare snapshots |
+| Unit (Vitest) | 239 | Components, hooks, API, utilities |
+| E2E (Playwright) | 43 | Onboarding, keyboard, inspector, flow, matrix |
+| Visual | 7+ | Cinema, Flow, Compare, Matrix state snapshots |
 | Accessibility | 1 | Axe violations scan |
 
 See `TESTING.md` for details.

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import Header from './components/Header';
 import InsightStrip from './components/InsightStrip';
 import SearchBar from './components/SearchBar';
@@ -52,10 +52,24 @@ import { computePollDelay } from './utils/replayPolling';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
+const PRESENCE_STORAGE_KEY = 'agentDirector.presence.v1';
+const PRESENCE_TTL_MS = 20000;
+const PRESENCE_HEARTBEAT_MS = 5000;
 
 type Mode = 'cinema' | 'flow' | 'compare' | 'matrix';
+type IntroPersona = 'builder' | 'executive' | 'operator';
+type ThemeMode = 'studio' | 'focus' | 'contrast';
+type RecommendationTone = 'priority' | 'warning' | 'info';
 
 type Rect = { left: number; top: number; width: number; height: number };
+type DirectorRecommendation = {
+  id: string;
+  title: string;
+  body: string;
+  actionLabel: string;
+  tone: RecommendationTone;
+  action: () => void;
+};
 
 type StoryBeat = {
   id: string;
@@ -145,10 +159,40 @@ function filterSteps(steps: StepSummary[], query: string, typeFilter: StepType |
   });
 }
 
+function getOrCreateSessionId() {
+  const existing = window.sessionStorage.getItem('agentDirector.sessionId');
+  if (existing) return existing;
+  const next = `session-${Math.random().toString(36).slice(2, 10)}`;
+  window.sessionStorage.setItem('agentDirector.sessionId', next);
+  return next;
+}
+
+function readPresenceStore() {
+  try {
+    const raw = window.localStorage.getItem(PRESENCE_STORAGE_KEY);
+    if (!raw) return {} as Record<string, number>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const normalized: Record<string, number> = {};
+    Object.entries(parsed).forEach(([key, value]) => {
+      if (typeof value === 'number') normalized[key] = value;
+    });
+    return normalized;
+  } catch {
+    return {} as Record<string, number>;
+  }
+}
+
+function prunePresence(store: Record<string, number>, now = Date.now()) {
+  return Object.fromEntries(
+    Object.entries(store).filter(([, heartbeat]) => now - heartbeat < PRESENCE_TTL_MS)
+  );
+}
+
 export default function App() {
   const { trace, insights, loading, error, reload, traces, selectedTraceId, setSelectedTraceId } = useTrace();
   const [mode, setMode] = usePersistedState<Mode>('agentDirector.mode', 'cinema');
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const [typeFilter, setTypeFilter] = useState<StepType | 'all'>('all');
   const [traceQuery, setTraceQuery] = useState('');
   const [traceQueryResult, setTraceQueryResult] = useState<TraceQueryResult | null>(null);
@@ -174,6 +218,11 @@ export default function App() {
   const [explainMode, setExplainMode] = usePersistedState('agentDirector.explainMode', true);
   const [heroDismissed, setHeroDismissed] = usePersistedState('agentDirector.heroDismissed', false);
   const [dockOpen, setDockOpen] = usePersistedState('agentDirector.dockOpen', false);
+  const [introPersona, setIntroPersona] = usePersistedState<IntroPersona>(
+    'agentDirector.introPersona',
+    'builder'
+  );
+  const [themeMode, setThemeMode] = usePersistedState<ThemeMode>('agentDirector.themeMode', 'studio');
   const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
   const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
   const [tourOpen, setTourOpen] = useState(false);
@@ -204,12 +253,15 @@ export default function App() {
   const [replayMatrix, setReplayMatrix] = useState<ReplayMatrix | null>(null);
   const [matrixLoading, setMatrixLoading] = useState(false);
   const [matrixError, setMatrixError] = useState<string | null>(null);
+  const [activeSessions, setActiveSessions] = useState(1);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const compareTraceRef = useRef<TraceSummary | null>(null);
+  const sessionIdRef = useRef<string>(getOrCreateSessionId());
 
   const textFilteredSteps = useMemo(
-    () => (trace ? filterSteps(trace.steps, query, typeFilter) : []),
-    [trace, query, typeFilter]
+    () => (trace ? filterSteps(trace.steps, deferredQuery, typeFilter) : []),
+    [trace, deferredQuery, typeFilter]
   );
   const steps = useMemo(() => {
     if (!traceQueryResult) return textFilteredSteps;
@@ -217,8 +269,8 @@ export default function App() {
     return textFilteredSteps.filter((step) => matched.has(step.id));
   }, [textFilteredSteps, traceQueryResult]);
   const compareSteps = useMemo(
-    () => (compareTrace ? filterSteps(compareTrace.steps, query, typeFilter) : []),
-    [compareTrace, query, typeFilter]
+    () => (compareTrace ? filterSteps(compareTrace.steps, deferredQuery, typeFilter) : []),
+    [compareTrace, deferredQuery, typeFilter]
   );
   const stepBoundaries = useMemo(() => {
     if (!trace) return [];
@@ -269,6 +321,56 @@ export default function App() {
   useEffect(() => {
     compareTraceRef.current = compareTrace;
   }, [compareTrace]);
+
+  useEffect(() => {
+    document.body.dataset.theme = themeMode;
+    return () => {
+      delete document.body.dataset.theme;
+    };
+  }, [themeMode]);
+
+  useEffect(() => {
+    const sessionId = sessionIdRef.current;
+
+    const writeHeartbeat = (remove = false) => {
+      const now = Date.now();
+      const next = prunePresence(readPresenceStore(), now);
+      if (remove) {
+        delete next[sessionId];
+      } else {
+        next[sessionId] = now;
+      }
+      window.localStorage.setItem(PRESENCE_STORAGE_KEY, JSON.stringify(next));
+      setActiveSessions(Math.max(1, Object.keys(next).length));
+    };
+
+    const syncPresence = () => {
+      const next = prunePresence(readPresenceStore(), Date.now());
+      setActiveSessions(Math.max(1, Object.keys(next).length));
+    };
+
+    writeHeartbeat();
+    const heartbeat = window.setInterval(() => writeHeartbeat(), PRESENCE_HEARTBEAT_MS);
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === PRESENCE_STORAGE_KEY) syncPresence();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') writeHeartbeat();
+    };
+    const handleUnload = () => writeHeartbeat(true);
+
+    window.addEventListener('storage', handleStorage);
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      window.clearInterval(heartbeat);
+      writeHeartbeat(true);
+      window.removeEventListener('storage', handleStorage);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, []);
 
   useEffect(() => {
     if (mode === 'compare') {
@@ -344,6 +446,28 @@ export default function App() {
     }
   }, [trace, setMode]);
 
+  const shareSession = useCallback(async () => {
+    if (!trace) return;
+    const shareUrl = new URL(window.location.href);
+    shareUrl.searchParams.set('trace', selectedTraceId ?? trace.id);
+    shareUrl.searchParams.set('mode', mode);
+    if (selectedStepId) {
+      shareUrl.searchParams.set('step', selectedStepId);
+    } else {
+      shareUrl.searchParams.delete('step');
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl.toString());
+      setShareStatus('Live link copied');
+    } catch {
+      window.prompt('Copy live session link', shareUrl.toString());
+      setShareStatus('Live link ready');
+    }
+
+    window.setTimeout(() => setShareStatus(null), 1800);
+  }, [mode, selectedStepId, selectedTraceId, trace]);
+
   const updateMatrixScenario = useCallback((id: string, patch: Partial<MatrixScenarioDraft>) => {
     setMatrixScenarios((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }, []);
@@ -363,6 +487,35 @@ export default function App() {
     setMatrixScenarios((prev) => {
       if (prev.length <= 1) return prev;
       return prev.filter((item) => item.id !== id);
+    });
+  }, []);
+
+  const duplicateMatrixScenario = useCallback((id: string) => {
+    setMatrixScenarios((prev) => {
+      const index = prev.findIndex((item) => item.id === id);
+      if (index === -1) return prev;
+      const source = prev[index];
+      const duplicate: MatrixScenarioDraft = {
+        ...source,
+        id: makeScenarioId(),
+        name: `${source.name} copy`,
+      };
+      const next = [...prev];
+      next.splice(index + 1, 0, duplicate);
+      return next;
+    });
+  }, []);
+
+  const moveMatrixScenario = useCallback((id: string, direction: 'up' | 'down') => {
+    setMatrixScenarios((prev) => {
+      const index = prev.findIndex((item) => item.id === id);
+      if (index === -1) return prev;
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(targetIndex, 0, moved);
+      return next;
     });
   }, []);
 
@@ -606,11 +759,16 @@ export default function App() {
   }, [startStory, stopStory, storyState?.active]);
 
   const tourSteps = useMemo<TourStep[]>(() => {
+    const personaGuidance: Record<IntroPersona, string> = {
+      builder: 'Focus on payload flow, tool-call sequencing, and replay-ready steps.',
+      executive: 'Focus on bottlenecks, risk signals, and run-level outcome changes.',
+      operator: 'Focus on failure patterns, retries, and runtime reliability posture.',
+    };
     const steps: TourStep[] = [
       {
         id: 'header',
         title: 'Mission control',
-        body: 'Confirm the run, status, and metadata. Use Guide and Explain to orient the room instantly.',
+        body: `Confirm run status and metadata. ${personaGuidance[introPersona]}`,
         target: '[data-tour="header"]',
         placement: 'bottom',
       },
@@ -630,7 +788,12 @@ export default function App() {
       {
         id: 'insights',
         title: 'Fast diagnosis',
-        body: 'Jump straight to bottlenecks, errors, and high-cost steps with one click.',
+        body:
+          introPersona === 'executive'
+            ? 'Jump straight to bottlenecks and high-cost segments for fast executive readouts.'
+            : introPersona === 'operator'
+              ? 'Jump to failures and retries first, then inspect impacted steps.'
+              : 'Jump straight to bottlenecks, errors, and high-cost steps with one click.',
         target: '[data-tour="insights"]',
         placement: 'bottom',
       },
@@ -665,7 +828,10 @@ export default function App() {
       {
         id: 'inspector',
         title: 'Inspector',
-        body: 'Open any step to read payloads, apply redaction, and replay from that moment.',
+        body:
+          introPersona === 'executive'
+            ? 'Open key moments to validate outcome impact and communication-ready summaries.'
+            : 'Open any step to read payloads, apply redaction, and replay from that moment.',
         target: '[data-tour="inspector"]',
         placement: 'left',
       },
@@ -681,12 +847,114 @@ export default function App() {
     );
 
     return steps;
-  }, [compareTrace, heroDismissed]);
+  }, [compareTrace, heroDismissed, introPersona]);
 
   const handleMorphComplete = useCallback(() => {
     setMorphState(null);
     setMode('flow');
   }, [setMode]);
+
+  const directorRecommendations = useMemo<DirectorRecommendation[]>(() => {
+    if (!trace) return [];
+    const list: DirectorRecommendation[] = [];
+    const bottleneck = [...trace.steps].sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0))[0];
+    const firstError = trace.steps.find((step) => step.status === 'failed');
+
+    if (firstError && selectedStepId !== firstError.id) {
+      list.push({
+        id: 'jump-error',
+        title: 'Investigate first failure',
+        body: `${firstError.name} failed and should be inspected before optimization work.`,
+        actionLabel: 'Open failed step',
+        tone: 'warning',
+        action: jumpToError,
+      });
+    }
+
+    if (bottleneck && selectedStepId !== bottleneck.id) {
+      list.push({
+        id: 'jump-bottleneck',
+        title: 'Tackle latency bottleneck',
+        body: `${bottleneck.name} is the slowest scene in this run and the best optimization target.`,
+        actionLabel: 'Open bottleneck',
+        tone: 'priority',
+        action: jumpToBottleneck,
+      });
+    }
+
+    if (investigation?.hypotheses?.[0]) {
+      const topHypothesis = investigation.hypotheses[0];
+      list.push({
+        id: 'investigate-hypothesis',
+        title: topHypothesis.title,
+        body: topHypothesis.summary,
+        actionLabel: 'Inspect evidence',
+        tone: 'info',
+        action: () => {
+          const evidenceStepId = topHypothesis.evidenceStepIds[0];
+          if (evidenceStepId) {
+            setSelectedStepId(evidenceStepId);
+            if (mode !== 'cinema') setMode('cinema');
+          }
+        },
+      });
+    }
+
+    if (mode !== 'matrix') {
+      list.push({
+        id: 'matrix-experiment',
+        title: 'Run scenario matrix',
+        body: 'Compare prompt and strategy alternatives from one anchor step to rank causal impact.',
+        actionLabel: 'Open matrix',
+        tone: 'info',
+        action: () => {
+          setMatrixAnchorStepId(selectedStepId ?? trace.steps[0]?.id ?? '');
+          setMode('matrix');
+        },
+      });
+    }
+
+    if (!compareTrace && (selectedStepId || trace.steps[0]?.id)) {
+      const replayStep = selectedStepId ?? trace.steps[0]?.id ?? null;
+      if (replayStep) {
+        list.push({
+          id: 'run-replay',
+          title: 'Create director replay',
+          body: 'Branch a replay trace and validate whether your change improves the run.',
+          actionLabel: 'Replay from step',
+          tone: 'info',
+          action: () => {
+            void handleReplay(replayStep);
+          },
+        });
+      }
+    }
+
+    if (replayMatrix?.causalRanking?.length) {
+      const top = replayMatrix.causalRanking[0];
+      list.push({
+        id: 'causal-factor',
+        title: `Top causal factor: ${top.factor}`,
+        body: `Confidence ${(top.confidence * 100).toFixed(0)}% across ${top.evidence.samples} sample(s).`,
+        actionLabel: 'View matrix',
+        tone: 'priority',
+        action: () => setMode('matrix'),
+      });
+    }
+
+    return list.slice(0, 4);
+  }, [
+    compareTrace,
+    handleReplay,
+    investigation,
+    jumpToBottleneck,
+    jumpToError,
+    mode,
+    replayMatrix,
+    selectedStepId,
+    trace,
+    setMode,
+  ]);
 
   useEffect(() => {
     if (!trace) return;
@@ -932,6 +1200,7 @@ export default function App() {
   const storyStep = storyState?.step ?? 0;
   const storyLabel = storyPlan[storyStep]?.label ?? 'Wrapping up';
   const storyTotal = storyPlan.length;
+  const isFilteringDeferred = query !== deferredQuery;
 
   const commandActions = useMemo<CommandAction[]>(
     () => [
@@ -1113,9 +1382,9 @@ export default function App() {
 
   return (
     <div
-      className={`app ${explainMode ? 'explain-mode' : ''} ${mode === 'compare' ? 'mode-compare' : ''} ${
-        mode === 'matrix' ? 'mode-matrix' : ''
-      }`}
+      className={`app theme-${themeMode} ${explainMode ? 'explain-mode' : ''} ${
+        mode === 'compare' ? 'mode-compare' : ''
+      } ${mode === 'matrix' ? 'mode-matrix' : ''}`}
     >
       <Header
         trace={trace}
@@ -1127,6 +1396,11 @@ export default function App() {
         onToggleStory={toggleStory}
         onOpenPalette={() => setShowPalette(true)}
         onToggleExplain={() => setExplainMode((prev) => !prev)}
+        onShareSession={shareSession}
+        onThemeChange={setThemeMode}
+        themeMode={themeMode}
+        activeSessions={activeSessions}
+        shareStatus={shareStatus}
         explainMode={explainMode}
         storyActive={storyActive}
       />
@@ -1138,6 +1412,8 @@ export default function App() {
             setTourOpen(true);
           }}
           onStartStory={startStory}
+          persona={introPersona}
+          onPersonaChange={setIntroPersona}
         />
       ) : null}
       {introDismissed && !heroDismissed ? (
@@ -1228,6 +1504,7 @@ export default function App() {
             Run TraceQL
           </button>
           {traceQueryResult ? <span className="status-badge">{traceQueryResult.matchCount} match(es)</span> : null}
+          {isFilteringDeferred ? <span className="status-badge">Filtering...</span> : null}
           {traceQueryResult ? (
             <button
               className="ghost-button"
@@ -1403,6 +1680,7 @@ export default function App() {
               onSpanChange={setWindowSpanMs}
               onToggleWindowed={setWindowed}
               onScrub={(value) => setPlayheadMs(value)}
+              persistenceKey={trace.id}
             />
           </div>
         </div>
@@ -1483,6 +1761,8 @@ export default function App() {
                   onAnchorStepChange={setMatrixAnchorStepId}
                   scenarios={matrixScenarios}
                   onScenarioChange={updateMatrixScenario}
+                  onDuplicateScenario={duplicateMatrixScenario}
+                  onMoveScenario={moveMatrixScenario}
                   onAddScenario={addMatrixScenario}
                   onRemoveScenario={removeMatrixScenario}
                   onRun={runReplayMatrix}
@@ -1518,6 +1798,8 @@ export default function App() {
               onSelectStep={(stepId) => setSelectedStepId(stepId)}
               onJumpToBottleneck={jumpToBottleneck}
               onReplay={handleReplay}
+              recommendations={directorRecommendations}
+              persona={introPersona}
             />
           )}
         </Suspense>

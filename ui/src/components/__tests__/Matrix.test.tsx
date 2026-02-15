@@ -110,6 +110,8 @@ describe('Matrix', () => {
         onAnchorStepChange={vi.fn()}
         scenarios={scenarios}
         onScenarioChange={vi.fn()}
+        onDuplicateScenario={vi.fn()}
+        onMoveScenario={vi.fn()}
         onAddScenario={vi.fn()}
         onRemoveScenario={vi.fn()}
         onRun={vi.fn()}
@@ -138,6 +140,8 @@ describe('Matrix', () => {
         onAnchorStepChange={vi.fn()}
         scenarios={scenarios}
         onScenarioChange={vi.fn()}
+        onDuplicateScenario={vi.fn()}
+        onMoveScenario={vi.fn()}
         onAddScenario={vi.fn()}
         onRemoveScenario={vi.fn()}
         onRun={onRun}
@@ -166,6 +170,8 @@ describe('Matrix', () => {
         onAnchorStepChange={vi.fn()}
         scenarios={scenarios}
         onScenarioChange={vi.fn()}
+        onDuplicateScenario={vi.fn()}
+        onMoveScenario={vi.fn()}
         onAddScenario={vi.fn()}
         onRemoveScenario={vi.fn()}
         onRun={vi.fn()}
@@ -194,6 +200,8 @@ describe('Matrix', () => {
         onAnchorStepChange={vi.fn()}
         scenarios={scenarios}
         onScenarioChange={vi.fn()}
+        onDuplicateScenario={vi.fn()}
+        onMoveScenario={vi.fn()}
         onAddScenario={vi.fn()}
         onRemoveScenario={vi.fn()}
         onRun={vi.fn()}
@@ -224,6 +232,8 @@ describe('Matrix', () => {
         onAnchorStepChange={vi.fn()}
         scenarios={broken}
         onScenarioChange={vi.fn()}
+        onDuplicateScenario={vi.fn()}
+        onMoveScenario={vi.fn()}
         onAddScenario={vi.fn()}
         onRemoveScenario={vi.fn()}
         onRun={onRun}
@@ -251,6 +261,8 @@ describe('Matrix', () => {
         onAnchorStepChange={vi.fn()}
         scenarios={scenarios}
         onScenarioChange={vi.fn()}
+        onDuplicateScenario={vi.fn()}
+        onMoveScenario={vi.fn()}
         onAddScenario={vi.fn()}
         onRemoveScenario={vi.fn()}
         onRun={vi.fn()}
@@ -278,6 +290,8 @@ describe('Matrix', () => {
         onAnchorStepChange={vi.fn()}
         scenarios={scenarios}
         onScenarioChange={vi.fn()}
+        onDuplicateScenario={vi.fn()}
+        onMoveScenario={vi.fn()}
         onAddScenario={vi.fn()}
         onRemoveScenario={vi.fn()}
         onRun={vi.fn()}
@@ -293,5 +307,34 @@ describe('Matrix', () => {
     );
 
     expect(screen.getByText('Failed to run replay matrix.')).toBeInTheDocument();
+  });
+
+  it('offers scenario workbench controls for duplicate and ordering', () => {
+    render(
+      <Matrix
+        steps={steps}
+        anchorStepId="s1"
+        onAnchorStepChange={vi.fn()}
+        scenarios={scenarios}
+        onScenarioChange={vi.fn()}
+        onDuplicateScenario={vi.fn()}
+        onMoveScenario={vi.fn()}
+        onAddScenario={vi.fn()}
+        onRemoveScenario={vi.fn()}
+        onRun={vi.fn()}
+        onCancel={vi.fn()}
+        onReplaceScenarios={vi.fn()}
+        loading={false}
+        error={null}
+        job={job}
+        matrix={matrix}
+        safeExport={false}
+        onOpenCompare={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Duplicate scenario' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Move scenario up' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Move scenario down' })).toBeInTheDocument();
   });
 });

@@ -23,6 +23,8 @@ type MatrixProps = {
   onAnchorStepChange: (stepId: string) => void;
   scenarios: MatrixScenarioDraft[];
   onScenarioChange: (id: string, patch: Partial<MatrixScenarioDraft>) => void;
+  onDuplicateScenario: (id: string) => void;
+  onMoveScenario: (id: string, direction: 'up' | 'down') => void;
   onAddScenario: () => void;
   onRemoveScenario: (id: string) => void;
   onReplaceScenarios: (next: MatrixScenarioDraft[]) => void;
@@ -126,6 +128,8 @@ export default function Matrix({
   onAnchorStepChange,
   scenarios,
   onScenarioChange,
+  onDuplicateScenario,
+  onMoveScenario,
   onAddScenario,
   onRemoveScenario,
   onReplaceScenarios,
@@ -315,6 +319,11 @@ export default function Matrix({
     const all = scenarioDiagnostics.flatMap((item) => item.sensitiveKeys);
     return Array.from(new Set(all));
   }, [scenarioDiagnostics]);
+  const maxCausalMagnitude = useMemo(() => {
+    const ranking = matrix?.causalRanking ?? [];
+    if (ranking.length === 0) return 1;
+    return Math.max(1, ...ranking.map((item) => Math.abs(item.score)));
+  }, [matrix?.causalRanking]);
 
   const handleExportMatrix = () => {
     if (!matrix) return;
@@ -542,14 +551,40 @@ export default function Matrix({
                     Sensitive keys: {diag.sensitiveKeys.join(', ')}
                   </div>
                 ) : null}
-                <button
-                  type="button"
-                  className="ghost-button"
-                  onClick={() => onRemoveScenario(scenario.id)}
-                  disabled={scenarios.length <= 1}
-                >
-                  Remove
-                </button>
+                <div className="matrix-scenario-actions">
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => onDuplicateScenario(scenario.id)}
+                    disabled={loading}
+                  >
+                    Duplicate scenario
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => onMoveScenario(scenario.id, 'up')}
+                    disabled={loading || index === 0}
+                  >
+                    Move scenario up
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => onMoveScenario(scenario.id, 'down')}
+                    disabled={loading || index === scenarios.length - 1}
+                  >
+                    Move scenario down
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-button"
+                    onClick={() => onRemoveScenario(scenario.id)}
+                    disabled={scenarios.length <= 1}
+                  >
+                    Remove
+                  </button>
+                </div>
               </article>
             );
           })}
@@ -642,6 +677,12 @@ export default function Matrix({
                   <div className="factor-row">
                     <strong>{item.factor}</strong>
                     <span>score {item.score.toFixed(3)}</span>
+                  </div>
+                  <div className="factor-bar-track" role="presentation">
+                    <div
+                      className={`factor-bar-fill ${item.score >= 0 ? 'positive' : 'negative'}`}
+                      style={{ width: `${Math.max(6, (Math.abs(item.score) / maxCausalMagnitude) * 100)}%` }}
+                    />
                   </div>
                   <div className="factor-meta">
                     confidence {(item.confidence * 100).toFixed(0)}% • samples {item.evidence.samples}

@@ -14,6 +14,11 @@ type HeaderProps = {
   onToggleStory?: () => void;
   onOpenPalette?: () => void;
   onToggleExplain?: () => void;
+  onShareSession?: () => void;
+  onThemeChange?: (theme: 'studio' | 'focus' | 'contrast') => void;
+  themeMode?: 'studio' | 'focus' | 'contrast';
+  activeSessions?: number;
+  shareStatus?: string | null;
   explainMode?: boolean;
   storyActive?: boolean;
 };
@@ -28,6 +33,11 @@ export default function Header({
   onToggleStory,
   onOpenPalette,
   onToggleExplain,
+  onShareSession,
+  onThemeChange,
+  themeMode = 'studio',
+  activeSessions = 1,
+  shareStatus = null,
   explainMode = false,
   storyActive = false,
 }: HeaderProps) {
@@ -78,9 +88,28 @@ export default function Header({
           <span className="header-wall">
             Wall: {trace?.metadata.wallTimeMs ?? 0}ms
           </span>
+          <span className="header-presence" aria-label="Active sessions">
+            Live: {activeSessions}
+          </span>
+          {shareStatus ? <span className="header-share-status">{shareStatus}</span> : null}
         </div>
       </div>
       <div className="header-actions">
+        <label className="theme-picker">
+          Theme
+          <select
+            className="trace-select"
+            value={themeMode}
+            aria-label="Select theme"
+            onChange={(event) =>
+              onThemeChange?.(event.target.value as 'studio' | 'focus' | 'contrast')
+            }
+          >
+            <option value="studio">Studio</option>
+            <option value="focus">Focus</option>
+            <option value="contrast">Contrast</option>
+          </select>
+        </label>
         <button
           className={`ghost-button ${storyActive ? 'active' : ''}`}
           type="button"
@@ -143,6 +172,15 @@ export default function Header({
           data-help-placement="bottom"
         >
           Refresh
+        </button>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={onShareSession}
+          aria-label="Copy live session link"
+          title="Copy live session link"
+        >
+          Share
         </button>
         <a
           className="ghost-button"

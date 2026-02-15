@@ -8,7 +8,7 @@ test('matrix mode runs scenarios and opens compare', async ({ page }) => {
     await skipTour.click();
   }
 
-  await page.getByRole('button', { name: 'Matrix' }).click();
+  await page.getByRole('button', { name: 'Matrix', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Counterfactual Replay Matrix' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Run matrix' }).click();

@@ -114,3 +114,47 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 
 ### Kickoff Now
 - [x] Task 1 tonight: implement backend replay job primitives + failing tests first.
+
+## Overnight World-Class Frontend Program (Active)
+
+### Tracking + Governance
+- [x] Create exhaustive execution plan in `docs/plans/2026-02-15-world-class-frontend-upgrade-plan.md`.
+- [x] Sync `.codex/PLANS.md` and `.codex/SCRATCHPAD.md` with active status.
+- [x] Keep this section status-accurate until all tracks are complete.
+
+### Track 1 — Cinematic Timeline Studio
+- [x] Bookmark markers + jump controls.
+- [x] Clip range controls + clip export artifact.
+
+### Track 2 — Causality Graph Lab
+- [x] Causal map panel with weighted visual ranking.
+- [x] Confidence/sample UX in causal visual.
+
+### Track 3 — Scenario Workbench v2
+- [x] Duplicate scenario action.
+- [x] Reorder scenario actions (up/down).
+
+### Track 4 — Collaboration Layer v2
+- [x] Live session presence indicator.
+- [x] Shareable session link action.
+
+### Track 5 — AI Director Layer
+- [x] Recommendation cards in Director Brief.
+- [x] Action wiring from recommendations.
+
+### Track 6 — Adaptive Onboarding
+- [x] Persona selector in Intro Overlay.
+- [x] Persona-aware tour copy.
+
+### Track 7 — Visual System Upgrade
+- [x] Theme selector (studio/focus/contrast).
+- [x] Tokenized theme overrides in CSS.
+
+### Track 8 — Performance Lift
+- [x] Deferred search filtering for large traces.
+
+### Validation + Release
+- [x] Targeted tests for changed components.
+- [x] `pnpm -C ui typecheck`
+- [x] `pnpm -C ui test`
+- [x] `make verify`

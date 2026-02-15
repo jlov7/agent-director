@@ -2,9 +2,23 @@ type IntroOverlayProps = {
   onComplete: () => void;
   onStartTour?: () => void;
   onStartStory?: () => void;
+  persona?: 'builder' | 'executive' | 'operator';
+  onPersonaChange?: (persona: 'builder' | 'executive' | 'operator') => void;
 };
 
-export default function IntroOverlay({ onComplete, onStartTour, onStartStory }: IntroOverlayProps) {
+const PERSONAS: Array<{ id: 'builder' | 'executive' | 'operator'; label: string; body: string }> = [
+  { id: 'builder', label: 'Builder lens', body: 'Focus on step payloads, execution paths, and replay control.' },
+  { id: 'executive', label: 'Executive lens', body: 'Focus on bottlenecks, risk, and outcome-level run quality.' },
+  { id: 'operator', label: 'Operator lens', body: 'Focus on failures, retries, and trace reliability posture.' },
+];
+
+export default function IntroOverlay({
+  onComplete,
+  onStartTour,
+  onStartStory,
+  persona = 'builder',
+  onPersonaChange,
+}: IntroOverlayProps) {
   const handleStartTour = () => {
     onStartTour?.();
     onComplete();
@@ -34,6 +48,21 @@ export default function IntroOverlay({ onComplete, onStartTour, onStartStory }: 
             <div className="intro-step-label">Direct</div>
             <div className="intro-step-body">Replay from a decisive step and compare runs.</div>
           </div>
+        </div>
+        <div className="intro-personas" role="group" aria-label="Select onboarding lens">
+          {PERSONAS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`ghost-button intro-persona ${persona === item.id ? 'active' : ''}`}
+              onClick={() => onPersonaChange?.(item.id)}
+              aria-pressed={persona === item.id}
+              aria-label={item.label}
+            >
+              <span className="intro-persona-label">{item.label}</span>
+              <span className="intro-persona-body">{item.body}</span>
+            </button>
+          ))}
         </div>
         <div className="intro-grid">
           <span />
