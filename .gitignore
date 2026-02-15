@@ -34,3 +34,4 @@ __pycache__/
 # Build artifacts
 *.tsbuildinfo
 artifacts/
+.vercel

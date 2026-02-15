@@ -213,8 +213,13 @@ python3 scripts/store_maintenance.py snapshot --output ./agent-director-snapshot
 ## Deployment notes
 
 ### Vercel
-- The repository includes `vercel.json` with the UI build configured.
-- Deploy by connecting the repo in Vercel or running `vercel --prod`.
+- The repository includes `vercel.json` with explicit install/build/output settings for `ui`.
+- Required Vercel env vars for deterministic public demo: `VITE_FORCE_DEMO=1`, `VITE_HIDE_BUILD_DATE=1`.
+- Recommended deploy flow:
+  - `vercel deploy -y` (preview)
+  - `vercel deploy --prod -y` (production)
+  - `vercel inspect agent-director.vercel.app --logs` (post-deploy verification)
+- See `docs/hosting.md` for full hosting runbook.
 
 ### GitHub Pages
 - The `deploy-pages` workflow builds `ui` with `BASE_PATH=/<repo>/` and publishes `ui/dist`.
