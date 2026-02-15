@@ -59,7 +59,7 @@ Done:
 - Ran `pnpm -C ui typecheck`, targeted tests, and `make verify` successfully.
 
 Not done:
-- Push/sync to remote pending in this workspace.
+- None.
 
 Lessons:
 - UI control additions can invalidate role-based E2E selectors; use `exact: true` where collisions are possible.

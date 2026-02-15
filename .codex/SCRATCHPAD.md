@@ -12,7 +12,7 @@ Implement the full world-class frontend upgrade program and track every task exh
 
 ## Status
 
-Complete (local verification green)
+Complete (verified and pushed to `origin/main`)
 
 ## Plan
 
@@ -23,7 +23,7 @@ Complete (local verification green)
 5. [x] Implement persona-aware onboarding and theme controls
 6. [x] Implement deferred filtering/performance improvements
 7. [x] Add/adjust tests for upgraded UX behavior
-8. [x] Run verification gates and prepare final state for push to `main`
+8. [x] Run verification gates and push final state to `main`
 
 ## Decisions Made
 
@@ -39,3 +39,4 @@ Complete (local verification green)
 - `pnpm -C ui test -- src/components/__tests__/MiniTimeline.test.tsx src/components/__tests__/IntroOverlay.test.tsx src/components/__tests__/Matrix.test.tsx` passed.
 - `pnpm -C ui typecheck` passed.
 - `make verify` passed.
+- Changes pushed to `origin/main` at commit `6d67ea5`.
