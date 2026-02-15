@@ -90,6 +90,12 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: validate header format early, return explicit `400 Invalid Content-Length`, and cover with raw-socket regression tests.
 - Status: `Closed` (2026-02-15, implemented in `server/main.py` with `test_invalid_content_length_returns_400`)
 
+### GAP-P2-005: Unit test environment emitted persistent localStorage runtime warning noise
+- Evidence: `vitest` runs repeatedly logged ``--localstorage-file` was provided without a valid path` on app/hook tests.
+- Impacted journey: Test signal quality and confidence when triaging real regressions.
+- Fix strategy: replace jsdom storage globals with deterministic in-memory shims in test setup.
+- Status: `Closed` (2026-02-15, `ui/src/setupTests.ts` now provides `localStorage` and `sessionStorage` shims)
+
 ### GAP-P2-003: API responses missing baseline security headers
 - Evidence: API responses did not include baseline hardening headers like `X-Content-Type-Options`.
 - Impacted journey: Security hygiene for release-ready deployment defaults.

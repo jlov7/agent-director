@@ -52,3 +52,5 @@
   Decision: enforce `application/json` for non-empty POST payloads and return `415` on mismatch.
 - 2026-02-15: API boundary handling did not explicitly cover malformed `Content-Length` headers.
   Decision: validate `Content-Length` and return `400 Invalid Content-Length` with regression coverage.
+- 2026-02-15: Unit test runs emitted persistent localStorage warning noise from jsdom runtime defaults.
+  Decision: provide deterministic in-memory `localStorage`/`sessionStorage` shims in test setup to remove warning noise.
