@@ -54,6 +54,18 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: add `scripts/scorecard.py`, `SCORECARDS.md`, and `make scorecard` with artifact output and strict all-perfect requirement.
 - Status: `Closed` (2026-02-14, scorecards now generated in `artifacts/scorecards.json`)
 
+### GAP-P1-009: A11y probe depended on transitive `axe-core` resolution
+- Evidence: e2e a11y specs used `require.resolve('axe-core/axe.min.js')` without declaring `axe-core` directly, relying on transitive dependency shape.
+- Impacted journey: Release-test determinism for accessibility gates.
+- Fix strategy: declare `axe-core` as an explicit UI dev dependency and refresh lockfile.
+- Status: `Closed` (2026-02-14, `ui/package.json` now declares `axe-core`)
+
+### GAP-P2-002: Verification scripts emitted avoidable runtime warning noise
+- Evidence: verification runs produced repeated `NO_COLOR`/`FORCE_COLOR` warnings in node subprocess output.
+- Impacted journey: Signal-to-noise in release verification evidence and CI diagnostics.
+- Fix strategy: normalize environment in verify scripts by unsetting `NO_COLOR` before running toolchain commands.
+- Status: `Closed` (2026-02-14, warning noise reduced in `make verify-strict`)
+
 ### GAP-P1-003: Guided tour keyboard behavior blocked accessibility primary flow
 - Evidence: Deep UX probe reported focus escaping tour card and `Escape` not closing the tour.
 - Impacted journey: First-run onboarding for keyboard-only and assistive-tech users.

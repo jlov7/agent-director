@@ -36,3 +36,7 @@
   Decision: implement executable scorecards (`make scorecard`) with hard all-perfect requirement and machine-readable artifact output.
 - 2026-02-14: Release verification had transient environment-level access failures (socket/DB/registry/GitHub API).
   Decision: rerun full verification in the current environment; all gates now pass (`make verify-strict`, `make doctor`, `make scorecard`, CI green).
+- 2026-02-14: A11y tests used `axe-core` via transitive resolution instead of direct dependency declaration.
+  Decision: add explicit `axe-core` dev dependency in UI package and refresh lockfile for deterministic test resolution.
+- 2026-02-14: Verification output had repeated `NO_COLOR`/`FORCE_COLOR` warning noise.
+  Decision: unset `NO_COLOR` in verification scripts to improve signal quality in release logs.

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+unset NO_COLOR || true
 
 STRICT=0
 if [[ "${1:-}" == "--strict" ]]; then

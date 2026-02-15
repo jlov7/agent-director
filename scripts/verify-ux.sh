@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+unset NO_COLOR || true
 
 if [[ ! -d ui/node_modules ]]; then
   echo "ui/node_modules is missing. Run: pnpm -C ui install" >&2
