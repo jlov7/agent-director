@@ -14,6 +14,13 @@ from .mcp.tools.replay_from_step import execute as replay_execute
 from .mcp.tools.show_trace import execute as show_execute
 from .trace.store import TraceStore
 
+MAX_REQUEST_BYTES = 1_000_000
+INTERNAL_ERROR_MESSAGE = "Internal server error"
+
+
+class PayloadTooLargeError(Exception):
+    pass
+
 
 class ApiHandler(BaseHTTPRequestHandler):
     store: TraceStore
@@ -65,8 +72,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": str(exc)})
         except ValueError as exc:
             self._send_json(400, {"error": str(exc)})
-        except Exception as exc:  # pragma: no cover - generic handler
-            self._send_json(500, {"error": str(exc)})
+        except Exception:  # pragma: no cover - generic handler
+            self._send_json(500, {"error": INTERNAL_ERROR_MESSAGE})
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
@@ -92,15 +99,20 @@ class ApiHandler(BaseHTTPRequestHandler):
                 self._send_json(200, payload["structuredContent"])
                 return
             self._send_json(404, {"error": "Not found"})
+        except PayloadTooLargeError:
+            self._send_json(413, {"error": "Payload too large"})
         except FileNotFoundError as exc:
             self._send_json(404, {"error": str(exc)})
         except ValueError as exc:
             self._send_json(400, {"error": str(exc)})
-        except Exception as exc:  # pragma: no cover
-            self._send_json(500, {"error": str(exc)})
+        except Exception:  # pragma: no cover
+            self._send_json(500, {"error": INTERNAL_ERROR_MESSAGE})
 
     def _read_json(self) -> Dict[str, Any]:
         length = int(self.headers.get("Content-Length", 0))
+        if length > MAX_REQUEST_BYTES:
+            self.rfile.read(length)
+            raise PayloadTooLargeError
         if length == 0:
             return {}
         body = self.rfile.read(length)
@@ -113,6 +125,10 @@ class ApiHandler(BaseHTTPRequestHandler):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("Cache-Control", "no-store")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")

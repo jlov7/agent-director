@@ -6,6 +6,7 @@ from http.client import HTTPConnection
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import server.main as server_main
 from server.main import ApiHandler
 from server.trace.schema import StepSummary, TraceMetadata, TraceSummary
 from server.trace.store import TraceStore
@@ -109,6 +110,49 @@ class TestApi(unittest.TestCase):
         payload = json.loads(resp.read().decode("utf-8"))
         self.assertEqual(resp.status, 400)
         self.assertIn("error", payload)
+        conn.close()
+
+    def test_payload_too_large_returns_413(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        oversized_note = "x" * 1_100_000
+        body = json.dumps({"step_id": "s1", "strategy": "recorded", "modifications": {"note": oversized_note}})
+        conn.request("POST", "/api/traces/trace-1/replay", body=body, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 413)
+        self.assertEqual(payload.get("error"), "Payload too large")
+        conn.close()
+
+    def test_internal_error_is_sanitized(self) -> None:
+        original_compare_execute = server_main.compare_execute
+
+        def raise_internal_error(*_args: object, **_kwargs: object) -> dict:
+            raise RuntimeError("db path leaked: /tmp/secret.db")
+
+        server_main.compare_execute = raise_internal_error
+        try:
+            conn = HTTPConnection("127.0.0.1", self.port)
+            body = json.dumps({"left_trace_id": "trace-1", "right_trace_id": "trace-1"})
+            conn.request("POST", "/api/compare", body=body, headers={"Content-Type": "application/json"})
+            resp = conn.getresponse()
+            payload = json.loads(resp.read().decode("utf-8"))
+            self.assertEqual(resp.status, 500)
+            self.assertEqual(payload.get("error"), "Internal server error")
+            self.assertNotIn("secret.db", payload.get("error", ""))
+            conn.close()
+        finally:
+            server_main.compare_execute = original_compare_execute
+
+    def test_health_response_includes_security_headers(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        conn.request("GET", "/api/health")
+        resp = conn.getresponse()
+        _ = resp.read()
+        self.assertEqual(resp.status, 200)
+        self.assertEqual(resp.getheader("X-Content-Type-Options"), "nosniff")
+        self.assertEqual(resp.getheader("X-Frame-Options"), "DENY")
+        self.assertEqual(resp.getheader("Referrer-Policy"), "no-referrer")
+        self.assertEqual(resp.getheader("Cache-Control"), "no-store")
         conn.close()
 
 

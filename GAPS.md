@@ -60,6 +60,24 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: declare `axe-core` as an explicit UI dev dependency and refresh lockfile.
 - Status: `Closed` (2026-02-14, `ui/package.json` now declares `axe-core`)
 
+### GAP-P1-010: API returned raw internal exception details on `500` responses
+- Evidence: unhandled exceptions were serialized with `str(exc)`, which could leak internals to clients.
+- Impacted journey: Security hygiene and safe failure-state UX.
+- Fix strategy: sanitize `500` payloads to a fixed message and add regression coverage.
+- Status: `Closed` (2026-02-15, `server/main.py` now returns `Internal server error`)
+
+### GAP-P1-011: API lacked request-size guardrails for JSON POST payloads
+- Evidence: `_read_json` accepted unbounded `Content-Length`, allowing oversized request bodies.
+- Impacted journey: Backend resilience and security posture.
+- Fix strategy: enforce `MAX_REQUEST_BYTES` with `413 Payload too large` response and add regression tests.
+- Status: `Closed` (2026-02-15, 1MB limit enforced in `server/main.py` with tests)
+
+### GAP-P2-003: API responses missing baseline security headers
+- Evidence: API responses did not include baseline hardening headers like `X-Content-Type-Options`.
+- Impacted journey: Security hygiene for release-ready deployment defaults.
+- Fix strategy: add low-risk security headers in `_send_json` and test for `/api/health`.
+- Status: `Closed` (2026-02-15, headers added and covered by API tests)
+
 ### GAP-P2-002: Verification scripts emitted avoidable runtime warning noise
 - Evidence: verification runs produced repeated `NO_COLOR`/`FORCE_COLOR` warnings in node subprocess output.
 - Impacted journey: Signal-to-noise in release verification evidence and CI diagnostics.

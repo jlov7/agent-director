@@ -40,3 +40,9 @@
   Decision: add explicit `axe-core` dev dependency in UI package and refresh lockfile for deterministic test resolution.
 - 2026-02-14: Verification output had repeated `NO_COLOR`/`FORCE_COLOR` warning noise.
   Decision: unset `NO_COLOR` in verification scripts to improve signal quality in release logs.
+- 2026-02-15: API `500` responses exposed raw exception text to clients.
+  Decision: return a sanitized fixed `Internal server error` message and cover behavior with regression tests.
+- 2026-02-15: API POST parsing had no request-size limit and accepted oversized JSON payloads.
+  Decision: enforce a 1MB request cap with explicit `413 Payload too large` handling.
+- 2026-02-15: API responses lacked baseline security headers.
+  Decision: add `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Cache-Control` headers for JSON responses.
