@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Agent Director help and onboarding guide for core flows, troubleshooting, keyboard shortcuts, and safe export."
+    />
+    <title>Agent Director Help</title>
+    <style>
+      :root {
+        --bg: #0f141d;
+        --surface: #16202d;
+        --surface-2: #1b2738;
+        --text: #f3f7fd;
+        --text-muted: #b8c4d5;
+        --accent: #6fd2ff;
+        --border: rgba(255, 255, 255, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 10% 0%, rgba(111, 210, 255, 0.2), transparent 40%),
+          linear-gradient(135deg, #0f141d 0%, #111a26 45%, #0f141d 100%);
+      }
+
+      main {
+        max-width: 920px;
+        margin: 0 auto;
+        padding: 28px 18px 40px;
+      }
+
+      .hero {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.7rem;
+      }
+
+      p {
+        color: var(--text-muted);
+        line-height: 1.55;
+        margin: 0;
+      }
+
+      section {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+
+      h2 {
+        margin: 0 0 8px;
+        font-size: 1.1rem;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--text-muted);
+      }
+
+      li {
+        margin: 6px 0;
+      }
+
+      code {
+        color: var(--accent);
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+
+      .btn {
+        border: 1px solid var(--border);
+        background: #101827;
+        color: var(--text);
+        border-radius: 999px;
+        padding: 8px 12px;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+
+      .btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      @media (max-width: 640px) {
+        h1 {
+          font-size: 1.35rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero" aria-label="Help overview">
+        <h1>Agent Director Help</h1>
+        <p>
+          Quick reference for first run, primary workflows, and troubleshooting. Keep this page open while running demos
+          or onboarding new users.
+        </p>
+        <div class="actions">
+          <a class="btn" href="/">Back to app</a>
+          <a class="btn" href="/docs/index.md">Full docs index</a>
+        </div>
+      </section>
+
+      <section aria-label="First run">
+        <h2>First run</h2>
+        <ul>
+          <li>Start the server: <code>python3 server/main.py</code></li>
+          <li>Start UI: <code>pnpm -C ui dev</code></li>
+          <li>Use <strong>Guide</strong> for the walkthrough, or <strong>Story</strong> for autopilot mode.</li>
+        </ul>
+      </section>
+
+      <section aria-label="Core workflow">
+        <h2>Core workflow (Observe -> Inspect -> Direct)</h2>
+        <ul>
+          <li><strong>Observe:</strong> Play/scrub in Cinema mode to understand timing.</li>
+          <li><strong>Inspect:</strong> Open a step to review payloads, errors, retries, and cost.</li>
+          <li><strong>Direct:</strong> Replay from a step, then compare old vs new runs.</li>
+        </ul>
+      </section>
+
+      <section aria-label="Failure handling">
+        <h2>Failure handling</h2>
+        <ul>
+          <li>If traces fail to load, use <strong>Refresh</strong> and confirm server is reachable.</li>
+          <li>Use <strong>Safe export</strong> before sharing screenshots or payloads.</li>
+          <li>If compare is disabled, run a replay from any selected step first.</li>
+        </ul>
+      </section>
+
+      <section aria-label="Shortcuts">
+        <h2>Keyboard shortcuts</h2>
+        <ul>
+          <li><code>Space</code>: Play/Pause</li>
+          <li><code>F</code>: Toggle Flow mode</li>
+          <li><code>I</code>: Toggle Inspector</li>
+          <li><code>S</code>: Toggle Story mode</li>
+          <li><code>?</code>: Open shortcuts modal</li>
+          <li><code>Cmd/Ctrl + K</code>: Command palette</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>
