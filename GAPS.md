@@ -96,6 +96,12 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: replace jsdom storage globals with deterministic in-memory shims in test setup.
 - Status: `Closed` (2026-02-15, `ui/src/setupTests.ts` now provides `localStorage` and `sessionStorage` shims)
 
+### GAP-P2-006: Doctor/scorecard subprocesses inherited conflicting color env vars
+- Evidence: subprocess logs intermittently included avoidable `NO_COLOR`/`FORCE_COLOR` conflict warnings in artifact tails.
+- Impacted journey: Signal quality in automated release evidence (`artifacts/doctor.json`, `artifacts/scorecards.json`).
+- Fix strategy: normalize subprocess env in doctor/scorecard runners by removing `NO_COLOR`.
+- Status: `Closed` (2026-02-15, implemented in `scripts/doctor.py` and `scripts/scorecard.py`)
+
 ### GAP-P2-003: API responses missing baseline security headers
 - Evidence: API responses did not include baseline hardening headers like `X-Content-Type-Options`.
 - Impacted journey: Security hygiene for release-ready deployment defaults.

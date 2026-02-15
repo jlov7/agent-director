@@ -54,3 +54,5 @@
   Decision: validate `Content-Length` and return `400 Invalid Content-Length` with regression coverage.
 - 2026-02-15: Unit test runs emitted persistent localStorage warning noise from jsdom runtime defaults.
   Decision: provide deterministic in-memory `localStorage`/`sessionStorage` shims in test setup to remove warning noise.
+- 2026-02-15: Release artifact commands still inherited conflicting color env vars in subprocesses.
+  Decision: remove `NO_COLOR` in doctor/scorecard subprocess environments to keep evidence logs high signal.

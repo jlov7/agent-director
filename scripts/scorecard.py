@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import time
 from datetime import datetime, timezone
@@ -16,6 +17,8 @@ LHCI_MANIFEST = ROOT / "ui" / ".lighthouseci" / "manifest.json"
 
 def run(command: str) -> tuple[int, float, str, str]:
     started = time.time()
+    env = os.environ.copy()
+    env.pop("NO_COLOR", None)
     proc = subprocess.run(
         command,
         cwd=ROOT,
@@ -23,6 +26,7 @@ def run(command: str) -> tuple[int, float, str, str]:
         capture_output=True,
         text=True,
         check=False,
+        env=env,
     )
     duration = round(time.time() - started, 3)
     return proc.returncode, duration, proc.stdout, proc.stderr

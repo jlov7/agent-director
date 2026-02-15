@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import time
@@ -52,6 +53,8 @@ def run_command(check_id: str, command: str, pass_codes: set[int] | None = None)
     if pass_codes is None:
         pass_codes = {0}
     started = time.time()
+    env = os.environ.copy()
+    env.pop("NO_COLOR", None)
     proc = subprocess.run(
         command,
         cwd=ROOT,
@@ -59,6 +62,7 @@ def run_command(check_id: str, command: str, pass_codes: set[int] | None = None)
         capture_output=True,
         text=True,
         check=False,
+        env=env,
     )
     duration = round(time.time() - started, 3)
     return {
@@ -191,6 +195,8 @@ def check_bundle_budget() -> dict:
 def check_ci_status() -> dict:
     command = "gh pr view --json number,state,url,statusCheckRollup"
     started = time.time()
+    env = os.environ.copy()
+    env.pop("NO_COLOR", None)
     proc = subprocess.run(
         command,
         cwd=ROOT,
@@ -198,6 +204,7 @@ def check_ci_status() -> dict:
         capture_output=True,
         text=True,
         check=False,
+        env=env,
     )
     duration = round(time.time() - started, 3)
     if proc.returncode != 0:
