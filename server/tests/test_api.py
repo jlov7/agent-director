@@ -15,6 +15,9 @@ from http.server import ThreadingHTTPServer
 
 class TestApi(unittest.TestCase):
     def setUp(self) -> None:
+        server_main.ApiHandler.rate_limit_window_s = 60
+        server_main.ApiHandler.rate_limit_max_requests = 500
+        server_main.ApiHandler.clear_rate_limit_state()
         self.temp_dir = TemporaryDirectory()
         self.store = TraceStore(Path(self.temp_dir.name))
         summary = TraceSummary(
@@ -154,6 +157,37 @@ class TestApi(unittest.TestCase):
         self.assertEqual(resp.getheader("Referrer-Policy"), "no-referrer")
         self.assertEqual(resp.getheader("Cache-Control"), "no-store")
         conn.close()
+
+    def test_post_requires_json_content_type(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = json.dumps({"left_trace_id": "trace-1", "right_trace_id": "trace-1"})
+        conn.request("POST", "/api/compare", body=body, headers={"Content-Type": "text/plain"})
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 415)
+        self.assertEqual(payload.get("error"), "Content-Type must be application/json")
+        conn.close()
+
+    def test_rate_limit_returns_429(self) -> None:
+        server_main.ApiHandler.rate_limit_window_s = 60
+        server_main.ApiHandler.rate_limit_max_requests = 1
+        server_main.ApiHandler.clear_rate_limit_state()
+
+        conn1 = HTTPConnection("127.0.0.1", self.port)
+        conn1.request("GET", "/api/health")
+        resp1 = conn1.getresponse()
+        _ = resp1.read()
+        self.assertEqual(resp1.status, 200)
+        conn1.close()
+
+        conn2 = HTTPConnection("127.0.0.1", self.port)
+        conn2.request("GET", "/api/health")
+        resp2 = conn2.getresponse()
+        payload2 = json.loads(resp2.read().decode("utf-8"))
+        self.assertEqual(resp2.status, 429)
+        self.assertEqual(payload2.get("error"), "Too many requests")
+        self.assertIsNotNone(resp2.getheader("Retry-After"))
+        conn2.close()
 
 
 if __name__ == "__main__":

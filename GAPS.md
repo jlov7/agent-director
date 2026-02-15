@@ -72,6 +72,18 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: enforce `MAX_REQUEST_BYTES` with `413 Payload too large` response and add regression tests.
 - Status: `Closed` (2026-02-15, 1MB limit enforced in `server/main.py` with tests)
 
+### GAP-P1-012: API had no per-client request throttling
+- Evidence: request handlers had no server-side throttling, allowing unbounded burst traffic from a single client.
+- Impacted journey: Backend availability and graceful degradation under abusive/accidental burst load.
+- Fix strategy: add conservative in-memory per-IP rate limiting with `429` + `Retry-After`, and cover with API tests.
+- Status: `Closed` (2026-02-15, implemented in `server/main.py` and validated by `test_rate_limit_returns_429`)
+
+### GAP-P1-013: API accepted non-JSON POST payload media types
+- Evidence: POST endpoints parsed bodies without enforcing `Content-Type: application/json`.
+- Impacted journey: API boundary correctness and predictable client error semantics.
+- Fix strategy: enforce JSON media type for non-empty POST payloads and return `415` on mismatch with regression tests.
+- Status: `Closed` (2026-02-15, implemented in `server/main.py` with `test_post_requires_json_content_type`)
+
 ### GAP-P2-003: API responses missing baseline security headers
 - Evidence: API responses did not include baseline hardening headers like `X-Content-Type-Options`.
 - Impacted journey: Security hygiene for release-ready deployment defaults.

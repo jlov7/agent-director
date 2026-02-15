@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import json
+import math
+import time
+from collections import defaultdict, deque
+from threading import Lock
 from json import JSONDecodeError
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict
@@ -22,16 +26,47 @@ class PayloadTooLargeError(Exception):
     pass
 
 
+class InvalidContentTypeError(ValueError):
+    pass
+
+
 class ApiHandler(BaseHTTPRequestHandler):
     store: TraceStore
+    rate_limit_window_s = 60
+    rate_limit_max_requests = 240
+    _rate_limit_hits: Dict[str, deque[float]] = defaultdict(deque)
+    _rate_limit_lock = Lock()
 
     def log_message(self, format: str, *args: Any) -> None:
         return
+
+    @classmethod
+    def clear_rate_limit_state(cls) -> None:
+        with cls._rate_limit_lock:
+            cls._rate_limit_hits.clear()
+
+    def _check_rate_limit(self) -> tuple[bool, int]:
+        ip = self.client_address[0] if self.client_address else "unknown"
+        now = time.time()
+        with self._rate_limit_lock:
+            hits = self._rate_limit_hits[ip]
+            cutoff = now - self.rate_limit_window_s
+            while hits and hits[0] < cutoff:
+                hits.popleft()
+            if len(hits) >= self.rate_limit_max_requests:
+                retry_after = max(1, math.ceil(self.rate_limit_window_s - (now - hits[0])))
+                return False, retry_after
+            hits.append(now)
+        return True, 0
 
     def do_OPTIONS(self) -> None:
         self._send_json(204, {})
 
     def do_GET(self) -> None:
+        allowed, retry_after = self._check_rate_limit()
+        if not allowed:
+            self._send_json(429, {"error": "Too many requests"}, {"Retry-After": str(retry_after)})
+            return
         parsed = urlparse(self.path)
         path_parts = [p for p in parsed.path.split("/") if p]
         query = parse_qs(parsed.query)
@@ -76,6 +111,10 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(500, {"error": INTERNAL_ERROR_MESSAGE})
 
     def do_POST(self) -> None:
+        allowed, retry_after = self._check_rate_limit()
+        if not allowed:
+            self._send_json(429, {"error": "Too many requests"}, {"Retry-After": str(retry_after)})
+            return
         parsed = urlparse(self.path)
         path_parts = [p for p in parsed.path.split("/") if p]
         try:
@@ -101,6 +140,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "Not found"})
         except PayloadTooLargeError:
             self._send_json(413, {"error": "Payload too large"})
+        except InvalidContentTypeError as exc:
+            self._send_json(415, {"error": str(exc)})
         except FileNotFoundError as exc:
             self._send_json(404, {"error": str(exc)})
         except ValueError as exc:
@@ -113,6 +154,10 @@ class ApiHandler(BaseHTTPRequestHandler):
         if length > MAX_REQUEST_BYTES:
             self.rfile.read(length)
             raise PayloadTooLargeError
+        content_type = self.headers.get("Content-Type", "")
+        media_type = content_type.split(";", 1)[0].strip().lower()
+        if length > 0 and media_type != "application/json":
+            raise InvalidContentTypeError("Content-Type must be application/json")
         if length == 0:
             return {}
         body = self.rfile.read(length)
@@ -121,7 +166,7 @@ class ApiHandler(BaseHTTPRequestHandler):
         except JSONDecodeError as exc:
             raise ValueError("Malformed JSON payload") from exc
 
-    def _send_json(self, status: int, payload: Dict[str, Any]) -> None:
+    def _send_json(self, status: int, payload: Dict[str, Any], extra_headers: Dict[str, str] | None = None) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
@@ -132,6 +177,9 @@ class ApiHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        if extra_headers:
+            for header, value in extra_headers.items():
+                self.send_header(header, value)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         if status != 204:

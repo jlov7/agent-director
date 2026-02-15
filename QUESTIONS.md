@@ -46,3 +46,7 @@
   Decision: enforce a 1MB request cap with explicit `413 Payload too large` handling.
 - 2026-02-15: API responses lacked baseline security headers.
   Decision: add `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Cache-Control` headers for JSON responses.
+- 2026-02-15: API had no server-side throttling to protect against burst abuse.
+  Decision: add conservative in-memory per-IP rate limiting and return `429` with `Retry-After`.
+- 2026-02-15: API accepted non-JSON media types on POST bodies.
+  Decision: enforce `application/json` for non-empty POST payloads and return `415` on mismatch.
