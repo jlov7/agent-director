@@ -11,11 +11,13 @@ from .mcp.tools.get_step_details import execute as step_execute
 from .mcp.tools.list_traces import execute as list_execute
 from .mcp.tools.replay_from_step import execute as replay_execute
 from .mcp.tools.show_trace import execute as show_execute
+from .replay.jobs import ReplayJobStore
 from .trace.store import TraceStore
 
 
 class ApiHandler(BaseHTTPRequestHandler):
     store: TraceStore
+    replay_jobs: ReplayJobStore
 
     def log_message(self, format: str, *args: Any) -> None:
         return
@@ -32,6 +34,25 @@ class ApiHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/health":
                 self._send_json(200, {"status": "ok"})
                 return
+            if path_parts[:2] == ["api", "replay-jobs"]:
+                if len(path_parts) == 3:
+                    job = self.replay_jobs.get(path_parts[2])
+                    if not job:
+                        self._send_json(404, {"error": f"Replay job not found: {path_parts[2]}"})
+                        return
+                    self._send_json(200, {"job": job.to_dict()})
+                    return
+                if len(path_parts) == 4 and path_parts[3] == "matrix":
+                    job = self.replay_jobs.get(path_parts[2])
+                    if not job:
+                        self._send_json(404, {"error": f"Replay job not found: {path_parts[2]}"})
+                        return
+                    matrix = self.replay_jobs.get_matrix(job.id, self.store)
+                    if matrix is None:
+                        self._send_json(404, {"error": f"Replay job not found: {job.id}"})
+                        return
+                    self._send_json(200, {"matrix": matrix})
+                    return
             if path_parts[:2] == ["api", "traces"]:
                 if len(path_parts) == 2:
                     payload = list_execute(self.store)
@@ -62,6 +83,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "Not found"})
         except FileNotFoundError as exc:
             self._send_json(404, {"error": str(exc)})
+        except ValueError as exc:
+            self._send_json(400, {"error": str(exc)})
         except Exception as exc:  # pragma: no cover - generic handler
             self._send_json(500, {"error": str(exc)})
 
@@ -70,6 +93,31 @@ class ApiHandler(BaseHTTPRequestHandler):
         path_parts = [p for p in parsed.path.split("/") if p]
         try:
             body = self._read_json()
+            if path_parts == ["api", "replay-jobs"]:
+                trace_id = str(body.get("trace_id") or "")
+                step_id = str(body.get("step_id") or "")
+                trace = self.store.get_summary(trace_id)
+                if not any(step.id == step_id for step in trace.steps):
+                    raise ValueError("step_id not found in trace")
+                job = self.replay_jobs.create_job(
+                    trace_id=trace_id,
+                    step_id=step_id,
+                    scenarios=body.get("scenarios") or [],
+                )
+                execute = body.get("execute", True)
+                if not isinstance(execute, bool):
+                    raise ValueError("execute must be bool")
+                if execute:
+                    self.replay_jobs.execute_job(job.id, self.store)
+                self._send_json(202, {"job": job.to_dict()})
+                return
+            if path_parts[:2] == ["api", "replay-jobs"] and len(path_parts) == 4 and path_parts[3] == "cancel":
+                job = self.replay_jobs.cancel_job(path_parts[2])
+                if not job:
+                    self._send_json(404, {"error": f"Replay job not found: {path_parts[2]}"})
+                    return
+                self._send_json(200, {"job": job.to_dict()})
+                return
             if path_parts[:2] == ["api", "traces"] and len(path_parts) == 4:
                 trace_id = path_parts[2]
                 if path_parts[3] == "replay":
@@ -91,6 +139,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "Not found"})
         except FileNotFoundError as exc:
             self._send_json(404, {"error": str(exc)})
+        except ValueError as exc:
+            self._send_json(400, {"error": str(exc)})
         except Exception as exc:  # pragma: no cover
             self._send_json(500, {"error": str(exc)})
 
@@ -117,6 +167,7 @@ class ApiHandler(BaseHTTPRequestHandler):
 def main() -> None:
     store = TraceStore(data_dir(), demo_dir())
     ApiHandler.store = store
+    ApiHandler.replay_jobs = ReplayJobStore()
     server = ThreadingHTTPServer((DEFAULT_HOST, DEFAULT_PORT), ApiHandler)
     print(f"Agent Director server running on http://{DEFAULT_HOST}:{DEFAULT_PORT}")
     server.serve_forever()

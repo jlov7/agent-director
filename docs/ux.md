@@ -4,6 +4,7 @@
 - **Cinema** — playback timeline with overlap lanes and inspector.
 - **Flow** — semantic graph with edge layers and windowed rendering.
 - **Compare** — side-by-side timelines with aligned diff summary.
+- **Matrix** — multi-scenario replay outcomes with causal ranking, presets, and safe-share exports.
 
 ![Insight Strip](illustrations/insight-strip.svg)
 
@@ -12,6 +13,7 @@
 2. Select a step → inspect details (redacted by default).
 3. Switch to Flow → read structure and I/O binding.
 4. Replay a step → compare vs base → export diff.
+5. Run Matrix scenarios → rank causal factors across outcomes → export matrix artifacts.
 
 ## Story mode + command palette
 - **Story mode** auto-runs a guided walkthrough for demos and onboarding.
@@ -52,6 +54,19 @@ flowchart LR
 - Step details load only on selection.
 - Sensitive payloads are redacted by default.
 - Safe export disables raw mode and reveal paths.
+- Matrix exports include explicit redaction metadata when safe export is enabled.
+
+## Matrix workflow
+1. Select an anchor step and choose presets or custom modifications.
+2. Validate each scenario (JSON object, unique name).
+3. Run the matrix to populate the summary table and causal ranking.
+4. Open scenario details to review modifications and top changed steps.
+5. Export the matrix JSON + markdown summary for sharing.
+
+## Safe-share matrix
+- Enable **Safe export** in the toolbar.
+- Address any sensitive key warnings before running.
+- Export the matrix JSON + markdown summary (both include redaction metadata).
 
 ## Empty states
 - No steps: show onboarding tips and quick actions.

@@ -17,21 +17,32 @@ import QuickActions from './components/common/QuickActions';
 import StoryModeBanner from './components/common/StoryModeBanner';
 import FlowMode from './components/FlowMode';
 import Compare from './components/Compare';
+import Matrix, { type MatrixScenarioDraft } from './components/Matrix';
 import Inspector from './components/Inspector';
 import MorphOrchestrator from './components/Morph/MorphOrchestrator';
 import { useTrace } from './hooks/useTrace';
-import type { StepSummary, StepType, TraceSummary } from './types';
-import { clearStepDetailsCache, prefetchStepDetails, replayFromStep } from './store/api';
+import type { ReplayJob, ReplayMatrix, ReplayScenarioInput, StepSummary, StepType, TraceSummary } from './types';
+import {
+  cancelReplayJob,
+  clearStepDetailsCache,
+  createReplayJob,
+  fetchReplayJob,
+  fetchReplayMatrix,
+  fetchTrace as fetchTraceById,
+  prefetchStepDetails,
+  replayFromStep,
+} from './store/api';
 import { usePersistedState } from './hooks/usePersistedState';
 import { buildFlowLayout } from './utils/flowLayout';
 import { buildIoEdgesFromSummary } from './utils/ioEdgeUtils';
 import { collectStepBoundaries, findNextBoundary } from './utils/playbackBoundaries';
 import { diffTraces } from './utils/diff';
+import { computePollDelay } from './utils/replayPolling';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
 
-type Mode = 'cinema' | 'flow' | 'compare';
+type Mode = 'cinema' | 'flow' | 'compare' | 'matrix';
 
 type Rect = { left: number; top: number; width: number; height: number };
 
@@ -41,6 +52,10 @@ type StoryBeat = {
   duration: number;
   action: () => void | Promise<void>;
 };
+
+function makeScenarioId() {
+  return `scenario-${Math.random().toString(36).slice(2, 9)}`;
+}
 
 function buildStructureEdges(steps: StepSummary[]) {
   return steps
@@ -148,6 +163,25 @@ export default function App() {
     fromRects: Record<string, Rect>;
     toRects: Record<string, Rect>;
   } | null>(null);
+  const [matrixAnchorStepId, setMatrixAnchorStepId] = useState<string>('');
+  const [matrixScenarios, setMatrixScenarios] = useState<MatrixScenarioDraft[]>([
+    {
+      id: makeScenarioId(),
+      name: 'Prompt tighter',
+      strategy: 'hybrid',
+      modificationsText: '{"prompt":"Return concise response"}',
+    },
+    {
+      id: makeScenarioId(),
+      name: 'Recorded baseline',
+      strategy: 'recorded',
+      modificationsText: '{}',
+    },
+  ]);
+  const [replayJob, setReplayJob] = useState<ReplayJob | null>(null);
+  const [replayMatrix, setReplayMatrix] = useState<ReplayMatrix | null>(null);
+  const [matrixLoading, setMatrixLoading] = useState(false);
+  const [matrixError, setMatrixError] = useState<string | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const compareTraceRef = useRef<TraceSummary | null>(null);
 
@@ -216,10 +250,110 @@ export default function App() {
     }
   }, [trace, setMode]);
 
+  const updateMatrixScenario = useCallback((id: string, patch: Partial<MatrixScenarioDraft>) => {
+    setMatrixScenarios((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  }, []);
+
+  const replaceMatrixScenarios = useCallback((next: MatrixScenarioDraft[]) => {
+    setMatrixScenarios(next);
+  }, []);
+
+  const addMatrixScenario = useCallback(() => {
+    setMatrixScenarios((prev) => [
+      ...prev,
+      { id: makeScenarioId(), name: `Scenario ${prev.length + 1}`, strategy: 'hybrid', modificationsText: '{}' },
+    ]);
+  }, []);
+
+  const removeMatrixScenario = useCallback((id: string) => {
+    setMatrixScenarios((prev) => {
+      if (prev.length <= 1) return prev;
+      return prev.filter((item) => item.id !== id);
+    });
+  }, []);
+
+  const runReplayMatrix = useCallback(
+    async (scenarios: ReplayScenarioInput[]) => {
+      if (!trace) return;
+    const stepId = matrixAnchorStepId || selectedStepId || trace.steps[0]?.id;
+    if (!stepId) {
+      setMatrixError('Select an anchor step before running the matrix.');
+      return;
+    }
+    try {
+      setMatrixLoading(true);
+      setMatrixError(null);
+      const created = await createReplayJob({
+        traceId: trace.id,
+        stepId,
+        scenarios,
+      });
+      if (!created) {
+        throw new Error('Failed to create replay job.');
+      }
+      setReplayJob(created);
+
+      let latest = created;
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        if (latest.status !== 'queued' && latest.status !== 'running') break;
+        const delay = computePollDelay(attempt);
+        await new Promise((resolve) => window.setTimeout(resolve, delay));
+        const refreshed = await fetchReplayJob(created.id);
+        if (!refreshed) break;
+        latest = refreshed;
+        setReplayJob(refreshed);
+      }
+
+      const matrix = await fetchReplayMatrix(created.id);
+      if (!matrix) {
+        throw new Error('Replay job finished but matrix summary is unavailable.');
+      }
+      setReplayMatrix(matrix);
+      setMode('matrix');
+    } catch (err) {
+      setMatrixError(err instanceof Error ? err.message : 'Failed to run replay matrix.');
+    } finally {
+      setMatrixLoading(false);
+    }
+    },
+    [matrixAnchorStepId, selectedStepId, trace, setMode]
+  );
+
+  const cancelMatrixRun = useCallback(async () => {
+    if (!replayJob) return;
+    setMatrixLoading(true);
+    try {
+      const canceled = await cancelReplayJob(replayJob.id);
+      if (!canceled) {
+        setMatrixError('Failed to cancel replay job.');
+        return;
+      }
+      setReplayJob(canceled);
+      const matrix = await fetchReplayMatrix(canceled.id);
+      if (matrix) setReplayMatrix(matrix);
+    } finally {
+      setMatrixLoading(false);
+    }
+  }, [replayJob]);
+
+  const openMatrixCompare = useCallback(
+    async (traceId: string) => {
+      const payload = await fetchTraceById(traceId);
+      if (!payload?.trace) {
+        setMatrixError('Could not load replay trace for compare view.');
+        return;
+      }
+      setCompareTrace(payload.trace);
+      setOverlayEnabled(true);
+      setMode('compare');
+    },
+    [setMode, setOverlayEnabled]
+  );
+
   const handleModeChange = useCallback(
     (next: Mode) => {
       if (next === mode || !trace) return;
-      if (next === 'flow') setIsPlaying(false);
+      if (next === 'flow' || next === 'matrix') setIsPlaying(false);
       if (next === 'flow' && mode === 'cinema' && viewportRef.current) {
         const container = viewportRef.current;
         const fromRects = collectStepRects(container);
@@ -476,7 +610,11 @@ export default function App() {
     if (mode === 'compare' && !compareTrace) {
       setMode('cinema');
     }
-  }, [trace, compareTrace, mode, setMode, setWindowed, setOverlayEnabled]);
+    const nextAnchor = selectedStepId && trace.steps.some((step) => step.id === selectedStepId)
+      ? selectedStepId
+      : trace.steps[0]?.id ?? '';
+    setMatrixAnchorStepId((current) => (current && trace.steps.some((step) => step.id === current) ? current : nextAnchor));
+  }, [trace, compareTrace, mode, selectedStepId, setMode, setWindowed, setOverlayEnabled]);
 
   useEffect(() => {
     if (!tourCompleted && introDismissed) {
@@ -761,6 +899,13 @@ export default function App() {
         disabled: !compareTrace,
       },
       {
+        id: 'mode-matrix',
+        label: 'Open Matrix',
+        description: 'Counterfactual replay matrix view.',
+        group: 'Modes',
+        onTrigger: () => handleModeChange('matrix'),
+      },
+      {
         id: 'jump-bottleneck',
         label: 'Jump to bottleneck',
         description: 'Select the slowest step.',
@@ -844,7 +989,11 @@ export default function App() {
   }
 
   return (
-    <div className={`app ${explainMode ? 'explain-mode' : ''} ${mode === 'compare' ? 'mode-compare' : ''}`}>
+    <div
+      className={`app ${explainMode ? 'explain-mode' : ''} ${mode === 'compare' ? 'mode-compare' : ''} ${
+        mode === 'matrix' ? 'mode-matrix' : ''
+      }`}
+    >
       <Header
         trace={trace}
         traces={traces}
@@ -917,7 +1066,7 @@ export default function App() {
 
       <JourneyPanel
         trace={trace}
-        mode={mode}
+        mode={mode === 'matrix' ? 'cinema' : mode}
         playheadMs={playheadMs}
         selectedStepId={selectedStepId}
         compareTrace={compareTrace}
@@ -939,7 +1088,7 @@ export default function App() {
         data-help-indicator
         data-tour="toolbar"
         data-help-title="Search + filters"
-        data-help-body="Filter by step type, enable Safe export, and jump between Cinema, Flow, and Compare."
+        data-help-body="Filter by step type, enable Safe export, and jump between Cinema, Flow, Compare, and Matrix."
         data-help-placement="bottom"
       >
         <SearchBar query={query} typeFilter={typeFilter} onQueryChange={setQuery} onTypeFilterChange={setTypeFilter} />
@@ -984,6 +1133,19 @@ export default function App() {
             data-help-placement="bottom"
           >
             Compare
+          </button>
+          <button
+            className={`ghost-button ${mode === 'matrix' ? 'active' : ''}`}
+            type="button"
+            aria-pressed={mode === 'matrix'}
+            title="Counterfactual replay matrix"
+            onClick={() => handleModeChange('matrix')}
+            data-help
+            data-help-title="Matrix mode"
+            data-help-body="Run multiple replay scenarios and rank likely causal factors."
+            data-help-placement="bottom"
+          >
+            Matrix
           </button>
           <label
             className="toggle"
@@ -1136,10 +1298,30 @@ export default function App() {
                 }}
               />
             ) : null}
+            {mode === 'matrix' ? (
+              <Matrix
+                steps={trace.steps}
+                anchorStepId={matrixAnchorStepId}
+                onAnchorStepChange={setMatrixAnchorStepId}
+                scenarios={matrixScenarios}
+                onScenarioChange={updateMatrixScenario}
+                onAddScenario={addMatrixScenario}
+                onRemoveScenario={removeMatrixScenario}
+                onRun={runReplayMatrix}
+                onCancel={cancelMatrixRun}
+                onReplaceScenarios={replaceMatrixScenarios}
+                loading={matrixLoading}
+                error={matrixError}
+                job={replayJob}
+                matrix={replayMatrix}
+                safeExport={safeExport}
+                onOpenCompare={openMatrixCompare}
+              />
+            ) : null}
           </MorphOrchestrator>
         </div>
 
-        {mode === 'compare' ? null : selectedStep ? (
+        {mode === 'compare' || mode === 'matrix' ? null : selectedStep ? (
           <Inspector
             traceId={trace.id}
             step={selectedStep}
@@ -1160,7 +1342,7 @@ export default function App() {
         )}
       </main>
       <QuickActions
-        mode={mode}
+        mode={mode === 'matrix' ? 'cinema' : mode}
         isPlaying={isPlaying}
         storyActive={storyActive}
         explainMode={explainMode}

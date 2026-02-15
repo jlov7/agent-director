@@ -1,6 +1,10 @@
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from server.replay.jobs import ReplayJobStore
+from server.replay.jobs import MAX_SCENARIOS, ReplayJobStore
+from server.trace.schema import StepSummary, TraceMetadata, TraceSummary
+from server.trace.store import TraceStore
 
 
 class TestReplayJobs(unittest.TestCase):
@@ -74,6 +78,58 @@ class TestReplayJobs(unittest.TestCase):
         self.assertIsNotNone(job.ended_at)
         self.assertTrue(all(s.status == "canceled" for s in job.scenarios))
         self.assertIsNone(self.store.start_next_scenario(job.id))
+
+    def test_create_job_rejects_too_many_scenarios(self) -> None:
+        scenarios = [{"name": f"Scenario {idx}", "strategy": "hybrid", "modifications": {}} for idx in range(MAX_SCENARIOS + 1)]
+        with self.assertRaises(ValueError):
+            self.store.create_job("trace-1", "s1", scenarios)
+
+    def test_execute_job_stamps_job_and_scenario_ids(self) -> None:
+        with TemporaryDirectory() as tmp:
+            trace_store = TraceStore(Path(tmp))
+            summary = TraceSummary(
+                id="trace-1",
+                name="Test",
+                startedAt="2026-01-27T10:00:00.000Z",
+                endedAt="2026-01-27T10:00:02.000Z",
+                status="completed",
+                metadata=TraceMetadata(
+                    source="manual",
+                    agentName="TestAgent",
+                    modelId="demo",
+                    wallTimeMs=2000,
+                    workTimeMs=2000,
+                ),
+                steps=[
+                    StepSummary(
+                        id="s1",
+                        index=0,
+                        type="llm_call",
+                        name="plan",
+                        startedAt="2026-01-27T10:00:00.000Z",
+                        endedAt="2026-01-27T10:00:01.000Z",
+                        durationMs=1000,
+                        status="completed",
+                        childStepIds=[],
+                    )
+                ],
+            )
+            trace_store.ingest_trace(summary)
+
+            job = self.store.create_job(
+                "trace-1",
+                "s1",
+                [{"name": "Prompt tweak", "strategy": "hybrid", "modifications": {"prompt": "shorter"}}],
+            )
+            self.store.execute_job(job.id, trace_store)
+            job = self.store.get(job.id)
+
+            assert job is not None
+            scenario = job.scenarios[0]
+            replay_trace = trace_store.get_summary(scenario.replay_trace_id)
+            system_meta = (replay_trace.replay.modifications.get("__system__", {}) if replay_trace.replay else {})
+            self.assertEqual(system_meta.get("jobId"), job.id)
+            self.assertEqual(system_meta.get("scenarioId"), scenario.id)
 
 
 if __name__ == "__main__":

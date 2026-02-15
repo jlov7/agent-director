@@ -15,6 +15,13 @@ async function initStorage(page: import('@playwright/test').Page) {
   });
 }
 
+async function openMatrix(page: import('@playwright/test').Page) {
+  await initStorage(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Matrix' }).click();
+  await expect(page.getByRole('heading', { name: 'Counterfactual Replay Matrix' })).toBeVisible();
+}
+
 test('cinema visual snapshot', async ({ page }) => {
   await initStorage(page);
   await page.goto('/');
@@ -41,4 +48,36 @@ test('compare visual snapshot', async ({ page }) => {
   await expect(page.locator('.compare-grid')).toBeVisible();
   await maybePercySnapshot(page, 'compare');
   await expect(page.locator('.app')).toHaveScreenshot('compare.png');
+});
+
+test('matrix empty snapshot', async ({ page }) => {
+  await openMatrix(page);
+  await maybePercySnapshot(page, 'matrix-empty');
+  await expect(page.locator('.app')).toHaveScreenshot('matrix-empty.png');
+});
+
+test('matrix loading snapshot', async ({ page }) => {
+  await openMatrix(page);
+  await page.getByRole('button', { name: 'Run matrix' }).click();
+  await expect(page.getByRole('button', { name: 'Running...' })).toBeVisible();
+  await maybePercySnapshot(page, 'matrix-loading');
+  await expect(page.locator('.app')).toHaveScreenshot('matrix-loading.png');
+});
+
+test('matrix loaded snapshot', async ({ page }) => {
+  await openMatrix(page);
+  await page.getByRole('button', { name: 'Run matrix' }).click();
+  const openButton = page.locator('.matrix-table').getByRole('button', { name: 'Open' }).first();
+  await expect(openButton).toBeEnabled();
+  await maybePercySnapshot(page, 'matrix-loaded');
+  await expect(page.locator('.app')).toHaveScreenshot('matrix-loaded.png');
+});
+
+test('matrix error snapshot', async ({ page }) => {
+  await openMatrix(page);
+  const textarea = page.locator('.matrix-scenario textarea').first();
+  await textarea.fill('{');
+  await expect(page.getByText('Fix scenario errors before running.')).toBeVisible();
+  await maybePercySnapshot(page, 'matrix-error');
+  await expect(page.locator('.app')).toHaveScreenshot('matrix-error.png');
 });

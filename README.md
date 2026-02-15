@@ -23,7 +23,9 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 - Flow mode with Structure / Sequence / I/O binding layers + morph transitions
 - Lazy-loaded step details with redaction-by-default and safe export enforcement
 - Director’s Cut replay with deterministic invalidation + provenance
+- Counterfactual replay matrix with causal ranking across scenarios
 - Compare mode with stable alignment, ghost overlays, and diff export
+- Matrix presets, scenario import/export, and redacted matrix exports
 - Insight Strip with critical path, concurrency heatmap, and IO/timing warnings
 - Story Mode autopilot, quick actions dock, and command palette for instant demos
 - Explain mode contextual overlays + guided tour for zero-guess onboarding
@@ -37,7 +39,8 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 4. Click a slow step to open the inspector and reveal redacted payloads.
 5. Toggle Flow to morph into the graph, then enable I/O edges.
 6. Replay from a tool step (Hybrid) and switch to Compare.
-7. Export the diff summary and highlight the ghost overlay.
+7. Switch to Matrix to run multiple replays and compare outcomes.
+8. Export the diff summary and highlight the ghost overlay.
 
 ## Onboarding stack
 - **Intro overlay** frames the three‑act journey (Observe → Inspect → Direct).
@@ -76,6 +79,7 @@ flowchart LR
 - **Graph is meaningful:** edges reflect structure, sequence, and I/O binding.
 - **You can actually edit runs:** replay strategy is explicit and diffable.
 - **Safe sharing:** redaction-by-default with explicit reveal and safe export.
+- **Scenario governance:** presets, validation, and redacted exports for matrix runs.
 
 ## Quickstart
 
@@ -123,6 +127,9 @@ Set `AGENT_DIRECTOR_UI_URL` to the UI entrypoint that the host should load (defa
 - **UI shows demo data when you expect real traces.** Ensure the API is running at `http://127.0.0.1:8787` or set `VITE_API_BASE` to your API URL. Confirm `VITE_FORCE_DEMO` is not set to `1` for the UI build.
 - **UI cannot reach the API.** Verify the server is running and port `8787` is free. If hosting the API elsewhere, set `VITE_API_BASE` and rebuild the UI.
 - **Replay or step details return errors.** Confirm traces exist in `AGENT_DIRECTOR_DATA_DIR` and the directory is writable. If safe export is required, set `AGENT_DIRECTOR_SAFE_EXPORT=1` and restart the server.
+- **Matrix run stays in running state.** Validate the anchor step exists in the trace and scenarios count is ≤ 25. Cancel and rerun after trimming scenarios.
+- **Matrix run fails immediately.** Check for invalid scenario JSON or duplicate scenario names, then rerun.
+- **Matrix export looks redacted.** Disable Safe export in the toolbar if you need raw values (only when sharing is not required).
 - **MCP host opens a blank UI.** Set `AGENT_DIRECTOR_UI_URL` to the UI address the host can reach. If the host requires stdio, set `AGENT_DIRECTOR_MCP_TRANSPORT=stdio`.
 
 ## Testing
