@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 
 from ..trace.schema import StepDetails, TraceSummary
 
 VALID_REDACTION_MODES = {"redacted", "raw"}
 VALID_REPLAY_STRATEGIES = {"recorded", "live", "hybrid"}
+VALID_IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
 
 def _ensure(condition: bool, message: str, errors: List[str]) -> None:
@@ -19,14 +21,24 @@ def _ensure_non_empty_string(value: Any, field: str, errors: List[str]) -> None:
         _ensure(bool(value.strip()), f"{field} must be non-empty", errors)
 
 
+def _ensure_safe_identifier(value: Any, field: str, errors: List[str]) -> None:
+    _ensure_non_empty_string(value, field, errors)
+    if not isinstance(value, str):
+        return
+    _ensure(value == value.strip(), f"{field} must not include leading or trailing whitespace", errors)
+    _ensure(value not in {".", ".."}, f"{field} must not be a dot path segment", errors)
+    _ensure("/" not in value and "\\" not in value, f"{field} must not contain path separators", errors)
+    _ensure(bool(VALID_IDENTIFIER_RE.fullmatch(value)), f"{field} has invalid characters", errors)
+
+
 def validate_input(tool: str, payload: Dict[str, Any]) -> None:
     errors: List[str] = []
     if tool == "show_trace":
         if "trace_id" in payload:
-            _ensure_non_empty_string(payload["trace_id"], "trace_id", errors)
+            _ensure_safe_identifier(payload["trace_id"], "trace_id", errors)
     elif tool == "get_step_details":
-        _ensure_non_empty_string(payload.get("trace_id"), "trace_id", errors)
-        _ensure_non_empty_string(payload.get("step_id"), "step_id", errors)
+        _ensure_safe_identifier(payload.get("trace_id"), "trace_id", errors)
+        _ensure_safe_identifier(payload.get("step_id"), "step_id", errors)
         redaction = payload.get("redaction_mode", "redacted")
         _ensure(redaction in VALID_REDACTION_MODES, "redaction_mode invalid", errors)
         reveal_paths = payload.get("reveal_paths", [])
@@ -36,15 +48,15 @@ def validate_input(tool: str, payload: Dict[str, Any]) -> None:
         safe_export = payload.get("safe_export", False)
         _ensure(isinstance(safe_export, bool), "safe_export must be bool", errors)
     elif tool == "replay_from_step":
-        _ensure_non_empty_string(payload.get("trace_id"), "trace_id", errors)
-        _ensure_non_empty_string(payload.get("step_id"), "step_id", errors)
+        _ensure_safe_identifier(payload.get("trace_id"), "trace_id", errors)
+        _ensure_safe_identifier(payload.get("step_id"), "step_id", errors)
         strategy = payload.get("strategy", "hybrid")
         _ensure(strategy in VALID_REPLAY_STRATEGIES, "strategy invalid", errors)
         modifications = payload.get("modifications", {})
         _ensure(isinstance(modifications, dict), "modifications must be dict", errors)
     elif tool == "compare_traces":
-        _ensure_non_empty_string(payload.get("left_trace_id"), "left_trace_id", errors)
-        _ensure_non_empty_string(payload.get("right_trace_id"), "right_trace_id", errors)
+        _ensure_safe_identifier(payload.get("left_trace_id"), "left_trace_id", errors)
+        _ensure_safe_identifier(payload.get("right_trace_id"), "right_trace_id", errors)
 
     if errors:
         raise ValueError(f"Invalid {tool} input: {', '.join(errors)}")

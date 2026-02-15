@@ -84,6 +84,12 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: enforce JSON media type for non-empty POST payloads and return `415` on mismatch with regression tests.
 - Status: `Closed` (2026-02-15, implemented in `server/main.py` with `test_post_requires_json_content_type`)
 
+### GAP-P1-014: Identifier validation allowed path-like IDs at API boundaries
+- Evidence: MCP input validation only enforced non-empty strings, allowing identifiers such as `..` or `../s1` that are unsafe for filesystem-backed trace/step lookups.
+- Impacted journey: Backend security hygiene and predictable error handling for invalid IDs.
+- Fix strategy: enforce strict identifier allowlist validation for all trace/step ID inputs and add API regression tests for malicious ID patterns.
+- Status: `Closed` (2026-02-15, implemented in `server/mcp/schema.py` and `server/tests/test_api.py`)
+
 ### GAP-P2-004: API did not explicitly validate malformed `Content-Length` values
 - Evidence: invalid/non-numeric `Content-Length` could bypass explicit boundary semantics and produce generic failure paths.
 - Impacted journey: Robust failure-state UX and API boundary hygiene.

@@ -106,6 +106,16 @@ class TestApi(unittest.TestCase):
         self.assertIn("error", payload)
         conn.close()
 
+    def test_replay_step_id_with_path_separators_returns_400(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = json.dumps({"step_id": "../s1", "strategy": "recorded", "modifications": {}})
+        conn.request("POST", "/api/traces/trace-1/replay", body=body, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 400)
+        self.assertIn("step_id", payload.get("error", ""))
+        conn.close()
+
     def test_compare_missing_trace_ids_returns_400(self) -> None:
         conn = HTTPConnection("127.0.0.1", self.port)
         body = json.dumps({})
@@ -114,6 +124,25 @@ class TestApi(unittest.TestCase):
         payload = json.loads(resp.read().decode("utf-8"))
         self.assertEqual(resp.status, 400)
         self.assertIn("error", payload)
+        conn.close()
+
+    def test_compare_trace_ids_with_dot_path_segments_returns_400(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = json.dumps({"left_trace_id": "..", "right_trace_id": "trace-1"})
+        conn.request("POST", "/api/compare", body=body, headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 400)
+        self.assertIn("left_trace_id", payload.get("error", ""))
+        conn.close()
+
+    def test_step_details_trace_id_with_dot_path_segment_returns_400(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        conn.request("GET", "/api/traces/../steps/s1")
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 400)
+        self.assertIn("trace_id", payload.get("error", ""))
         conn.close()
 
     def test_payload_too_large_returns_413(self) -> None:

@@ -56,3 +56,5 @@
   Decision: provide deterministic in-memory `localStorage`/`sessionStorage` shims in test setup to remove warning noise.
 - 2026-02-15: Release artifact commands still inherited conflicting color env vars in subprocesses.
   Decision: remove `NO_COLOR` in doctor/scorecard subprocess environments to keep evidence logs high signal.
+- 2026-02-15: Trace/step identifier validation accepted path-like values (for example `..` and `../s1`) at API boundaries.
+  Decision: enforce strict identifier allowlist checks in shared MCP schema validation and return `400` for invalid IDs.
