@@ -1,14 +1,18 @@
 ## Current Task
 
-Implement Phase 2 full advanced frontend feature completion:
-1) Advanced Timeline Studio
-2) Advanced Causality Graph Lab
-3) Replay IDE Scenario Workbench
-4) Realtime Collaborative Debugging
-5) Advanced AI Director Layer
-6) Advanced Adaptive Onboarding
-7) Visual System + Motion Engine
-8) Large-trace performance architecture
+Implement Overnight Gameplay Overhaul Program:
+1) Co-op Incident Raids
+2) Roguelike Scenario Campaign
+3) Branching Narrative Director Mode
+4) Skill Tree + Loadout
+5) Asymmetric PvP
+6) Time Manipulation Mechanics
+7) Boss Encounter Runs
+8) Adaptive AI Dungeon Master
+9) Mission Economy + Crafting
+10) Guild/Team Operations
+11) Cinematic Event Engine
+12) Seasonal LiveOps Framework
 
 ## Status
 
@@ -16,19 +20,17 @@ Completed
 
 ## Plan
 
-1. [x] Write Phase 2 exhaustive tracking artifacts (`.codex`, `TASKS.md`, docs plan)
-2. [x] Implement advanced timeline studio controls and segment model
-3. [x] Implement advanced causality lab and replay IDE features
-4. [x] Implement realtime collaboration sync, shared annotations, and activity feed
-5. [x] Implement advanced AI director narrative + ask-director workflows
-6. [x] Implement adaptive onboarding missions + progressive disclosure
-7. [x] Implement motion engine polish and large-trace progressive architecture
-8. [x] Add/adjust tests, run verification gates, and push to `main`
+1. [x] Create exhaustive tracking artifacts (`TASKS.md`, `.codex`, gameplay plan doc)
+2. [x] Build deterministic gameplay engine with all 12 feature domains
+3. [x] Build Gameplay Mode UI controls and progression views
+4. [x] Integrate gameplay mode into App toolbar/palette/routing
+5. [x] Add gameplay engine + UI tests
+6. [x] Run verification gates and close tracking artifacts
 
 ## Decisions Made
 
-- Treat user request as explicit approval for comprehensive Phase 2 multi-track implementation.
-- Build advanced features on existing architecture to preserve previously verified behavior.
+- Implement gameplay systems as deterministic local state transitions first to achieve full feature breadth in one cycle.
+- Keep new gameplay mechanics isolated in a dedicated mode to minimize regression risk in core debugger flows.
 
 ## Open Questions
 
@@ -36,6 +38,6 @@ Completed
 
 ## Verification Gates
 
-- `pnpm -C ui typecheck` passed.
-- `pnpm -C ui test` passed.
-- `make verify` passed (including Playwright visual + UX snapshots).
+- `pnpm -C ui typecheck` (pass)
+- `pnpm -C ui test` (pass)
+- `make verify` (pass, after visual baseline refresh)

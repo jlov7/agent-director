@@ -218,3 +218,65 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] `pnpm -C ui typecheck`
 - [x] `pnpm -C ui test`
 - [x] `make verify`
+
+## Overnight Gameplay Overhaul Program (Complete)
+
+### Tracking + Governance
+- [x] Create exhaustive implementation plan in `docs/plans/2026-02-15-gameplay-overhaul-plan.md`.
+- [x] Sync `.codex/PLANS.md` and `.codex/SCRATCHPAD.md` for this active stream.
+- [x] Keep this section status-accurate until all tracks are complete.
+
+### Track 1 — Co-op Incident Raids
+- [x] Shared raid state with party roles and multi-objective progress.
+- [x] Cooperative action controls with mission progress updates.
+
+### Track 2 — Roguelike Scenario Campaign
+- [x] Procedural mission generation with escalating difficulty.
+- [x] Campaign run state (depth/lives/rewards) with progression loop.
+
+### Track 3 — Branching Narrative Director Mode
+- [x] Decision-branch graph with persistent choice history.
+- [x] Branch outcomes that influence campaign modifiers.
+
+### Track 4 — Skill Tree + Loadout System
+- [x] Unlockable skill nodes with dependency checks.
+- [x] Loadout equip system that affects gameplay modifiers.
+
+### Track 5 — Asymmetric PvP (Saboteur vs Operator)
+- [x] Round-based sabotage/defense interactions.
+- [x] Win-pressure model (stability vs sabotage intensity).
+
+### Track 6 — Time Manipulation Mechanics
+- [x] Timeline fork creation and branch history.
+- [x] Rewind/merge controls with deterministic state updates.
+
+### Track 7 — Boss Encounter Runs
+- [x] Multi-phase boss state machine with HP/enrage thresholds.
+- [x] Player action impact model for boss encounter outcomes.
+
+### Track 8 — Adaptive AI Dungeon Master
+- [x] Adaptive mission guidance generated from recent run performance.
+- [x] Dynamic risk/hint outputs surfaced in gameplay UI.
+
+### Track 9 — Mission Economy + Crafting
+- [x] Resource ledger (credits/materials) and spend/earn loop.
+- [x] Crafting recipes tied to gameplay upgrades.
+
+### Track 10 — Guild/Team Operations Layer
+- [x] Guild roster and operation score progression.
+- [x] Team operation events and completion tracking.
+
+### Track 11 — Cinematic Event Engine
+- [x] Event queue with intensity/type metadata.
+- [x] High-fidelity gameplay event feed integrated into UI.
+
+### Track 12 — Seasonal LiveOps Framework
+- [x] Weekly challenge rotation with season state.
+- [x] Challenge completion tracking and season progression.
+
+### Validation + Release
+- [x] Unit tests for gameplay engine/state transitions.
+- [x] Component tests for gameplay mode UX controls.
+- [x] `pnpm -C ui typecheck`
+- [x] `pnpm -C ui test`
+- [x] `make verify`

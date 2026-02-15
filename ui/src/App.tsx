@@ -16,6 +16,7 @@ import HeroRibbon from './components/common/HeroRibbon';
 import QuickActions from './components/common/QuickActions';
 import StoryModeBanner from './components/common/StoryModeBanner';
 import Matrix, { type MatrixScenarioDraft } from './components/Matrix';
+import GameplayMode from './components/GameplayMode';
 import MorphOrchestrator from './components/Morph/MorphOrchestrator';
 import { useTrace } from './hooks/useTrace';
 import type {
@@ -65,6 +66,7 @@ import {
   type SessionCursor,
   type SharedAnnotation,
 } from './utils/collaboration';
+import { createInitialGameplayState, type GameplayState } from './utils/gameplayEngine';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
@@ -75,7 +77,7 @@ const COLLAB_CURSOR_STORAGE_KEY = 'agentDirector.collab.cursors.v1';
 const COLLAB_ANNOTATION_STORAGE_KEY = 'agentDirector.collab.annotations.v1';
 const COLLAB_ACTIVITY_STORAGE_KEY = 'agentDirector.collab.activity.v1';
 
-type Mode = 'cinema' | 'flow' | 'compare' | 'matrix';
+type Mode = 'cinema' | 'flow' | 'compare' | 'matrix' | 'gameplay';
 type IntroPersona = 'builder' | 'executive' | 'operator';
 type ThemeMode = 'studio' | 'focus' | 'contrast';
 type RecommendationTone = 'priority' | 'warning' | 'info';
@@ -302,6 +304,11 @@ export default function App() {
   const [replayMatrix, setReplayMatrix] = useState<ReplayMatrix | null>(null);
   const [matrixLoading, setMatrixLoading] = useState(false);
   const [matrixError, setMatrixError] = useState<string | null>(null);
+  const [gameplayState, setGameplayState] = usePersistedState<GameplayState>(
+    'agentDirector.gameplayState.v1',
+    createInitialGameplayState('bootstrap')
+  );
+  const [gameplayTraceId, setGameplayTraceId] = usePersistedState('agentDirector.gameplayTraceId.v1', '');
   const [activeSessions, setActiveSessions] = useState(1);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
@@ -386,6 +393,13 @@ export default function App() {
     const done = Object.values(missionProgress).filter(Boolean).length;
     return { done, total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
   }, [missionProgress]);
+
+  useEffect(() => {
+    if (!trace) return;
+    if (trace.id === gameplayTraceId) return;
+    setGameplayState(createInitialGameplayState(trace.id));
+    setGameplayTraceId(trace.id);
+  }, [gameplayTraceId, setGameplayState, setGameplayTraceId, trace]);
 
   useEffect(() => {
     setTraceQueryResult(null);
@@ -913,7 +927,7 @@ export default function App() {
   const handleModeChange = useCallback(
     (next: Mode) => {
       if (next === mode || !trace) return;
-      if (next === 'flow' || next === 'matrix') setIsPlaying(false);
+      if (next === 'flow' || next === 'matrix' || next === 'gameplay') setIsPlaying(false);
       if (next === 'flow' && mode === 'cinema' && viewportRef.current) {
         const container = viewportRef.current;
         const fromRects = collectStepRects(container);
@@ -1422,7 +1436,13 @@ export default function App() {
 
     applyingRemoteCursorRef.current = true;
     setPlayheadMs(latest.playheadMs);
-    if (latest.mode === 'cinema' || latest.mode === 'flow' || latest.mode === 'compare' || latest.mode === 'matrix') {
+    if (
+      latest.mode === 'cinema' ||
+      latest.mode === 'flow' ||
+      latest.mode === 'compare' ||
+      latest.mode === 'matrix' ||
+      latest.mode === 'gameplay'
+    ) {
       setMode(latest.mode);
     }
     setSelectedStepId(latest.selectedStepId ?? null);
@@ -1553,6 +1573,12 @@ export default function App() {
       if (event.key.toLowerCase() === 'c') {
         event.preventDefault();
         if (mode !== 'cinema') setMode('cinema');
+        return;
+      }
+
+      if (event.key.toLowerCase() === 'g') {
+        event.preventDefault();
+        handleModeChange('gameplay');
         return;
       }
 
@@ -1694,6 +1720,14 @@ export default function App() {
         onTrigger: () => handleModeChange('matrix'),
       },
       {
+        id: 'mode-gameplay',
+        label: 'Open Gameplay',
+        description: 'World-class gameplay mechanics control center.',
+        group: 'Modes',
+        keys: 'G',
+        onTrigger: () => handleModeChange('gameplay'),
+      },
+      {
         id: 'jump-bottleneck',
         label: 'Jump to bottleneck',
         description: 'Select the slowest step.',
@@ -1802,7 +1836,7 @@ export default function App() {
     <div
       className={`app theme-${themeMode} ${explainMode ? 'explain-mode' : ''} ${
         mode === 'compare' ? 'mode-compare' : ''
-      } ${mode === 'matrix' ? 'mode-matrix' : ''}`}
+      } ${mode === 'matrix' ? 'mode-matrix' : ''} ${mode === 'gameplay' ? 'mode-gameplay' : ''}`}
     >
       <Header
         trace={trace}
@@ -1884,7 +1918,7 @@ export default function App() {
 
       <JourneyPanel
         trace={trace}
-        mode={mode === 'matrix' ? 'cinema' : mode}
+        mode={mode === 'matrix' || mode === 'gameplay' ? 'cinema' : mode}
         playheadMs={playheadMs}
         selectedStepId={selectedStepId}
         compareTrace={compareTrace}
@@ -2013,6 +2047,19 @@ export default function App() {
             data-help-placement="bottom"
           >
             Matrix
+          </button>
+          <button
+            className={`ghost-button ${mode === 'gameplay' ? 'active' : ''}`}
+            type="button"
+            aria-pressed={mode === 'gameplay'}
+            title="Gameplay mechanics command center"
+            onClick={() => handleModeChange('gameplay')}
+            data-help
+            data-help-title="Gameplay mode"
+            data-help-body="Command raids, campaign, pvp, time forks, boss runs, economy, and liveops."
+            data-help-placement="bottom"
+          >
+            Gameplay
           </button>
           <label
             className="toggle"
@@ -2216,12 +2263,19 @@ export default function App() {
                   onOpenCompare={openMatrixCompare}
                 />
               ) : null}
+              {mode === 'gameplay' ? (
+                <GameplayMode
+                  state={gameplayState}
+                  playheadMs={playheadMs}
+                  onUpdate={(updater) => setGameplayState((prev) => updater(prev))}
+                />
+              ) : null}
             </Suspense>
           </MorphOrchestrator>
         </div>
 
         <Suspense fallback={<div className="loading">Loading panel...</div>}>
-          {mode === 'compare' || mode === 'matrix' ? null : selectedStep ? (
+          {mode === 'compare' || mode === 'matrix' || mode === 'gameplay' ? null : selectedStep ? (
             <Inspector
               traceId={trace.id}
               step={selectedStep}
@@ -2254,7 +2308,7 @@ export default function App() {
         </Suspense>
       </main>
       <QuickActions
-        mode={mode === 'matrix' ? 'cinema' : mode}
+        mode={mode === 'matrix' || mode === 'gameplay' ? 'cinema' : mode}
         isPlaying={isPlaying}
         storyActive={storyActive}
         explainMode={explainMode}

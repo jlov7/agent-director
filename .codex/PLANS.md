@@ -61,9 +61,61 @@ Done:
 Not done:
 - None.
 
+---
+
+# Gameplay Overhaul ExecPlan
+
+## Purpose / Big Picture
+
+Add a world-class gameplay layer on top of Agent Director by implementing 12 high-effort gameplay systems in a single cohesive mode with deterministic local behavior and strong UX.
+
+## Progress
+
+- [x] Initialize exhaustive tracking artifacts (`TASKS.md`, `.codex`, gameplay plan doc)
+- [x] Track 1: Co-op Incident Raids
+- [x] Track 2: Roguelike Scenario Campaign
+- [x] Track 3: Branching Narrative Director Mode
+- [x] Track 4: Skill Tree + Loadout
+- [x] Track 5: Asymmetric PvP
+- [x] Track 6: Time Manipulation Mechanics
+- [x] Track 7: Boss Encounter Runs
+- [x] Track 8: Adaptive AI Dungeon Master
+- [x] Track 9: Mission Economy + Crafting
+- [x] Track 10: Guild/Team Operations
+- [x] Track 11: Cinematic Event Engine
+- [x] Track 12: Seasonal LiveOps Framework
+- [x] Verification + release sync + push
+
+## Decision Log
+
+- Implement all gameplay systems as deterministic front-end state transitions for fast iteration.
+- Ship one cohesive Gameplay Mode UI rather than scattering controls across existing modes.
+- Keep existing core debugger modes behavior-stable while adding gameplay as an additive mode.
+
+## Validation Plan
+
+- Add focused unit tests for gameplay engine transitions.
+- Add component tests for gameplay mode controls.
+- Run `pnpm -C ui typecheck`, `pnpm -C ui test`, and `make verify` before completion claims.
+
 Lessons:
 - UI control additions can invalidate role-based E2E selectors; use `exact: true` where collisions are possible.
 - Broad visual changes require explicit snapshot regeneration as part of the verification gate.
+
+## Outcomes & Retrospective
+
+Done:
+- Implemented deterministic gameplay engine primitives in `ui/src/utils/gameplayEngine.ts` spanning all 12 gameplay tracks.
+- Added gameplay engine coverage in `ui/src/utils/gameplayEngine.test.ts`.
+- Added gameplay command center UI in `ui/src/components/GameplayMode/index.tsx` with interactive controls for all tracks.
+- Added gameplay component coverage in `ui/src/components/__tests__/GameplayMode.test.tsx`.
+- Integrated `gameplay` mode into app state, command palette, keyboard shortcuts, and top-level rendering in `ui/src/App.tsx`.
+- Added gameplay styling system in `ui/src/styles/main.css`.
+- Regenerated visual baselines in `ui/tests/e2e/visual.spec.ts-snapshots/*.png` after intentional UI changes.
+- Verified with `pnpm -C ui typecheck`, `pnpm -C ui test`, and `make verify` (green).
+
+Not done:
+- None.
 
 ---
 

@@ -2325,6 +2325,103 @@ pre {
   margin-bottom: 4px;
 }
 
+.gameplay-mode {
+  display: grid;
+  gap: 14px;
+}
+
+.gameplay-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(11, 17, 25, 0.68);
+  padding: 14px;
+}
+
+.gameplay-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.gameplay-header p {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.gameplay-completion {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.gameplay-completion strong {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.gameplay-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.gameplay-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(12, 18, 28, 0.74);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.gameplay-card h3 {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.gameplay-card p {
+  margin: 0;
+  font-size: 0.77rem;
+  color: var(--text-secondary);
+}
+
+.gameplay-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.gameplay-inline .search-input {
+  min-width: 140px;
+}
+
+.gameplay-objectives,
+.gameplay-list {
+  display: grid;
+  gap: 6px;
+}
+
+.gameplay-objective,
+.gameplay-node {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.mode-gameplay .main {
+  animation: panel-fade-in var(--motion-duration-medium) var(--motion-ease-standard);
+}
+
 .mission-summary {
   display: flex;
   justify-content: space-between;

@@ -1,0 +1,34 @@
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import { useState } from 'react';
+import GameplayMode from '../GameplayMode';
+import { createInitialGameplayState } from '../../utils/gameplayEngine';
+
+function Harness() {
+  const [state, setState] = useState(() => createInitialGameplayState('trace-1'));
+  return <GameplayMode state={state} playheadMs={5000} onUpdate={(updater) => setState((prev) => updater(prev))} />;
+}
+
+describe('GameplayMode', () => {
+  it('renders gameplay command center and completion summary', () => {
+    render(<Harness />);
+    expect(screen.getByText('Gameplay Command Center')).toBeInTheDocument();
+    expect(screen.getByLabelText('Gameplay completion')).toBeInTheDocument();
+  });
+
+  it('adds a raid member and advances campaign', () => {
+    render(<Harness />);
+    fireEvent.change(screen.getByLabelText('Raid member name'), { target: { value: 'alice' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add member' }));
+    expect(screen.getByText('Party: 2 members')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mission success' }));
+    expect(screen.getByText(/^Depth 2 .*Lives 3$/i)).toBeInTheDocument();
+  });
+
+  it('supports liveops weekly rotation', () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: 'Next week' }));
+    expect(screen.getByText(/Week 2/i)).toBeInTheDocument();
+  });
+});
