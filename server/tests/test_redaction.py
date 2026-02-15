@@ -1,6 +1,11 @@
 import unittest
 
-from server.trace.redaction import apply_reveal_paths, redact_data, redact_step
+from server.trace.redaction import (
+    apply_reveal_paths,
+    apply_reveal_paths_with_policy,
+    redact_data,
+    redact_step,
+)
 from server.trace.schema import StepDetails, StepSummary
 
 
@@ -56,6 +61,57 @@ class TestRedaction(unittest.TestCase):
         revealed = apply_reveal_paths(redacted, details, ["input.api_key"])
         self.assertEqual(revealed.data["input"]["api_key"], "sk-live-12345")
         self.assertTrue(any(field.path == "input.api_key" for field in revealed.redaction.revealedFields))
+
+    def test_policy_blocks_viewer_reveals(self) -> None:
+        summary = StepSummary(
+            id="s3",
+            index=2,
+            type="tool_call",
+            name="search",
+            startedAt="2026-01-27T10:00:00.000Z",
+            endedAt="2026-01-27T10:00:01.000Z",
+            durationMs=1000,
+            status="completed",
+            childStepIds=[],
+        )
+        details = StepDetails.from_summary(summary, {"contact": {"email": "person@example.com"}})
+        redacted = redact_step(details)
+        out, audit = apply_reveal_paths_with_policy(
+            redacted_step=redacted,
+            raw_step=details,
+            reveal_paths=["contact.email"],
+            role="viewer",
+            safe_export=False,
+        )
+        self.assertIn("contact.email", audit["deniedPaths"])
+        self.assertEqual(out.data["contact"]["email"], "[REDACTED_EMAIL]")
+
+    def test_policy_allows_analyst_only_pii(self) -> None:
+        summary = StepSummary(
+            id="s4",
+            index=3,
+            type="tool_call",
+            name="search",
+            startedAt="2026-01-27T10:00:00.000Z",
+            endedAt="2026-01-27T10:00:01.000Z",
+            durationMs=1000,
+            status="completed",
+            childStepIds=[],
+        )
+        details = StepDetails.from_summary(
+            summary, {"contact": {"email": "person@example.com"}, "token": "sk-abcdef1234567890"}
+        )
+        redacted = redact_step(details)
+        out, audit = apply_reveal_paths_with_policy(
+            redacted_step=redacted,
+            raw_step=details,
+            reveal_paths=["contact.email", "token"],
+            role="analyst",
+            safe_export=False,
+        )
+        self.assertEqual(out.data["contact"]["email"], "person@example.com")
+        self.assertEqual(out.data["token"], "[REDACTED]")
+        self.assertIn("token", audit["deniedPaths"])
 
 
 if __name__ == "__main__":

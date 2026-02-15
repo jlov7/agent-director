@@ -211,3 +211,5 @@ python3 scripts/store_maintenance.py snapshot --output ./agent-director-snapshot
 ---
 
 If you want the logo swapped for a vector mark or full brand kit, say the word.
+
+<sub>Agent Director is a personal R&D / passion project by Jason Lovell. It is independent work and is not sponsored by, endorsed by, or affiliated with Jason’s employer.</sub>

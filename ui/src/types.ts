@@ -120,3 +120,42 @@ export interface TraceInsights {
     topRetries: Array<{ stepId: string; count: number }>;
   };
 }
+
+export interface TraceQueryResult {
+  query: string;
+  matchedStepIds: string[];
+  matchCount: number;
+  clauses: Array<{ field: string; op: string; value: string }>;
+  explain: string;
+}
+
+export interface InvestigationHypothesis {
+  id: string;
+  title: string;
+  summary: string;
+  severity: 'low' | 'medium' | 'high';
+  confidence: number;
+  evidenceStepIds: string[];
+}
+
+export interface InvestigationReport {
+  generatedAt: string;
+  traceId: string;
+  hypotheses: InvestigationHypothesis[];
+}
+
+export interface TraceComment {
+  id: string;
+  traceId: string;
+  stepId: string;
+  author: string;
+  body: string;
+  pinned: boolean;
+  createdAt: string;
+}
+
+export interface ExtensionDefinition {
+  id: string;
+  name: string;
+  description: string;
+}

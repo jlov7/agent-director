@@ -17,8 +17,23 @@ import QuickActions from './components/common/QuickActions';
 import StoryModeBanner from './components/common/StoryModeBanner';
 import MorphOrchestrator from './components/Morph/MorphOrchestrator';
 import { useTrace } from './hooks/useTrace';
-import type { StepSummary, StepType, TraceSummary } from './types';
-import { clearStepDetailsCache, prefetchStepDetails, replayFromStep } from './store/api';
+import type {
+  ExtensionDefinition,
+  InvestigationReport,
+  StepSummary,
+  StepType,
+  TraceQueryResult,
+  TraceSummary,
+} from './types';
+import {
+  clearStepDetailsCache,
+  fetchInvestigation,
+  listExtensions,
+  prefetchStepDetails,
+  replayFromStep,
+  runExtension,
+  runTraceQuery,
+} from './store/api';
 import { usePersistedState } from './hooks/usePersistedState';
 import { buildFlowLayout } from './utils/flowLayout';
 import { buildIoEdgesFromSummary } from './utils/ioEdgeUtils';
@@ -122,6 +137,14 @@ export default function App() {
   const [mode, setMode] = usePersistedState<Mode>('agentDirector.mode', 'cinema');
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<StepType | 'all'>('all');
+  const [traceQuery, setTraceQuery] = useState('');
+  const [traceQueryResult, setTraceQueryResult] = useState<TraceQueryResult | null>(null);
+  const [traceQueryError, setTraceQueryError] = useState<string | null>(null);
+  const [investigation, setInvestigation] = useState<InvestigationReport | null>(null);
+  const [extensions, setExtensions] = useState<ExtensionDefinition[]>([]);
+  const [selectedExtensionId, setSelectedExtensionId] = useState('');
+  const [extensionOutput, setExtensionOutput] = useState<Record<string, unknown> | null>(null);
+  const [extensionRunning, setExtensionRunning] = useState(false);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [safeExport, setSafeExport] = usePersistedState('agentDirector.safeExport', false);
   const [compareTrace, setCompareTrace] = useState<TraceSummary | null>(null);
@@ -152,7 +175,15 @@ export default function App() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const compareTraceRef = useRef<TraceSummary | null>(null);
 
-  const steps = useMemo(() => (trace ? filterSteps(trace.steps, query, typeFilter) : []), [trace, query, typeFilter]);
+  const textFilteredSteps = useMemo(
+    () => (trace ? filterSteps(trace.steps, query, typeFilter) : []),
+    [trace, query, typeFilter]
+  );
+  const steps = useMemo(() => {
+    if (!traceQueryResult) return textFilteredSteps;
+    const matched = new Set(traceQueryResult.matchedStepIds);
+    return textFilteredSteps.filter((step) => matched.has(step.id));
+  }, [textFilteredSteps, traceQueryResult]);
   const compareSteps = useMemo(
     () => (compareTrace ? filterSteps(compareTrace.steps, query, typeFilter) : []),
     [compareTrace, query, typeFilter]
@@ -169,6 +200,39 @@ export default function App() {
     () => (trace ? trace.steps.find((step) => step.id === selectedStepId) ?? null : null),
     [trace, selectedStepId]
   );
+
+  useEffect(() => {
+    setTraceQueryResult(null);
+    setTraceQueryError(null);
+  }, [trace?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!trace?.id) {
+      setInvestigation(null);
+      return;
+    }
+    void fetchInvestigation(trace.id).then((report) => {
+      if (!cancelled) setInvestigation(report);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [trace?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listExtensions().then((items) => {
+      if (cancelled) return;
+      setExtensions(items);
+      if (!selectedExtensionId && items.length > 0) {
+        setSelectedExtensionId(items[0].id);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedExtensionId]);
 
   useEffect(() => {
     compareTraceRef.current = compareTrace;
@@ -192,6 +256,37 @@ export default function App() {
     },
     [trace, setCompareTrace, setMode, setOverlayEnabled]
   );
+
+  const handleTraceQuery = useCallback(async () => {
+    if (!trace) return;
+    if (!traceQuery.trim()) {
+      setTraceQueryResult(null);
+      setTraceQueryError(null);
+      return;
+    }
+    const result = await runTraceQuery(trace.id, traceQuery.trim());
+    if (!result) {
+      setTraceQueryError('TraceQL query failed');
+      setTraceQueryResult(null);
+      return;
+    }
+    setTraceQueryResult(result);
+    setTraceQueryError(null);
+    const firstMatch = result.matchedStepIds[0];
+    if (firstMatch) {
+      setSelectedStepId(firstMatch);
+      if (mode !== 'cinema') setMode('cinema');
+    }
+  }, [mode, setMode, trace, traceQuery]);
+
+  const handleRunExtension = useCallback(async () => {
+    if (!trace || !selectedExtensionId) return;
+    setExtensionRunning(true);
+    const output = await runExtension(selectedExtensionId, trace.id);
+    setExtensionRunning(false);
+    if (!output) return;
+    setExtensionOutput(output.result);
+  }, [selectedExtensionId, trace]);
 
   const jumpToBottleneck = useCallback(() => {
     if (!trace) return;
@@ -937,6 +1032,7 @@ export default function App() {
       />
       <InsightStrip
         insights={insights}
+        investigation={investigation}
         onSelectStep={(stepId) => {
           setSelectedStepId(stepId);
           if (mode !== 'cinema') setMode('cinema');
@@ -974,6 +1070,52 @@ export default function App() {
       >
         <SearchBar query={query} typeFilter={typeFilter} onQueryChange={setQuery} onTypeFilterChange={setTypeFilter} />
         <div className="toolbar-actions">
+          <input
+            className="search-input"
+            value={traceQuery}
+            onChange={(event) => setTraceQuery(event.target.value)}
+            placeholder='TraceQL (example: type=tool_call and duration_ms>800)'
+            aria-label="TraceQL query"
+          />
+          <button className="ghost-button" type="button" onClick={() => void handleTraceQuery()}>
+            Run TraceQL
+          </button>
+          {traceQueryResult ? <span className="status-badge">{traceQueryResult.matchCount} match(es)</span> : null}
+          {traceQueryResult ? (
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => {
+                setTraceQuery('');
+                setTraceQueryResult(null);
+                setTraceQueryError(null);
+              }}
+            >
+              Clear TraceQL
+            </button>
+          ) : null}
+          {traceQueryError ? <span className="status-badge warn">{traceQueryError}</span> : null}
+          <select
+            className="search-select"
+            value={selectedExtensionId}
+            onChange={(event) => setSelectedExtensionId(event.target.value)}
+            aria-label="Extension selector"
+          >
+            <option value="">Select extension</option>
+            {extensions.map((extension) => (
+              <option key={extension.id} value={extension.id}>
+                {extension.name}
+              </option>
+            ))}
+          </select>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => void handleRunExtension()}
+            disabled={!trace || !selectedExtensionId || extensionRunning}
+          >
+            {extensionRunning ? 'Running extension...' : 'Run extension'}
+          </button>
           <button
             className={`ghost-button ${mode === 'cinema' ? 'active' : ''}`}
             type="button"
@@ -1058,6 +1200,13 @@ export default function App() {
           ) : null}
         </div>
       </div>
+
+      {extensionOutput ? (
+        <div className="inspector-section">
+          <div className="inspector-section-title">Extension output</div>
+          <pre className="inspector-json">{JSON.stringify(extensionOutput, null, 2)}</pre>
+        </div>
+      ) : null}
 
       {mode === 'cinema' ? (
         <div className="playback-stack" data-tour="playback">

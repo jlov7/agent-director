@@ -1,4 +1,12 @@
-import type { StepDetails, TraceInsights, TraceSummary } from '../types';
+import type {
+  ExtensionDefinition,
+  InvestigationReport,
+  StepDetails,
+  TraceComment,
+  TraceInsights,
+  TraceQueryResult,
+  TraceSummary,
+} from '../types';
 import demoTrace from '../data/demoTrace.json';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8787';
@@ -9,6 +17,20 @@ const stepDetailsInflight = new Map<string, Promise<StepDetails | null>>();
 async function safeFetchJson<T>(url: string): Promise<T | null> {
   try {
     const response = await fetch(url);
+    if (!response.ok) return null;
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function safePostJson<T>(url: string, payload: unknown): Promise<T | null> {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
     if (!response.ok) return null;
     return (await response.json()) as T;
   } catch {
@@ -167,9 +189,10 @@ export async function fetchStepDetails(
   const revealQuery = effectiveRevealPaths.map((path) => `reveal_path=${encodeURIComponent(path)}`).join('&');
   const querySuffix = revealQuery ? `&${revealQuery}` : '';
   const safeExportQuery = safeExport ? '&safe_export=1' : '';
+  const roleQuery = '&role=admin';
 
   const request = safeFetchJson<{ step: StepDetails }>(
-    `${API_BASE}/api/traces/${traceId}/steps/${stepId}?redaction_mode=${effectiveMode}${safeExportQuery}${querySuffix}`
+    `${API_BASE}/api/traces/${traceId}/steps/${stepId}?redaction_mode=${effectiveMode}${roleQuery}${safeExportQuery}${querySuffix}`
   )
     .then((payload) => {
       const step = payload?.step ?? null;
@@ -198,9 +221,99 @@ export async function prefetchStepDetails(
   await fetchStepDetails(traceId, stepId, 'redacted', [], safeExport);
 }
 
+export function subscribeToLatestTrace(
+  onTrace: (trace: TraceSummary) => void,
+  onError?: (error: unknown) => void
+): () => void {
+  if (FORCE_DEMO || typeof EventSource === 'undefined') {
+    return () => undefined;
+  }
+  const source = new EventSource(`${API_BASE}/api/stream/traces/latest`);
+
+  const parseAndEmit = (rawData: string) => {
+    try {
+      const payload = JSON.parse(rawData) as { trace?: TraceSummary };
+      if (payload.trace) {
+        onTrace(payload.trace);
+      }
+    } catch {
+      // Ignore malformed SSE data.
+    }
+  };
+
+  const traceHandler = (event: MessageEvent<string>) => {
+    parseAndEmit(event.data);
+  };
+
+  source.addEventListener('trace', traceHandler as EventListener);
+  source.onmessage = (event) => parseAndEmit(event.data);
+  source.onerror = (event) => {
+    if (onError) onError(event);
+  };
+
+  return () => {
+    source.removeEventListener('trace', traceHandler as EventListener);
+    source.close();
+  };
+}
+
 export function clearStepDetailsCache() {
   stepDetailsCache.clear();
   stepDetailsInflight.clear();
+}
+
+export async function runTraceQuery(traceId: string, query: string): Promise<TraceQueryResult | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<TraceQueryResult>(`${API_BASE}/api/traces/${traceId}/query`, { query });
+  return payload;
+}
+
+export async function fetchInvestigation(traceId: string): Promise<InvestigationReport | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safeFetchJson<{ investigation: InvestigationReport }>(
+    `${API_BASE}/api/traces/${traceId}/investigate`
+  );
+  return payload?.investigation ?? null;
+}
+
+export async function fetchComments(traceId: string, stepId: string): Promise<TraceComment[]> {
+  if (FORCE_DEMO) return [];
+  const payload = await safeFetchJson<{ comments: TraceComment[] }>(
+    `${API_BASE}/api/traces/${traceId}/comments?step_id=${encodeURIComponent(stepId)}`
+  );
+  return payload?.comments ?? [];
+}
+
+export async function createComment(
+  traceId: string,
+  stepId: string,
+  author: string,
+  body: string,
+  pinned: boolean
+): Promise<TraceComment | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ comment: TraceComment }>(
+    `${API_BASE}/api/traces/${traceId}/comments`,
+    { step_id: stepId, author, body, pinned }
+  );
+  return payload?.comment ?? null;
+}
+
+export async function listExtensions(): Promise<ExtensionDefinition[]> {
+  if (FORCE_DEMO) return [];
+  const payload = await safeFetchJson<{ extensions: ExtensionDefinition[] }>(`${API_BASE}/api/extensions`);
+  return payload?.extensions ?? [];
+}
+
+export async function runExtension(
+  extensionId: string,
+  traceId: string
+): Promise<{ extensionId: string; traceId: string; result: Record<string, unknown> } | null> {
+  if (FORCE_DEMO) return null;
+  return safePostJson<{ extensionId: string; traceId: string; result: Record<string, unknown> }>(
+    `${API_BASE}/api/extensions/${encodeURIComponent(extensionId)}/run`,
+    { trace_id: traceId }
+  );
 }
 
 export async function replayFromStep(

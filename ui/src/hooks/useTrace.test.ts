@@ -6,10 +6,12 @@ import demoTrace from '../data/demoTrace.json';
 // Mock the api module
 const mockFetchTraces = vi.fn();
 const mockFetchTrace = vi.fn();
+const mockSubscribeToLatestTrace = vi.fn();
 
 vi.mock('../store/api', () => ({
   fetchTraces: () => mockFetchTraces(),
   fetchTrace: (traceId: string) => mockFetchTrace(traceId),
+  subscribeToLatestTrace: (...args: unknown[]) => mockSubscribeToLatestTrace(...args),
 }));
 
 // Mock the insights utility
@@ -40,6 +42,7 @@ describe('useTrace Hook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSubscribeToLatestTrace.mockImplementation(() => () => undefined);
   });
 
   afterEach(() => {

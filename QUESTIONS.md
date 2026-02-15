@@ -1,7 +1,9 @@
 # Open Questions
 
 ## Active (non-blocking)
-- None at this time.
+- 2026-02-15: ExecPlan "Release-ready v1" shows all milestones complete; no next task found.
+- 2026-02-15: ExecPlan "Release-ready v1" still complete on latest check; no actionable milestone available.
+- 2026-02-15: ExecPlan "Release-ready v1" still complete in `/Users/jasonlovell/AI/Agent Director`; no next task available for this run.
 
 ## Resolved During Execution
 - 2026-02-14: Should help docs be a full routed page or minimal static page for v1?
@@ -58,3 +60,6 @@
   Decision: remove `NO_COLOR` in doctor/scorecard subprocess environments to keep evidence logs high signal.
 - 2026-02-15: Trace/step identifier validation accepted path-like values (for example `..` and `../s1`) at API boundaries.
   Decision: enforce strict identifier allowlist checks in shared MCP schema validation and return `400` for invalid IDs.
+- 2026-02-15: ExecPlan "Release-ready v1" remains fully complete in worktree; no actionable milestone found this run.
+
+- 2026-02-15: Automation run found ExecPlan "Release-ready v1" fully complete; no actionable task to implement.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { StepDetails, StepSummary } from '../../types';
-import { fetchStepDetails } from '../../store/api';
+import type { StepDetails, StepSummary, TraceComment } from '../../types';
+import { createComment, fetchComments, fetchStepDetails } from '../../store/api';
 import StepBadge from '../common/StepBadge';
 
 function formatJson(data: unknown) {
@@ -19,6 +19,11 @@ export default function Inspector({ traceId, step, safeExport, onClose, onReplay
   const [details, setDetails] = useState<StepDetails | null>(null);
   const [mode, setMode] = useState<'redacted' | 'raw'>('redacted');
   const [revealedPaths, setRevealedPaths] = useState<string[]>([]);
+  const [comments, setComments] = useState<TraceComment[]>([]);
+  const [commentAuthor, setCommentAuthor] = useState('director');
+  const [commentBody, setCommentBody] = useState('');
+  const [commentPinned, setCommentPinned] = useState(false);
+  const [commentSaving, setCommentSaving] = useState(false);
 
   useEffect(() => {
     setRevealedPaths([]);
@@ -44,6 +49,19 @@ export default function Inspector({ traceId, step, safeExport, onClose, onReplay
       active = false;
     };
   }, [traceId, step, mode, safeExport, revealedPaths]);
+
+  useEffect(() => {
+    if (!step) return;
+    let active = true;
+    const loadComments = async () => {
+      const next = await fetchComments(traceId, step.id);
+      if (active) setComments(next);
+    };
+    void loadComments();
+    return () => {
+      active = false;
+    };
+  }, [traceId, step]);
 
   if (!step) return null;
 
@@ -198,6 +216,78 @@ export default function Inspector({ traceId, step, safeExport, onClose, onReplay
         >
           Replay from this step
         </button>
+      </div>
+      <div className="inspector-section">
+        <div className="inspector-section-title">Collaboration notes</div>
+        <div className="inspector-controls">
+          <input
+            className="search-input"
+            value={commentAuthor}
+            onChange={(event) => setCommentAuthor(event.target.value)}
+            placeholder="Author"
+            aria-label="Comment author"
+          />
+          <label>
+            <input
+              type="checkbox"
+              checked={commentPinned}
+              onChange={(event) => setCommentPinned(event.target.checked)}
+            />
+            Pin
+          </label>
+        </div>
+        <textarea
+          className="search-input"
+          value={commentBody}
+          onChange={(event) => setCommentBody(event.target.value)}
+          placeholder="Add an investigation note..."
+          aria-label="Comment body"
+          rows={3}
+        />
+        <div className="inspector-controls">
+          <button
+            className="ghost-button"
+            type="button"
+            disabled={commentSaving || !commentBody.trim()}
+            onClick={async () => {
+              if (!commentBody.trim()) return;
+              setCommentSaving(true);
+              const created = await createComment(
+                traceId,
+                step.id,
+                commentAuthor || 'director',
+                commentBody,
+                commentPinned
+              );
+              setCommentSaving(false);
+              if (!created) return;
+              setCommentBody('');
+              setCommentPinned(false);
+              const next = await fetchComments(traceId, step.id);
+              setComments(next);
+            }}
+          >
+            {commentSaving ? 'Saving...' : 'Add note'}
+          </button>
+        </div>
+        <div className="inspector-comments">
+          {comments.length === 0 ? (
+            <div className="inspector-comments-empty">No notes yet.</div>
+          ) : (
+            comments.map((comment) => (
+              <div key={comment.id} className="inspector-comment">
+                <div className="inspector-row">
+                  <span>
+                    {comment.author}
+                    {comment.pinned ? ' (pinned)' : ''}
+                  </span>
+                  <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                </div>
+                <div>{comment.body}</div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </aside>
   );

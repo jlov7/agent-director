@@ -1,13 +1,20 @@
-import type { TraceInsights } from '../../types';
+import type { InvestigationReport, TraceInsights } from '../../types';
 
 type InsightStripProps = {
   insights: TraceInsights | null;
+  investigation?: InvestigationReport | null;
   onSelectStep?: (stepId: string) => void;
   onJumpToBottleneck?: () => void;
   onJumpToError?: () => void;
 };
 
-export default function InsightStrip({ insights, onSelectStep, onJumpToBottleneck, onJumpToError }: InsightStripProps) {
+export default function InsightStrip({
+  insights,
+  investigation,
+  onSelectStep,
+  onJumpToBottleneck,
+  onJumpToError,
+}: InsightStripProps) {
   if (!insights) return null;
   const timing = insights.timing;
   const ioWarnings = insights.ioWarnings ?? [];
@@ -15,6 +22,7 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
   const retryPatterns = insights.retryPatterns;
   const costByTool = insights.costByTool ?? {};
   const costByModel = insights.costByModel ?? {};
+  const topHypotheses = investigation?.hypotheses?.slice(0, 2) ?? [];
 
   return (
     <section
@@ -163,6 +171,33 @@ export default function InsightStrip({ insights, onSelectStep, onJumpToBottlenec
           )}
         </div>
       </div>
+      {topHypotheses.length ? (
+        <div
+          className="insight-block"
+          data-help
+          data-help-title="Investigator"
+          data-help-body="Automated root-cause hypotheses ranked by severity and confidence."
+          data-help-placement="bottom"
+        >
+          <span className="insight-label">Investigator</span>
+          <div className="insight-items">
+            {topHypotheses.map((hypothesis) => (
+              <span key={hypothesis.id} className="insight-chip" title={hypothesis.summary}>
+                {hypothesis.title} ({Math.round(hypothesis.confidence * 100)}%)
+              </span>
+            ))}
+            {topHypotheses[0]?.evidenceStepIds?.[0] ? (
+              <button
+                className="insight-chip"
+                type="button"
+                onClick={() => onSelectStep?.(topHypotheses[0].evidenceStepIds[0])}
+              >
+                Jump to evidence
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       {concurrency?.buckets?.length ? (
         <div
           className="insight-block"

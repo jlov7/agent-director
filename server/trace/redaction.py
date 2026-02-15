@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from copy import deepcopy
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Literal, Tuple
 
 from .schema import RedactionField, RedactionInfo, StepDetails
 
@@ -48,6 +48,30 @@ def apply_reveal_paths(
     redacted_step.redaction.fieldsRedacted = remaining
     redacted_step.redaction.revealedFields = revealed
     return redacted_step
+
+
+def apply_reveal_paths_with_policy(
+    redacted_step: StepDetails,
+    raw_step: StepDetails,
+    reveal_paths: list[str],
+    role: Literal["viewer", "analyst", "admin"],
+    safe_export: bool,
+) -> tuple[StepDetails, Dict[str, Any]]:
+    requested = reveal_paths or []
+    if safe_export:
+        return redacted_step, _audit(role, requested, [], requested, safe_export, "blocked_safe_export")
+    if role == "viewer":
+        return redacted_step, _audit(role, requested, [], requested, safe_export, "blocked_policy")
+
+    allowed_fields = redacted_step.redaction.fieldsRedacted if redacted_step.redaction else []
+    allowed_by_role = _allowed_reveal_paths(allowed_fields, role)
+    revealable = [path for path in requested if path in allowed_by_role]
+    denied = [path for path in requested if path not in allowed_by_role]
+
+    if revealable:
+        step = apply_reveal_paths(redacted_step, raw_step, revealable)
+        return step, _audit(role, requested, revealable, denied, safe_export, "partial" if denied else "allowed")
+    return redacted_step, _audit(role, requested, [], denied, safe_export, "blocked_policy")
 
 
 def redact_data(data: Any, path: str = "") -> Tuple[Any, List[RedactionField]]:
@@ -129,6 +153,35 @@ def _apply_reveals(
     revealed_paths = {field.path for field in revealed}
     remaining = [field for field in fields if field.path not in revealed_paths]
     return redacted_data, remaining, revealed
+
+
+def _allowed_reveal_paths(
+    fields: List[RedactionField], role: Literal["viewer", "analyst", "admin"]
+) -> set[str]:
+    if role == "admin":
+        return {field.path for field in fields}
+    if role == "analyst":
+        return {field.path for field in fields if field.kind == "pii"}
+    return set()
+
+
+def _audit(
+    role: str,
+    requested_paths: list[str],
+    revealed_paths: list[str],
+    denied_paths: list[str],
+    safe_export: bool,
+    status: str,
+) -> Dict[str, Any]:
+    return {
+        "role": role,
+        "action": "reveal_fields" if requested_paths else "view_step",
+        "status": status,
+        "requestedPaths": requested_paths,
+        "revealedPaths": revealed_paths,
+        "deniedPaths": denied_paths,
+        "safeExport": safe_export,
+    }
 
 
 def _parse_path(path: str) -> List[object]:

@@ -7,6 +7,8 @@ import * as api from '../../store/api';
 // Mock the API module
 vi.mock('../../store/api', () => ({
   fetchStepDetails: vi.fn(),
+  fetchComments: vi.fn(),
+  createComment: vi.fn(),
 }));
 
 const mockStep: StepSummary = {
@@ -47,10 +49,14 @@ describe('Inspector', () => {
   const mockOnClose = vi.fn();
   const mockOnReplay = vi.fn();
   const mockFetchStepDetails = api.fetchStepDetails as ReturnType<typeof vi.fn>;
+  const mockFetchComments = api.fetchComments as ReturnType<typeof vi.fn>;
+  const mockCreateComment = api.createComment as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchStepDetails.mockImplementation(() => new Promise(() => {}));
+    mockFetchComments.mockResolvedValue([]);
+    mockCreateComment.mockResolvedValue(null);
   });
 
   it('renders nothing when step is null', () => {
@@ -255,7 +261,7 @@ describe('Inspector', () => {
       />
     );
 
-    const checkbox = screen.getByRole('checkbox');
+    const checkbox = screen.getByLabelText(/Reveal raw/);
     fireEvent.click(checkbox);
 
     await waitFor(() => {
@@ -280,7 +286,7 @@ describe('Inspector', () => {
       />
     );
 
-    const checkbox = screen.getByRole('checkbox');
+    const checkbox = screen.getByLabelText(/Reveal raw/);
     expect(checkbox).toBeDisabled();
   });
 
@@ -543,6 +549,38 @@ describe('Inspector', () => {
         [],
         false
       );
+    });
+  });
+
+  it('creates collaboration note from inspector', async () => {
+    mockFetchStepDetails.mockResolvedValue(mockDetails);
+    mockFetchComments.mockResolvedValue([]);
+    mockCreateComment.mockResolvedValue({
+      id: 'c1',
+      traceId: 'trace-1',
+      stepId: 'step-1',
+      author: 'director',
+      body: 'Look into this',
+      pinned: false,
+      createdAt: '2026-02-15T02:00:00.000Z',
+    });
+
+    render(
+      <Inspector
+        traceId="trace-1"
+        step={mockStep}
+        safeExport={false}
+        onClose={mockOnClose}
+        onReplay={mockOnReplay}
+      />
+    );
+
+    const textarea = screen.getByLabelText('Comment body');
+    fireEvent.change(textarea, { target: { value: 'Look into this' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
+
+    await waitFor(() => {
+      expect(mockCreateComment).toHaveBeenCalledWith('trace-1', 'step-1', 'director', 'Look into this', false);
     });
   });
 });

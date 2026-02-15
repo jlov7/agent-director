@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { TraceInsights, TraceSummary } from '../types';
-import { fetchTraces, fetchTrace } from '../store/api';
+import { fetchTraces, fetchTrace, subscribeToLatestTrace } from '../store/api';
 import { computeInsights } from '../utils/insights';
 
 export function useTrace() {
@@ -63,6 +63,28 @@ export function useTrace() {
       })
       .finally(() => setLoading(false));
   }, [selectedTraceId, loadTrace]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToLatestTrace(
+      (nextTrace) => {
+        setTraces((prev) => {
+          const existing = prev.find((traceItem) => traceItem.id === nextTrace.id);
+          if (existing) {
+            return prev.map((traceItem) => (traceItem.id === nextTrace.id ? nextTrace : traceItem));
+          }
+          return [...prev, nextTrace];
+        });
+        if (!selectedTraceId || selectedTraceId === nextTrace.id) {
+          setSelectedTraceId(nextTrace.id);
+          setTrace(nextTrace);
+          setInsights(computeInsights(nextTrace));
+          setError(null);
+        }
+      },
+      () => undefined
+    );
+    return unsubscribe;
+  }, [selectedTraceId, setSelectedTraceId]);
 
   return {
     trace,

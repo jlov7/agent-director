@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 StepType = Literal["llm_call", "tool_call", "decision", "handoff", "guardrail"]
 StepStatus = Literal["pending", "running", "completed", "failed"]
 TraceStatus = Literal["running", "completed", "failed"]
-ReplayStrategy = Literal["recorded", "live", "hybrid"]
+ReplayStrategy = Literal["recorded", "live", "hybrid", "merge"]
 
 
 @dataclass
@@ -190,6 +190,8 @@ class ReplayInfo:
     modifiedStepId: str
     modifications: Dict[str, Any]
     createdAt: str
+    checkpoints: Optional[Dict[str, str]] = None
+    mergedFromTraceIds: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, data: Optional[Dict[str, Any]]) -> Optional["ReplayInfo"]:
@@ -200,6 +202,8 @@ class ReplayInfo:
             modifiedStepId=data.get("modifiedStepId", ""),
             modifications=data.get("modifications", {}),
             createdAt=data.get("createdAt", ""),
+            checkpoints=data.get("checkpoints"),
+            mergedFromTraceIds=data.get("mergedFromTraceIds"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -209,6 +213,8 @@ class ReplayInfo:
                 "modifiedStepId": self.modifiedStepId,
                 "modifications": self.modifications,
                 "createdAt": self.createdAt,
+                "checkpoints": self.checkpoints,
+                "mergedFromTraceIds": self.mergedFromTraceIds,
             }
         )
 

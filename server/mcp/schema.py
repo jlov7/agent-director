@@ -7,6 +7,7 @@ from ..trace.schema import StepDetails, TraceSummary
 
 VALID_REDACTION_MODES = {"redacted", "raw"}
 VALID_REPLAY_STRATEGIES = {"recorded", "live", "hybrid"}
+VALID_REDACTION_ROLES = {"viewer", "analyst", "admin"}
 VALID_IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
 
@@ -47,6 +48,10 @@ def validate_input(tool: str, payload: Dict[str, Any]) -> None:
             _ensure(all(isinstance(item, str) for item in reveal_paths), "reveal_paths items must be str", errors)
         safe_export = payload.get("safe_export", False)
         _ensure(isinstance(safe_export, bool), "safe_export must be bool", errors)
+        role = payload.get("role", "viewer")
+        _ensure(isinstance(role, str), "role must be str", errors)
+        if isinstance(role, str):
+            _ensure(role in VALID_REDACTION_ROLES, "role invalid", errors)
     elif tool == "replay_from_step":
         _ensure_safe_identifier(payload.get("trace_id"), "trace_id", errors)
         _ensure_safe_identifier(payload.get("step_id"), "step_id", errors)

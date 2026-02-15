@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Set
-from uuid import uuid4
 
 from ..trace.schema import ReplayInfo, StepSummary, TraceMetadata, TraceSummary
 
@@ -19,9 +20,11 @@ def replay_from_step(
     modifications: Dict[str, Any],
 ) -> TraceSummary:
     new_trace = deepcopy(trace)
-    new_trace.id = uuid4().hex
+    replay_digest = _replay_digest(trace.id, step_id, strategy, modifications)
+    new_trace.id = f"replay-{replay_digest[:24]}"
     new_trace.parentTraceId = trace.id
     new_trace.branchPointStepId = step_id
+    replay_start = _deterministic_replay_start(trace.startedAt, replay_digest)
     invalidated = _compute_invalidated_steps(new_trace.steps, step_id, strategy)
     system_meta = {"invalidatedStepIds": sorted(invalidated), "strategy": strategy}
     merged_modifications = {**modifications, "__system__": system_meta}
@@ -29,13 +32,15 @@ def replay_from_step(
         strategy=strategy,
         modifiedStepId=step_id,
         modifications=merged_modifications,
-        createdAt=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        createdAt=_to_utc_z(replay_start),
     )
 
-    _shift_times(new_trace, datetime.now(timezone.utc))
+    _shift_times(new_trace, replay_start)
     _apply_modifications(new_trace.steps, step_id, modifications)
     if invalidated:
         _invalidate_steps(new_trace, invalidated)
+    if new_trace.replay:
+        new_trace.replay.checkpoints = _checkpoint_signatures(new_trace.steps)
 
     new_trace.metadata = TraceMetadata(
         source=trace.metadata.source,
@@ -50,6 +55,32 @@ def replay_from_step(
     )
 
     return new_trace
+
+
+def _replay_digest(trace_id: str, step_id: str, strategy: str, modifications: Dict[str, Any]) -> str:
+    canonical_mods = json.dumps(modifications, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    payload = f"{trace_id}|{step_id}|{strategy}|{canonical_mods}"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _deterministic_replay_start(source_started_at: str, replay_digest: str) -> datetime:
+    fmt = "%Y-%m-%dT%H:%M:%S.%fZ"
+    try:
+        base_start = datetime.strptime(source_started_at, fmt)
+        if base_start.tzinfo is None:
+            base_start = base_start.replace(tzinfo=timezone.utc)
+    except ValueError:
+        base_start = datetime.now(timezone.utc)
+    offset_ms = 1_000 + (int(replay_digest[24:32], 16) % (6 * 60 * 60 * 1000))
+    return base_start + timedelta(milliseconds=offset_ms)
+
+
+def _checkpoint_signatures(steps: List[StepSummary]) -> Dict[str, str]:
+    checkpoints: Dict[str, str] = {}
+    for step in steps:
+        payload = json.dumps(step.to_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+        checkpoints[step.id] = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+    return checkpoints
 
 
 def _shift_times(trace: TraceSummary, new_start: datetime) -> None:

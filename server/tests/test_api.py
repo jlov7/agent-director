@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 
 import server.main as server_main
 from server.main import ApiHandler
-from server.trace.schema import StepSummary, TraceMetadata, TraceSummary
+from server.trace.schema import StepDetails, StepSummary, TraceMetadata, TraceSummary
 from server.trace.store import TraceStore
 from http.server import ThreadingHTTPServer
 
@@ -49,8 +49,14 @@ class TestApi(unittest.TestCase):
             ],
         )
         self.store.ingest_trace(summary)
+        self.store.save_step_details(
+            "trace-1",
+            StepDetails.from_summary(summary.steps[0], {"data": {"secret": "sk-abc1234567890", "email": "a@b.com"}}),
+        )
 
         ApiHandler.store = self.store
+        ApiHandler.live_broker = server_main.LiveTraceBroker()
+        ApiHandler.extension_registry = server_main.ExtensionRegistry()
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), ApiHandler)
         self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -245,6 +251,205 @@ class TestApi(unittest.TestCase):
 
         self.assertIn("400", response.splitlines()[0])
         self.assertIn("Invalid Content-Length", response)
+
+    def test_merge_replays_returns_merged_trace(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        left_body = json.dumps({"step_id": "s1", "strategy": "recorded", "modifications": {"note": "left"}})
+        conn.request(
+            "POST",
+            "/api/traces/trace-1/replay",
+            body=left_body,
+            headers={"Content-Type": "application/json"},
+        )
+        left_resp = conn.getresponse()
+        left_payload = json.loads(left_resp.read().decode("utf-8"))
+        self.assertEqual(left_resp.status, 200)
+        left_trace_id = left_payload["trace"]["id"]
+        conn.close()
+
+        conn = HTTPConnection("127.0.0.1", self.port)
+        right_body = json.dumps({"step_id": "s1", "strategy": "recorded", "modifications": {"note": "right"}})
+        conn.request(
+            "POST",
+            "/api/traces/trace-1/replay",
+            body=right_body,
+            headers={"Content-Type": "application/json"},
+        )
+        right_resp = conn.getresponse()
+        right_payload = json.loads(right_resp.read().decode("utf-8"))
+        self.assertEqual(right_resp.status, 200)
+        right_trace_id = right_payload["trace"]["id"]
+        conn.close()
+
+        conn = HTTPConnection("127.0.0.1", self.port)
+        merge_body = json.dumps(
+            {
+                "base_trace_id": "trace-1",
+                "left_trace_id": left_trace_id,
+                "right_trace_id": right_trace_id,
+                "strategy": "prefer_right",
+            }
+        )
+        conn.request(
+            "POST",
+            "/api/replays/merge",
+            body=merge_body,
+            headers={"Content-Type": "application/json"},
+        )
+        merge_resp = conn.getresponse()
+        merge_payload = json.loads(merge_resp.read().decode("utf-8"))
+        self.assertEqual(merge_resp.status, 200)
+        self.assertIn("trace", merge_payload)
+        self.assertEqual(merge_payload["trace"]["replay"]["strategy"], "merge")
+        self.assertEqual(
+            sorted(merge_payload["trace"]["replay"]["mergedFromTraceIds"]),
+            sorted([left_trace_id, right_trace_id]),
+        )
+        conn.close()
+
+    def test_stream_latest_trace_emits_sse_event(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port, timeout=2)
+        conn.request("GET", "/api/stream/traces/latest")
+        resp = conn.getresponse()
+        self.assertEqual(resp.status, 200)
+        self.assertEqual(resp.getheader("Content-Type"), "text/event-stream")
+
+        event_line = resp.fp.readline().decode("utf-8").strip()
+        data_line = resp.fp.readline().decode("utf-8").strip()
+        _ = resp.fp.readline().decode("utf-8").strip()
+
+        self.assertEqual(event_line, "event: trace")
+        self.assertTrue(data_line.startswith("data: "))
+        payload = json.loads(data_line[len("data: ") :])
+        self.assertIn("trace", payload)
+        self.assertEqual(payload["trace"]["id"], "trace-1")
+        conn.close()
+
+    def test_trace_query_returns_matched_step_ids(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = json.dumps({"query": "type=llm_call and duration_ms>=1000"})
+        conn.request(
+            "POST",
+            "/api/traces/trace-1/query",
+            body=body,
+            headers={"Content-Type": "application/json"},
+        )
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 200)
+        self.assertEqual(payload["matchedStepIds"], ["s1"])
+        conn.close()
+
+    def test_trace_query_invalid_clause_returns_400(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = json.dumps({"query": "duration_ms>>200"})
+        conn.request(
+            "POST",
+            "/api/traces/trace-1/query",
+            body=body,
+            headers={"Content-Type": "application/json"},
+        )
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 400)
+        self.assertIn("error", payload)
+        conn.close()
+
+    def test_investigate_trace_returns_hypotheses(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        conn.request("GET", "/api/traces/trace-1/investigate")
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 200)
+        self.assertIn("investigation", payload)
+        self.assertIn("hypotheses", payload["investigation"])
+        self.assertGreaterEqual(len(payload["investigation"]["hypotheses"]), 1)
+        conn.close()
+
+    def test_create_and_list_comments(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        create_body = json.dumps(
+            {"step_id": "s1", "author": "jason", "body": "Pin this for follow-up", "pinned": True}
+        )
+        conn.request(
+            "POST",
+            "/api/traces/trace-1/comments",
+            body=create_body,
+            headers={"Content-Type": "application/json"},
+        )
+        create_resp = conn.getresponse()
+        create_payload = json.loads(create_resp.read().decode("utf-8"))
+        self.assertEqual(create_resp.status, 201)
+        self.assertEqual(create_payload["comment"]["stepId"], "s1")
+        conn.close()
+
+        conn = HTTPConnection("127.0.0.1", self.port)
+        conn.request("GET", "/api/traces/trace-1/comments?step_id=s1")
+        list_resp = conn.getresponse()
+        list_payload = json.loads(list_resp.read().decode("utf-8"))
+        self.assertEqual(list_resp.status, 200)
+        self.assertEqual(len(list_payload["comments"]), 1)
+        self.assertEqual(list_payload["comments"][0]["author"], "jason")
+        self.assertTrue(list_payload["comments"][0]["pinned"])
+        conn.close()
+
+    def test_step_details_raw_requires_admin_role(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        conn.request("GET", "/api/traces/trace-1/steps/s1?redaction_mode=raw")
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 400)
+        self.assertIn("admin role", payload.get("error", ""))
+        conn.close()
+
+    def test_step_details_raw_allowed_for_admin_role(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        conn.request("GET", "/api/traces/trace-1/steps/s1?redaction_mode=raw&role=admin")
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 200)
+        self.assertIn("step", payload)
+        conn.close()
+
+    def test_step_details_reveal_blocked_for_viewer(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        conn.request(
+            "GET",
+            "/api/traces/trace-1/steps/s1?redaction_mode=redacted&role=viewer&reveal_path=data.secret",
+        )
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 200)
+        self.assertIn("audit", payload)
+        self.assertIn("data.secret", payload["audit"]["deniedPaths"])
+        conn.close()
+
+    def test_list_extensions_returns_registry_items(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        conn.request("GET", "/api/extensions")
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 200)
+        self.assertIn("extensions", payload)
+        self.assertTrue(any(item["id"] == "latency_hotspots" for item in payload["extensions"]))
+        conn.close()
+
+    def test_run_extension_returns_result(self) -> None:
+        conn = HTTPConnection("127.0.0.1", self.port)
+        body = json.dumps({"trace_id": "trace-1"})
+        conn.request(
+            "POST",
+            "/api/extensions/latency_hotspots/run",
+            body=body,
+            headers={"Content-Type": "application/json"},
+        )
+        resp = conn.getresponse()
+        payload = json.loads(resp.read().decode("utf-8"))
+        self.assertEqual(resp.status, 200)
+        self.assertEqual(payload["extensionId"], "latency_hotspots")
+        self.assertEqual(payload["traceId"], "trace-1")
+        self.assertIn("result", payload)
+        conn.close()
 
 
 if __name__ == "__main__":

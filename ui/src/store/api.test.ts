@@ -20,12 +20,20 @@ import {
   fetchTrace,
   fetchStepDetails,
   replayFromStep,
+  subscribeToLatestTrace,
+  runTraceQuery,
+  fetchInvestigation,
+  fetchComments,
+  createComment,
+  listExtensions,
+  runExtension,
   clearStepDetailsCache,
 } from './api';
 
 describe('API Layer', () => {
   const mockFetch = vi.fn();
   const originalFetch = globalThis.fetch;
+  const originalEventSource = globalThis.EventSource;
 
   beforeEach(() => {
     globalThis.fetch = mockFetch;
@@ -35,6 +43,7 @@ describe('API Layer', () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    globalThis.EventSource = originalEventSource;
   });
 
   describe('fetchTraces', () => {
@@ -591,6 +600,191 @@ describe('API Layer', () => {
 
       const traces = await fetchTraces();
       expect(traces[0].id).toBe(demoTrace.id);
+    });
+  });
+
+  describe('subscribeToLatestTrace', () => {
+    it('parses trace events and closes subscription', () => {
+      const listeners: Record<string, Array<(event: MessageEvent<string>) => void>> = {};
+      const close = vi.fn();
+      class MockEventSource {
+        onmessage: ((event: MessageEvent<string>) => void) | null = null;
+        onerror: ((event: Event) => void) | null = null;
+
+        constructor(url: string) {
+          void url;
+        }
+
+        addEventListener(type: string, listener: EventListener) {
+          if (!listeners[type]) listeners[type] = [];
+          listeners[type].push(listener as (event: MessageEvent<string>) => void);
+        }
+
+        removeEventListener(type: string, listener: EventListener) {
+          listeners[type] = (listeners[type] ?? []).filter((fn) => fn !== listener);
+        }
+
+        close() {
+          close();
+        }
+      }
+
+      globalThis.EventSource = MockEventSource as unknown as typeof EventSource;
+      let emitted: TraceSummary | null = null;
+      const unsubscribe = subscribeToLatestTrace((trace) => {
+        emitted = trace;
+      });
+
+      const traceEvent = listeners.trace?.[0];
+      expect(traceEvent).toBeDefined();
+      traceEvent?.({
+        data: JSON.stringify({ trace: { ...(demoTrace as TraceSummary), id: 'live-trace-1' } }),
+      } as MessageEvent<string>);
+
+      expect(emitted).not.toBeNull();
+      expect(emitted!.id).toBe('live-trace-1');
+      unsubscribe();
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('runTraceQuery', () => {
+    it('posts query and returns results', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          query: 'type=llm_call',
+          matchedStepIds: ['s1'],
+          matchCount: 1,
+          clauses: [{ field: 'type', op: '=', value: 'llm_call' }],
+          explain: 'Clauses use AND semantics in evaluation order.',
+        }),
+      });
+
+      const result = await runTraceQuery('trace-1', 'type=llm_call');
+      expect(result?.matchedStepIds).toEqual(['s1']);
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/traces/trace-1/query'),
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
+    it('returns null when query API fails', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 400 });
+      const result = await runTraceQuery('trace-1', 'invalid');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('fetchInvestigation', () => {
+    it('returns investigation report from API', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          investigation: {
+            generatedAt: '2026-02-15T01:00:00.000Z',
+            traceId: 'trace-1',
+            hypotheses: [
+              {
+                id: 'latency-bottleneck',
+                title: 'Primary latency bottleneck',
+                summary: 's2 dominates runtime.',
+                severity: 'medium',
+                confidence: 0.75,
+                evidenceStepIds: ['s2'],
+              },
+            ],
+          },
+        }),
+      });
+
+      const report = await fetchInvestigation('trace-1');
+      expect(report?.traceId).toBe('trace-1');
+      expect(report?.hypotheses[0].id).toBe('latency-bottleneck');
+    });
+
+    it('returns null when investigation API fails', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+      const report = await fetchInvestigation('trace-1');
+      expect(report).toBeNull();
+    });
+  });
+
+  describe('collaboration comments', () => {
+    it('fetches step comments', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          comments: [
+            {
+              id: 'c1',
+              traceId: 'trace-1',
+              stepId: 's1',
+              author: 'jason',
+              body: 'Check this',
+              pinned: true,
+              createdAt: '2026-02-15T01:00:00.000Z',
+            },
+          ],
+        }),
+      });
+      const comments = await fetchComments('trace-1', 's1');
+      expect(comments).toHaveLength(1);
+      expect(comments[0].author).toBe('jason');
+    });
+
+    it('creates a comment', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          comment: {
+            id: 'c2',
+            traceId: 'trace-1',
+            stepId: 's1',
+            author: 'jason',
+            body: 'Investigate this branch',
+            pinned: false,
+            createdAt: '2026-02-15T01:10:00.000Z',
+          },
+        }),
+      });
+      const created = await createComment('trace-1', 's1', 'jason', 'Investigate this branch', false);
+      expect(created?.id).toBe('c2');
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/traces/trace-1/comments'),
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+  });
+
+  describe('extensions', () => {
+    it('lists available extensions', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          extensions: [{ id: 'latency_hotspots', name: 'Latency Hotspots', description: 'Top runtime steps' }],
+        }),
+      });
+      const extensions = await listExtensions();
+      expect(extensions).toHaveLength(1);
+      expect(extensions[0].id).toBe('latency_hotspots');
+    });
+
+    it('runs extension against trace', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          extensionId: 'latency_hotspots',
+          traceId: 'trace-1',
+          result: { topLatencySteps: [{ stepId: 's1', durationMs: 1000 }] },
+        }),
+      });
+      const output = await runExtension('latency_hotspots', 'trace-1');
+      expect(output?.extensionId).toBe('latency_hotspots');
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/extensions/latency_hotspots/run'),
+        expect.objectContaining({ method: 'POST' })
+      );
     });
   });
 });

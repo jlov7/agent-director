@@ -8,11 +8,12 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
+from uuid import uuid4
 
 from .schema import StepDetails, StepSummary, TraceSummary
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 4
 
 
 class TraceStore:
@@ -100,6 +101,48 @@ class TraceStore:
                 version = 2
             cur.execute(f"PRAGMA user_version = {version}")
             conn.commit()
+            if version < 3:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS comments (
+                        id TEXT PRIMARY KEY,
+                        traceId TEXT NOT NULL,
+                        stepId TEXT NOT NULL,
+                        author TEXT NOT NULL,
+                        body TEXT NOT NULL,
+                        pinned INTEGER NOT NULL DEFAULT 0,
+                        createdAt TEXT NOT NULL
+                    )
+                    """
+                )
+                cur.execute("CREATE INDEX IF NOT EXISTS idx_comments_trace_step ON comments(traceId, stepId)")
+                version = 3
+                cur.execute(f"PRAGMA user_version = {version}")
+                conn.commit()
+            if version < 4:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS redaction_events (
+                        id TEXT PRIMARY KEY,
+                        traceId TEXT NOT NULL,
+                        stepId TEXT NOT NULL,
+                        role TEXT NOT NULL,
+                        action TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        requestedPaths TEXT NOT NULL,
+                        revealedPaths TEXT NOT NULL,
+                        deniedPaths TEXT NOT NULL,
+                        safeExport INTEGER NOT NULL DEFAULT 0,
+                        createdAt TEXT NOT NULL
+                    )
+                    """
+                )
+                cur.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_redaction_events_trace_step ON redaction_events(traceId, stepId)"
+                )
+                version = 4
+                cur.execute(f"PRAGMA user_version = {version}")
+                conn.commit()
 
     def bootstrap_demo_if_empty(self, demo_dir: Path) -> None:
         if any(self.traces_dir.glob("*.summary.json")):
@@ -137,7 +180,131 @@ class TraceStore:
         with self._db() as conn:
             conn.execute("DELETE FROM steps WHERE traceId = ?", (trace_id,))
             conn.execute("DELETE FROM traces WHERE id = ?", (trace_id,))
+            conn.execute("DELETE FROM comments WHERE traceId = ?", (trace_id,))
             conn.commit()
+
+    def add_comment(
+        self, trace_id: str, step_id: str, author: str, body: str, pinned: bool = False
+    ) -> Dict[str, object]:
+        if not trace_id.strip():
+            raise ValueError("trace_id must be non-empty")
+        if not step_id.strip():
+            raise ValueError("step_id must be non-empty")
+        if not author.strip():
+            raise ValueError("author must be non-empty")
+        if not body.strip():
+            raise ValueError("body must be non-empty")
+        comment = {
+            "id": uuid4().hex,
+            "traceId": trace_id,
+            "stepId": step_id,
+            "author": author.strip(),
+            "body": body.strip(),
+            "pinned": bool(pinned),
+            "createdAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        }
+        with self._db() as conn:
+            conn.execute(
+                """
+                INSERT INTO comments (id, traceId, stepId, author, body, pinned, createdAt)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    comment["id"],
+                    comment["traceId"],
+                    comment["stepId"],
+                    comment["author"],
+                    comment["body"],
+                    1 if comment["pinned"] else 0,
+                    comment["createdAt"],
+                ),
+            )
+            conn.commit()
+        return comment
+
+    def list_comments(self, trace_id: str, step_id: Optional[str] = None) -> List[Dict[str, object]]:
+        with self._db() as conn:
+            if step_id:
+                rows = conn.execute(
+                    """
+                    SELECT id, traceId, stepId, author, body, pinned, createdAt
+                    FROM comments
+                    WHERE traceId = ? AND stepId = ?
+                    ORDER BY pinned DESC, createdAt ASC
+                    """,
+                    (trace_id, step_id),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT id, traceId, stepId, author, body, pinned, createdAt
+                    FROM comments
+                    WHERE traceId = ?
+                    ORDER BY pinned DESC, createdAt ASC
+                    """,
+                    (trace_id,),
+                ).fetchall()
+        return [
+            {
+                "id": row[0],
+                "traceId": row[1],
+                "stepId": row[2],
+                "author": row[3],
+                "body": row[4],
+                "pinned": bool(row[5]),
+                "createdAt": row[6],
+            }
+            for row in rows
+        ]
+
+    def log_redaction_event(
+        self,
+        trace_id: str,
+        step_id: str,
+        role: str,
+        action: str,
+        status: str,
+        requested_paths: list[str],
+        revealed_paths: list[str],
+        denied_paths: list[str],
+        safe_export: bool,
+    ) -> Dict[str, object]:
+        event = {
+            "id": uuid4().hex,
+            "traceId": trace_id,
+            "stepId": step_id,
+            "role": role,
+            "action": action,
+            "status": status,
+            "requestedPaths": requested_paths,
+            "revealedPaths": revealed_paths,
+            "deniedPaths": denied_paths,
+            "safeExport": safe_export,
+            "createdAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        }
+        with self._db() as conn:
+            conn.execute(
+                """
+                INSERT INTO redaction_events (
+                    id, traceId, stepId, role, action, status, requestedPaths, revealedPaths, deniedPaths, safeExport, createdAt
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    event["id"],
+                    event["traceId"],
+                    event["stepId"],
+                    event["role"],
+                    event["action"],
+                    event["status"],
+                    json.dumps(event["requestedPaths"]),
+                    json.dumps(event["revealedPaths"]),
+                    json.dumps(event["deniedPaths"]),
+                    1 if event["safeExport"] else 0,
+                    event["createdAt"],
+                ),
+            )
+            conn.commit()
+        return event
 
     def export_snapshot(self, output_path: Path) -> Path:
         output_path.parent.mkdir(parents=True, exist_ok=True)

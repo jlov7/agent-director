@@ -649,6 +649,22 @@ pre {
   flex-wrap: wrap;
 }
 
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(12, 18, 28, 0.9);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.status-badge.warn {
+  color: #f6b7b7;
+  border-color: rgba(235, 87, 87, 0.45);
+}
+
 .playback-stack {
   display: flex;
   flex-direction: column;
@@ -1308,6 +1324,26 @@ pre {
   margin-top: 12px;
   font-size: 0.8rem;
   color: var(--text-secondary);
+}
+
+.inspector-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inspector-comment {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: rgba(12, 18, 28, 0.75);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.inspector-comments-empty {
+  color: var(--text-muted);
+  font-size: 0.82rem;
 }
 
 .modal-backdrop {

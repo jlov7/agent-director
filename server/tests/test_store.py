@@ -98,6 +98,42 @@ class TestTraceStore(unittest.TestCase):
         self.assertEqual(len(fetched.steps), 1)
         self.assertEqual(fetched.steps[0].id, "s-good")
 
+    def test_add_and_list_comments(self) -> None:
+        summary = TraceSummary(
+            id="trace-3",
+            name="With comments",
+            startedAt="2026-01-27T10:00:00.000Z",
+            endedAt="2026-01-27T10:00:01.000Z",
+            status="completed",
+            metadata=TraceMetadata(
+                source="manual",
+                agentName="TestAgent",
+                modelId="demo",
+                wallTimeMs=1000,
+                workTimeMs=1000,
+            ),
+            steps=[
+                StepSummary(
+                    id="s1",
+                    index=0,
+                    type="llm_call",
+                    name="plan",
+                    startedAt="2026-01-27T10:00:00.000Z",
+                    endedAt="2026-01-27T10:00:01.000Z",
+                    durationMs=1000,
+                    status="completed",
+                    childStepIds=[],
+                )
+            ],
+        )
+        self.store.ingest_trace(summary)
+        created = self.store.add_comment("trace-3", "s1", "jason", "Investigate retry loop", pinned=True)
+        self.assertEqual(created["traceId"], "trace-3")
+        comments = self.store.list_comments("trace-3", "s1")
+        self.assertEqual(len(comments), 1)
+        self.assertEqual(comments[0]["body"], "Investigate retry loop")
+        self.assertTrue(comments[0]["pinned"])
+
 
 if __name__ == "__main__":
     unittest.main()
