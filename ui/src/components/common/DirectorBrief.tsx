@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { StepSummary, TraceSummary } from '../../types';
 
 type Mode = 'cinema' | 'flow' | 'compare';
@@ -22,6 +23,21 @@ type DirectorBriefProps = {
   onReplay: (stepId: string) => void;
   recommendations?: DirectorRecommendation[];
   persona?: IntroPersona;
+  annotations?: Array<{
+    id: string;
+    stepId: string | null;
+    body: string;
+    authorSessionId: string;
+    createdAt: number;
+  }>;
+  activityFeed?: Array<{ id: string; sessionId: string; message: string; timestamp: number }>;
+  onAddAnnotation?: (body: string, stepId: string | null) => void;
+  missionProgress?: Record<string, boolean>;
+  missionCompletion?: { done: number; total: number; pct: number };
+  onResetMissions?: () => void;
+  narrative?: string;
+  onAskDirector?: (question: string) => string;
+  onExportNarrative?: () => void;
 };
 
 function pickBottleneck(steps: StepSummary[]) {
@@ -39,6 +55,15 @@ export default function DirectorBrief({
   onReplay,
   recommendations = [],
   persona = 'builder',
+  annotations = [],
+  activityFeed = [],
+  onAddAnnotation,
+  missionProgress = {},
+  missionCompletion,
+  onResetMissions,
+  narrative = '',
+  onAskDirector,
+  onExportNarrative,
 }: DirectorBriefProps) {
   const steps = trace.steps ?? [];
   const bottleneck = pickBottleneck(steps);
@@ -46,6 +71,21 @@ export default function DirectorBrief({
   const wall = trace.metadata.wallTimeMs ?? 0;
   const personaLabel =
     persona === 'executive' ? 'Executive lens' : persona === 'operator' ? 'Operator lens' : 'Builder lens';
+  const [annotationDraft, setAnnotationDraft] = useState('');
+  const [directorQuestion, setDirectorQuestion] = useState('');
+  const [directorAnswer, setDirectorAnswer] = useState('');
+  const latestActivity = useMemo(() => activityFeed.slice(0, 6), [activityFeed]);
+  const missionDone = missionCompletion?.done ?? 0;
+  const analysisUnlocked = missionDone >= 3 || Boolean(missionProgress.inspect);
+  const collaborationUnlocked = missionDone >= 5 || Boolean(missionProgress.collaborate) || latestActivity.length > 0;
+  const guidedPlan = useMemo(
+    () =>
+      recommendations.slice(0, 3).map((item, index) => ({
+        id: item.id,
+        step: `${index + 1}. ${item.actionLabel} — ${item.title}`,
+      })),
+    [recommendations]
+  );
 
   return (
     <aside
@@ -132,7 +172,8 @@ export default function DirectorBrief({
             className="ghost-button"
             type="button"
             onClick={() => primaryStepId && onReplay(primaryStepId)}
-            disabled={!primaryStepId}
+            disabled={!primaryStepId || !analysisUnlocked}
+            title={analysisUnlocked ? undefined : 'Complete core missions to unlock replay guidance.'}
             data-help
             data-help-title="Replay"
             data-help-body="Branch a replay from a decisive step."
@@ -174,7 +215,29 @@ export default function DirectorBrief({
         </div>
       </div>
 
-      {recommendations.length ? (
+      <div className="inspector-section">
+        <div className="inspector-section-title">Adaptive missions</div>
+        <div className="mission-summary">
+          {missionCompletion?.done ?? 0}/{missionCompletion?.total ?? 0} complete
+          <span>{missionCompletion?.pct ?? 0}%</span>
+        </div>
+        <div className="mission-stage">
+          Stage: {collaborationUnlocked ? 'Collaboration' : analysisUnlocked ? 'Analysis' : 'Foundation'}
+        </div>
+        <div className="mission-grid">
+          {Object.entries(missionProgress).map(([missionId, done]) => (
+            <div key={missionId} className={`mission-chip ${done ? 'done' : ''}`}>
+              <span>{missionId}</span>
+              <span>{done ? 'Done' : 'Pending'}</span>
+            </div>
+          ))}
+        </div>
+        <button className="ghost-button" type="button" onClick={onResetMissions}>
+          Reset missions
+        </button>
+      </div>
+
+      {analysisUnlocked && recommendations.length ? (
         <div className="inspector-section">
           <div className="inspector-section-title">Recommended next moves</div>
           <div className="director-recommendations">
@@ -190,6 +253,99 @@ export default function DirectorBrief({
           </div>
         </div>
       ) : null}
+
+      <div className="inspector-section">
+        <div className="inspector-section-title">AI director narrative</div>
+        {!analysisUnlocked ? (
+          <div className="annotation-empty">Complete inspect/flow/replay missions to unlock AI narrative tools.</div>
+        ) : (
+          <>
+            <p className="director-recommendation-body">{narrative}</p>
+            {guidedPlan.length ? (
+              <div className="director-guided-plan">
+                {guidedPlan.map((item) => (
+                  <div key={item.id}>{item.step}</div>
+                ))}
+              </div>
+            ) : null}
+            <div className="director-ask-row">
+              <input
+                className="search-input"
+                value={directorQuestion}
+                onChange={(event) => setDirectorQuestion(event.target.value)}
+                placeholder="Ask Director (e.g. what is highest risk?)"
+                aria-label="Ask director question"
+              />
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => {
+                  if (!directorQuestion.trim()) return;
+                  setDirectorAnswer(onAskDirector?.(directorQuestion) ?? '');
+                }}
+              >
+                Ask
+              </button>
+            </div>
+            {directorAnswer ? <div className="director-answer">{directorAnswer}</div> : null}
+            <button className="ghost-button" type="button" onClick={onExportNarrative}>
+              Export narrative
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="inspector-section">
+        <div className="inspector-section-title">Shared annotations</div>
+        <textarea
+          value={annotationDraft}
+          onChange={(event) => setAnnotationDraft(event.target.value)}
+          rows={3}
+          placeholder={selectedStepId ? 'Add note for selected step...' : 'Add trace-level note...'}
+          aria-label="Shared annotation"
+        />
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={() => {
+            const trimmed = annotationDraft.trim();
+            if (!trimmed) return;
+            onAddAnnotation?.(trimmed, selectedStepId);
+            setAnnotationDraft('');
+          }}
+        >
+          Add annotation
+        </button>
+        <div className="annotation-list">
+          {annotations.slice(-6).reverse().map((annotation) => (
+            <article key={annotation.id} className="annotation-item">
+              <div className="annotation-meta">
+                <span>{annotation.stepId ? `step ${annotation.stepId}` : 'trace'}</span>
+                <span>{annotation.authorSessionId}</span>
+              </div>
+              <p>{annotation.body}</p>
+            </article>
+          ))}
+          {annotations.length === 0 ? <div className="annotation-empty">No shared annotations yet.</div> : null}
+        </div>
+      </div>
+
+      <div className="inspector-section">
+        <div className="inspector-section-title">Collab activity</div>
+        {!collaborationUnlocked ? (
+          <div className="annotation-empty">Open another live session to unlock collaboration activity feed.</div>
+        ) : (
+          <div className="activity-list">
+            {latestActivity.map((item) => (
+              <div key={item.id} className="activity-item">
+                <span>{item.message}</span>
+                <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
+              </div>
+            ))}
+            {latestActivity.length === 0 ? <div className="annotation-empty">No activity yet.</div> : null}
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

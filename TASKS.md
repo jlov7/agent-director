@@ -158,3 +158,63 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] `pnpm -C ui typecheck`
 - [x] `pnpm -C ui test`
 - [x] `make verify`
+
+## Phase 2 — Full Advanced Feature Completion (Complete)
+
+### Tracking + Governance
+- [x] Create exhaustive plan in `docs/plans/2026-02-15-phase2-hard-features-plan.md`.
+- [x] Keep this section status-accurate through completion.
+
+### Track 1 — Cinematic Timeline Studio (Advanced)
+- [x] Lane strategy controls (type/status/parent) + live regrouping.
+- [x] Lane visibility toggles + lane reorder controls.
+- [x] Scene segment labeling + segment-aware clip export.
+- [x] Studio-state persistence for lane + segment configs.
+
+### Track 2 — Causality Graph Lab (Advanced)
+- [x] Causal factor simulation controls.
+- [x] Projected metrics panel.
+- [x] Step influence heatmap.
+- [x] Causal path explorer.
+
+### Track 3 — Scenario Workbench (Replay IDE)
+- [x] Schema-aware scalar form editing.
+- [x] Side-by-side scenario diff preview.
+- [x] Batch profile orchestration runner.
+- [x] Integrity/conflict validation for profiles.
+
+### Track 4 — Realtime Collaborative Debugging
+- [x] Cross-session state sync (mode/playhead/selection).
+- [x] Live participant timeline cursors.
+- [x] Shared annotations with conflict-safe merge.
+- [x] Session activity feed.
+
+### Track 5 — AI Director Layer (Advanced)
+- [x] Generated run narrative panel.
+- [x] NL ask-director prompt with deterministic reasoning.
+- [x] Guided action plan generation.
+- [x] Narrative markdown export.
+
+### Track 6 — Adaptive Onboarding Journeys (Advanced)
+- [x] Mission engine driven by behavior signals.
+- [x] Persona-adaptive tour branching.
+- [x] Progressive disclosure gating.
+- [x] Mission persistence + reset.
+
+### Track 7 — Visual System + Motion Engine
+- [x] Motion tokens + utilities.
+- [x] Reduced-motion safe fallbacks.
+- [x] High-fidelity transitions for mode/panel changes.
+- [x] Theme parity polish pass.
+
+### Track 8 — Large-Trace Performance Architecture
+- [x] Progressive hydration for large traces.
+- [x] Staged filtering with graceful fallback.
+- [x] Incremental rendering guardrails for large matrix tables.
+- [x] UI perf telemetry for render/filter timing.
+
+### Validation + Release
+- [x] Unit/E2E/snapshot updates for advanced features.
+- [x] `pnpm -C ui typecheck`
+- [x] `pnpm -C ui test`
+- [x] `make verify`

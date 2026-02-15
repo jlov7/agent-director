@@ -1,42 +1,41 @@
 ## Current Task
 
-Implement the full world-class frontend upgrade program and track every task exhaustively:
-1) Timeline Studio
-2) Causality Lab
-3) Scenario Workbench v2
-4) Collaboration Layer v2
-5) AI Director Layer
-6) Adaptive Onboarding
-7) Visual System Upgrade
-8) Performance Lift
+Implement Phase 2 full advanced frontend feature completion:
+1) Advanced Timeline Studio
+2) Advanced Causality Graph Lab
+3) Replay IDE Scenario Workbench
+4) Realtime Collaborative Debugging
+5) Advanced AI Director Layer
+6) Advanced Adaptive Onboarding
+7) Visual System + Motion Engine
+8) Large-trace performance architecture
 
 ## Status
 
-Complete (verified and pushed to `origin/main`)
+Completed
 
 ## Plan
 
-1. [x] Write exhaustive tracking artifacts (`.codex`, `TASKS.md`, docs plan)
-2. [x] Implement timeline studio controls and clip export
-3. [x] Implement matrix causality map and scenario-workbench controls
-4. [x] Implement collaboration presence/share and AI recommendations panel
-5. [x] Implement persona-aware onboarding and theme controls
-6. [x] Implement deferred filtering/performance improvements
-7. [x] Add/adjust tests for upgraded UX behavior
-8. [x] Run verification gates and push final state to `main`
+1. [x] Write Phase 2 exhaustive tracking artifacts (`.codex`, `TASKS.md`, docs plan)
+2. [x] Implement advanced timeline studio controls and segment model
+3. [x] Implement advanced causality lab and replay IDE features
+4. [x] Implement realtime collaboration sync, shared annotations, and activity feed
+5. [x] Implement advanced AI director narrative + ask-director workflows
+6. [x] Implement adaptive onboarding missions + progressive disclosure
+7. [x] Implement motion engine polish and large-trace progressive architecture
+8. [x] Add/adjust tests, run verification gates, and push to `main`
 
 ## Decisions Made
 
-- Treat user request as explicit approval for multi-file full-program execution.
-- Use additive upgrades in existing components for fastest path to complete delivery tonight.
+- Treat user request as explicit approval for comprehensive Phase 2 multi-track implementation.
+- Build advanced features on existing architecture to preserve previously verified behavior.
 
 ## Open Questions
 
-- None blocking. Execute all tracks in current sprint.
+- None blocking.
 
 ## Verification Gates
 
-- `pnpm -C ui test -- src/components/__tests__/MiniTimeline.test.tsx src/components/__tests__/IntroOverlay.test.tsx src/components/__tests__/Matrix.test.tsx` passed.
 - `pnpm -C ui typecheck` passed.
-- `make verify` passed.
-- Changes pushed to `origin/main` at commit `6d67ea5`.
+- `pnpm -C ui test` passed.
+- `make verify` passed (including Playwright visual + UX snapshots).

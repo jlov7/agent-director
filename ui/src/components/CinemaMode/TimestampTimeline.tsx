@@ -3,6 +3,7 @@ import type { StepSummary, TraceSummary } from '../../types';
 import { buildIntervals } from '../../utils/timingUtils';
 import StepCard from './StepCard';
 import { derivePlaybackState } from '../../utils/playback';
+import { laneGroupKeyForStep, type LaneStrategy } from '../../utils/timelineStudio';
 
 const LANE_HEIGHT = 140;
 const CARD_HEIGHT = 132;
@@ -20,6 +21,47 @@ function sortSteps(steps: StepSummary[]) {
   return [...steps].sort((a, b) => (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9));
 }
 
+function buildGroupedTimelineData(
+  trace: TraceSummary,
+  steps: StepSummary[],
+  laneStrategy: LaneStrategy,
+  laneGroupsOrder: string[],
+  hiddenLaneGroups: string[]
+) {
+  const groups = new Map<string, StepSummary[]>();
+  steps.forEach((step) => {
+    const key = laneGroupKeyForStep(step, laneStrategy);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)?.push(step);
+  });
+
+  const known = Array.from(groups.keys());
+  const ordered = [...laneGroupsOrder.filter((key) => known.includes(key))];
+  known.forEach((key) => {
+    if (!ordered.includes(key)) ordered.push(key);
+  });
+  const visibleGroups = ordered.filter((key) => !hiddenLaneGroups.includes(key));
+
+  const intervalsByStepId = new Map<string, ReturnType<typeof buildIntervals>['intervals'][number]>();
+  let laneOffset = 0;
+  let laneCount = 0;
+
+  visibleGroups.forEach((groupKey) => {
+      const groupSteps = groups.get(groupKey) ?? [];
+      const groupTimeline = buildIntervals(trace.startedAt, trace.endedAt, groupSteps);
+      groupTimeline.intervals.forEach((interval) => {
+        intervalsByStepId.set(interval.stepId, {
+          ...interval,
+          lane: interval.lane + laneOffset,
+        });
+      });
+      laneOffset += Math.max(1, groupTimeline.laneCount);
+  });
+
+  laneCount = Math.max(1, laneOffset);
+  return { intervalsByStepId, laneCount, visibleGroups };
+}
+
 type TimestampTimelineProps = {
   trace: TraceSummary;
   steps: StepSummary[];
@@ -35,6 +77,9 @@ type TimestampTimelineProps = {
     changedSteps: string[];
     changedPairs?: Array<{ leftId: string; rightId: string }>;
   } | null;
+  laneStrategy?: LaneStrategy;
+  laneGroupsOrder?: string[];
+  hiddenLaneGroups?: string[];
   laneHeight?: number;
   cardHeight?: number;
   compactHeight?: number;
@@ -50,11 +95,21 @@ export default function TimestampTimeline({
   windowRange,
   ghostTrace,
   diff,
+  laneStrategy = 'type',
+  laneGroupsOrder = [],
+  hiddenLaneGroups = [],
   laneHeight = LANE_HEIGHT,
   cardHeight = CARD_HEIGHT,
   compactHeight = COMPACT_HEIGHT,
 }: TimestampTimelineProps) {
-  const { intervals, laneCount } = buildIntervals(trace.startedAt, trace.endedAt, steps);
+  const { intervalsByStepId, laneCount } = buildGroupedTimelineData(
+    trace,
+    steps,
+    laneStrategy,
+    laneGroupsOrder,
+    hiddenLaneGroups
+  );
+  const intervals = Array.from(intervalsByStepId.values());
   const intervalMap = new Map(intervals.map((interval) => [interval.stepId, interval]));
   const sortedSteps = sortSteps(steps);
   const baseWallTimeMs = trace.metadata.wallTimeMs || 1;
@@ -102,6 +157,7 @@ export default function TimestampTimeline({
         <div className="playback-cursor" style={{ left: `${playheadPct}%` }} />
         {sortedSteps
           .filter((step) => visibleStepIds.has(step.id))
+          .filter((step) => !hiddenLaneGroups.includes(laneGroupKeyForStep(step, laneStrategy)))
           .map((step) => {
           const interval = intervalMap.get(step.id);
           if (!interval) return null;

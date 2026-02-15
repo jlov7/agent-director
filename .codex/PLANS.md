@@ -64,3 +64,55 @@ Not done:
 Lessons:
 - UI control additions can invalidate role-based E2E selectors; use `exact: true` where collisions are possible.
 - Broad visual changes require explicit snapshot regeneration as part of the verification gate.
+
+---
+
+# Phase 2 Hard Features ExecPlan
+
+## Purpose / Big Picture
+
+Complete the full advanced feature depth across timeline studio, causal analysis, replay IDE workflows, collaboration, AI guidance, onboarding adaptivity, motion system quality, and large-trace architecture.
+
+## Progress
+
+- [x] Initialize Phase 2 exhaustive plan and checklist artifacts
+- [x] Track 1: Advanced Timeline Studio
+- [x] Track 2: Advanced Causality Graph Lab
+- [x] Track 3: Scenario Workbench Replay IDE
+- [x] Track 4: Realtime Collaborative Debugging
+- [x] Track 5: Advanced AI Director Layer
+- [x] Track 6: Advanced Adaptive Onboarding
+- [x] Track 7: Visual System + Motion Engine polish
+- [x] Track 8: Large-trace performance architecture
+- [x] Verification + release sync + push to main
+
+## Decision Log
+
+- Implement each advanced track as additive slices with deterministic local behavior.
+- Keep backend-impact minimal unless absolutely necessary for UI correctness.
+- Refresh visual snapshots as first-class deliverables for intentional UI changes.
+
+## Validation Plan
+
+- Add focused unit tests for advanced timeline/matrix/onboarding logic.
+- Update E2E where selectors/flows expand.
+- Run `pnpm -C ui typecheck`, `pnpm -C ui test`, and `make verify`.
+
+## Outcomes & Retrospective
+
+Done:
+- Added lane strategy regrouping, lane visibility, and lane reordering with persisted timeline studio config.
+- Added scene segment labeling and segment-aware clip export metadata.
+- Added causal simulations, projected impacts, heatmaps, and causal path explorer in Matrix mode.
+- Added schema-aware scenario scalar editing, side-by-side diff previews, and batch profile execution.
+- Added profile integrity checks for duplicate names/payloads and scalar type conflicts.
+- Added multi-session cursor sync, remote playheads, shared annotation merge semantics, and activity feed persistence.
+- Added AI narrative panel, deterministic ask-director responses, guided action plans, and markdown export.
+- Added mission-driven progressive disclosure in Director Brief with mission reset controls.
+- Added motion tokens/utilities and reduced-motion-safe transitions.
+- Added progressive hydration/filter telemetry and large table incremental rendering guardrails.
+- Added new utility/component tests and regenerated visual + UX snapshot baselines.
+- Verified with `pnpm -C ui typecheck`, `pnpm -C ui test`, and `make verify` (green).
+
+Not done:
+- None.

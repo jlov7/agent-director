@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import type {
   ReplayJob,
   ReplayMatrix,
@@ -57,6 +57,18 @@ type Preset = {
   modifications: Record<string, unknown>;
 };
 
+type BatchProfile = {
+  id: string;
+  label: string;
+  description: string;
+  scenarios: Array<{ name: string; strategy: ReplayStrategy; modifications: Record<string, unknown> }>;
+};
+
+type ScalarField = {
+  path: string;
+  value: string | number | boolean | null | undefined;
+};
+
 const STRATEGIES: ReplayStrategy[] = ['recorded', 'live', 'hybrid'];
 const MAX_SCENARIOS = 25;
 const PRESETS: Preset[] = [
@@ -86,6 +98,29 @@ const PRESETS: Preset[] = [
   },
 ];
 
+const BATCH_PROFILES: BatchProfile[] = [
+  {
+    id: 'latency-sweep',
+    label: 'Latency sweep',
+    description: 'Evaluate timeout adjustments across three live variants.',
+    scenarios: [
+      { name: 'Timeout 15s', strategy: 'live', modifications: { toolTimeoutMs: 15000 } },
+      { name: 'Timeout 30s', strategy: 'live', modifications: { toolTimeoutMs: 30000 } },
+      { name: 'Timeout 45s', strategy: 'live', modifications: { toolTimeoutMs: 45000 } },
+    ],
+  },
+  {
+    id: 'prompt-spectrum',
+    label: 'Prompt spectrum',
+    description: 'Compare concise, balanced, and verbose response shaping.',
+    scenarios: [
+      { name: 'Concise prompt', strategy: 'hybrid', modifications: { prompt: 'Return concise response' } },
+      { name: 'Balanced prompt', strategy: 'hybrid', modifications: { prompt: 'Return balanced detail response' } },
+      { name: 'Verbose prompt', strategy: 'hybrid', modifications: { prompt: 'Return comprehensive detailed response' } },
+    ],
+  },
+];
+
 function parseMetric(value: number | null) {
   return value == null ? Number.POSITIVE_INFINITY : value;
 }
@@ -106,6 +141,95 @@ function safeParseModifications(text: string) {
   } catch {
     return { error: 'Modifications must be valid JSON.' };
   }
+}
+
+function flattenScalars(
+  value: Record<string, unknown>,
+  prefix = ''
+): ScalarField[] {
+  const fields: ScalarField[] = [];
+  Object.entries(value).forEach(([key, nested]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (
+      typeof nested === 'string' ||
+      typeof nested === 'number' ||
+      typeof nested === 'boolean' ||
+      nested == null
+    ) {
+      fields.push({ path, value: nested });
+      return;
+    }
+    if (isPlainObject(nested)) {
+      fields.push(...flattenScalars(nested as Record<string, unknown>, path));
+    }
+  });
+  return fields;
+}
+
+function setValueAtPath(source: Record<string, unknown>, path: string, nextValue: unknown) {
+  const keys = path.split('.').filter(Boolean);
+  if (keys.length === 0) return source;
+  const root: Record<string, unknown> = JSON.parse(JSON.stringify(source));
+  let cursor: Record<string, unknown> = root;
+  for (let index = 0; index < keys.length - 1; index += 1) {
+    const key = keys[index] as string;
+    const child = cursor[key];
+    if (!isPlainObject(child)) cursor[key] = {};
+    cursor = cursor[key] as Record<string, unknown>;
+  }
+  cursor[keys[keys.length - 1] as string] = nextValue;
+  return root;
+}
+
+function parseScalarInput(input: string): string | number | boolean | null {
+  const trimmed = input.trim();
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+  if (trimmed === 'null') return null;
+  const maybeNumber = Number(trimmed);
+  if (!Number.isNaN(maybeNumber) && trimmed !== '') return maybeNumber;
+  return input;
+}
+
+function buildScenarioDiff(
+  baseline: Record<string, unknown>,
+  candidate: Record<string, unknown>
+) {
+  const baselineFields = new Map(flattenScalars(baseline).map((item) => [item.path, item.value]));
+  const candidateFields = flattenScalars(candidate);
+  return candidateFields
+    .filter((field) => baselineFields.get(field.path) !== field.value)
+    .map((field) => ({
+      path: field.path,
+      from: baselineFields.get(field.path) ?? null,
+      to: field.value,
+    }));
+}
+
+function scalarKind(value: unknown) {
+  if (value === null) return 'null';
+  if (typeof value === 'string') return 'string';
+  if (typeof value === 'number') return 'number';
+  if (typeof value === 'boolean') return 'boolean';
+  return 'unknown';
+}
+
+function scenarioSignature(scenario: { strategy: ReplayStrategy; modifications: Record<string, unknown> }) {
+  return `${scenario.strategy}::${JSON.stringify(scenario.modifications)}`;
+}
+
+function findProfileTypeConflicts(profile: BatchProfile) {
+  const fieldKinds = new Map<string, Set<string>>();
+  profile.scenarios.forEach((scenario) => {
+    flattenScalars(scenario.modifications).forEach((field) => {
+      const kinds = fieldKinds.get(field.path) ?? new Set<string>();
+      kinds.add(scalarKind(field.value));
+      fieldKinds.set(field.path, kinds);
+    });
+  });
+  return Array.from(fieldKinds.entries())
+    .filter(([, kinds]) => kinds.size > 1)
+    .map(([path]) => path);
 }
 
 export function toScenarioInput(draft: MatrixScenarioDraft): ReplayScenarioInput {
@@ -146,7 +270,11 @@ export default function Matrix({
   const [sortAsc, setSortAsc] = useState(true);
   const [detailScenarioId, setDetailScenarioId] = useState<string | null>(null);
   const [presetId, setPresetId] = useState(PRESETS[0]?.id ?? '');
+  const [profileId, setProfileId] = useState(BATCH_PROFILES[0]?.id ?? '');
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [simulationWeights, setSimulationWeights] = useState<Record<string, number>>({});
+  const [rowRenderLimit, setRowRenderLimit] = useState(25);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const stepMap = useMemo(() => new Map(steps.map((step) => [step.id, step])), [steps]);
@@ -213,6 +341,10 @@ export default function Matrix({
     return sorted;
   }, [matrix?.rows, sortKey, sortAsc]);
 
+  useEffect(() => {
+    setRowRenderLimit(25);
+  }, [matrix?.jobId, sortKey, sortAsc]);
+
   const setSort = (next: SortKey) => {
     if (next === sortKey) {
       setSortAsc((prev) => !prev);
@@ -245,6 +377,56 @@ export default function Matrix({
         modificationsText: JSON.stringify(preset.modifications, null, 2),
       },
     ]);
+  };
+
+  const handleRunProfile = () => {
+    const profile = BATCH_PROFILES.find((item) => item.id === profileId);
+    if (!profile) {
+      setProfileError('Select a valid profile.');
+      return;
+    }
+    const names = profile.scenarios.map((scenario) => scenario.name.toLowerCase());
+    const unique = new Set(names);
+    if (unique.size !== names.length) {
+      setProfileError('Profile has duplicate scenario names.');
+      return;
+    }
+    const signatures = profile.scenarios.map((scenario) => scenarioSignature(scenario));
+    if (new Set(signatures).size !== signatures.length) {
+      setProfileError('Profile has duplicate scenario payloads.');
+      return;
+    }
+    const typeConflicts = findProfileTypeConflicts(profile);
+    if (typeConflicts.length > 0) {
+      setProfileError(`Profile has conflicting scalar types: ${typeConflicts.slice(0, 3).join(', ')}`);
+      return;
+    }
+    const drafts = profile.scenarios.map((scenario) => ({
+      id: createScenarioId(),
+      name: scenario.name,
+      strategy: scenario.strategy,
+      modificationsText: JSON.stringify(scenario.modifications, null, 2),
+    }));
+    onReplaceScenarios(drafts);
+    setProfileError(null);
+    onRun(
+      drafts.map((draft) => ({
+        name: draft.name,
+        strategy: draft.strategy,
+        modifications: safeParseModifications(draft.modificationsText).value ?? {},
+      }))
+    );
+  };
+
+  const handleScalarFieldChange = (scenarioId: string, path: string, rawValue: string) => {
+    const scenario = scenarios.find((item) => item.id === scenarioId);
+    if (!scenario) return;
+    const parsed = safeParseModifications(scenario.modificationsText);
+    if (!parsed.value) return;
+    const updated = setValueAtPath(parsed.value, path, parseScalarInput(rawValue));
+    onScenarioChange(scenarioId, {
+      modificationsText: JSON.stringify(updated, null, 2),
+    });
   };
 
   const handleExportScenarios = () => {
@@ -324,6 +506,48 @@ export default function Matrix({
     if (ranking.length === 0) return 1;
     return Math.max(1, ...ranking.map((item) => Math.abs(item.score)));
   }, [matrix?.causalRanking]);
+  const baselineScenario = scenarioDiagnostics[0]?.parsedModifications ?? {};
+  const projectedMetrics = useMemo(() => {
+    const entries = Object.entries(simulationWeights).filter(([, weight]) => weight !== 0);
+    return entries.reduce(
+      (acc, [factor, weight]) => {
+        const rankingEntry = matrix?.causalRanking.find((item) => item.factor === factor);
+        const score = rankingEntry?.score ?? 0;
+        const ratio = weight / 100;
+        acc.wallTimeMs += score * ratio * 1400;
+        acc.costUsd += score * ratio * 0.04;
+        acc.errorDelta += score * ratio * 0.7;
+        return acc;
+      },
+      { wallTimeMs: 0, costUsd: 0, errorDelta: 0 }
+    );
+  }, [matrix?.causalRanking, simulationWeights]);
+  const influenceHeatmap = useMemo(() => {
+    const counts = new Map<string, number>();
+    (matrix?.rows ?? []).forEach((row) => {
+      const weight =
+        Math.abs(row.metrics.wallTimeDeltaMs ?? 0) +
+        Math.abs((row.metrics.costDeltaUsd ?? 0) * 1000) +
+        Math.abs(row.metrics.errorDelta ?? 0) * 400;
+      row.changedStepIds.forEach((stepId) => {
+        counts.set(stepId, (counts.get(stepId) ?? 0) + Math.max(1, weight));
+      });
+    });
+    return Array.from(counts.entries())
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 10);
+  }, [matrix?.rows]);
+  const maxInfluence = Math.max(1, ...influenceHeatmap.map(([, value]) => value), 1);
+  const causalPaths = useMemo(
+    () =>
+      (matrix?.causalRanking ?? []).slice(0, 5).map((item) => ({
+        id: item.factor,
+        text: `${item.factor} -> ${item.evidence.examples[0] ?? 'observed change'} -> outcome`,
+        confidence: item.confidence,
+      })),
+    [matrix?.causalRanking]
+  );
+  const visibleRows = sortedRows.slice(0, rowRenderLimit);
 
   const handleExportMatrix = () => {
     if (!matrix) return;
@@ -412,6 +636,16 @@ export default function Matrix({
               ))}
             </select>
           </label>
+          <label>
+            Batch profile
+            <select value={profileId} onChange={(event) => setProfileId(event.target.value)}>
+              {BATCH_PROFILES.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             className="ghost-button"
@@ -423,6 +657,18 @@ export default function Matrix({
             data-help-placement="bottom"
           >
             Add preset
+          </button>
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={handleRunProfile}
+            disabled={loading}
+            data-help
+            data-help-title="Run batch profile"
+            data-help-body="Loads and executes a predefined scenario orchestration profile."
+            data-help-placement="bottom"
+          >
+            Run profile
           </button>
           <div className="matrix-actions">
             <button
@@ -505,6 +751,12 @@ export default function Matrix({
               <span>{preset.description}</span>
             </div>
           ))}
+          {BATCH_PROFILES.filter((profile) => profile.id === profileId).map((profile) => (
+            <div key={profile.id} className="matrix-preset profile">
+              <strong>{profile.label}</strong>
+              <span>{profile.description}</span>
+            </div>
+          ))}
         </div>
         <div className="matrix-scenarios">
           {scenarios.map((scenario, index) => {
@@ -539,6 +791,40 @@ export default function Matrix({
                   spellCheck={false}
                   aria-label={`Scenario ${scenario.name} modifications`}
                 />
+                {diag ? (
+                  <div className="matrix-schema-editor">
+                    <strong>Schema-aware scalar editor</strong>
+                    <div className="matrix-schema-grid">
+                      {flattenScalars(diag.parsedModifications).slice(0, 8).map((field) => (
+                        <label key={`${scenario.id}-${field.path}`} className="matrix-schema-field">
+                          <span>{field.path}</span>
+                          <input
+                            value={String(field.value ?? '')}
+                            onChange={(event) =>
+                              handleScalarFieldChange(scenario.id, field.path, event.target.value)
+                            }
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                <div className="matrix-diff-preview">
+                  <strong>Diff vs baseline</strong>
+                  <div className="matrix-diff-list">
+                    {buildScenarioDiff(baselineScenario, diag?.parsedModifications ?? {}).slice(0, 6).map((item) => (
+                      <div key={`${scenario.id}-${item.path}`} className="matrix-diff-item">
+                        <span>{item.path}</span>
+                        <span>
+                          {String(item.from)} {'->'} {String(item.to)}
+                        </span>
+                      </div>
+                    ))}
+                    {buildScenarioDiff(baselineScenario, diag?.parsedModifications ?? {}).length === 0 ? (
+                      <div className="matrix-diff-item">No scalar changes from baseline.</div>
+                    ) : null}
+                  </div>
+                </div>
                 {diag?.errors.length ? (
                   <div className="matrix-scenario-error">
                     {diag.errors.map((item) => (
@@ -591,6 +877,7 @@ export default function Matrix({
         </div>
         {validationMessage ? <div className="error-banner">{validationMessage}</div> : null}
         {importError ? <div className="error-banner">{importError}</div> : null}
+        {profileError ? <div className="error-banner">{profileError}</div> : null}
         {error ? <div className="error-banner">{error}</div> : null}
       </div>
 
@@ -635,7 +922,7 @@ export default function Matrix({
                   <td colSpan={8}>No matrix results yet. Run a job to populate this table.</td>
                 </tr>
               ) : (
-                sortedRows.map((row) => (
+                visibleRows.map((row) => (
                   <tr key={row.scenarioId}>
                     <td>{row.name}</td>
                     <td title={row.error ?? undefined}>{row.status}</td>
@@ -667,38 +954,95 @@ export default function Matrix({
               )}
             </tbody>
           </table>
+          {sortedRows.length > visibleRows.length ? (
+            <div className="matrix-table-more">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setRowRenderLimit((prev) => Math.min(sortedRows.length, prev + 25))}
+              >
+                Load more rows ({visibleRows.length}/{sortedRows.length})
+              </button>
+            </div>
+          ) : null}
         </div>
         <aside className="matrix-causal">
           <h3>Causal ranking</h3>
           {matrix?.causalRanking?.length ? (
-            <ul>
-              {matrix.causalRanking.slice(0, 8).map((item) => (
-                <li key={item.factor}>
-                  <div className="factor-row">
-                    <strong>{item.factor}</strong>
-                    <span>score {item.score.toFixed(3)}</span>
-                  </div>
-                  <div className="factor-bar-track" role="presentation">
-                    <div
-                      className={`factor-bar-fill ${item.score >= 0 ? 'positive' : 'negative'}`}
-                      style={{ width: `${Math.max(6, (Math.abs(item.score) / maxCausalMagnitude) * 100)}%` }}
+            <>
+              <ul>
+                {matrix.causalRanking.slice(0, 8).map((item) => (
+                  <li key={item.factor}>
+                    <div className="factor-row">
+                      <strong>{item.factor}</strong>
+                      <span>score {item.score.toFixed(3)}</span>
+                    </div>
+                    <div className="factor-bar-track" role="presentation">
+                      <div
+                        className={`factor-bar-fill ${item.score >= 0 ? 'positive' : 'negative'}`}
+                        style={{ width: `${Math.max(6, (Math.abs(item.score) / maxCausalMagnitude) * 100)}%` }}
+                      />
+                    </div>
+                    <div className="factor-meta">
+                      confidence {(item.confidence * 100).toFixed(0)}% • samples {item.evidence.samples}
+                    </div>
+                    <input
+                      type="range"
+                      min={-100}
+                      max={100}
+                      value={simulationWeights[item.factor] ?? 0}
+                      aria-label={`Simulate ${item.factor}`}
+                      onChange={(event) =>
+                        setSimulationWeights((prev) => ({
+                          ...prev,
+                          [item.factor]: Number(event.target.value),
+                        }))
+                      }
+                    />
+                    {item.evidence.examples.length ? (
+                      <div className="factor-chips">
+                        {item.evidence.examples.map((example) => (
+                          <span key={example} className="factor-chip">
+                            {example}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              <div className="matrix-projected">
+                <h4>Projected impact (simulation)</h4>
+                <div className="matrix-projected-grid">
+                  <span>Wall Δ {projectedMetrics.wallTimeMs.toFixed(0)} ms</span>
+                  <span>Cost Δ {projectedMetrics.costUsd.toFixed(3)} USD</span>
+                  <span>Error Δ {projectedMetrics.errorDelta.toFixed(2)}</span>
+                </div>
+              </div>
+              <div className="matrix-heatmap">
+                <h4>Step influence heatmap</h4>
+                {influenceHeatmap.map(([stepId, value]) => (
+                  <div key={stepId} className="matrix-heatmap-row">
+                    <span>{describeStep(stepId, stepMap)}</span>
+                    <span
+                      className="matrix-heatmap-bar"
+                      style={{ width: `${Math.max(5, (value / maxInfluence) * 100)}%` }}
                     />
                   </div>
-                  <div className="factor-meta">
-                    confidence {(item.confidence * 100).toFixed(0)}% • samples {item.evidence.samples}
+                ))}
+                {influenceHeatmap.length === 0 ? <p>No influence data yet.</p> : null}
+              </div>
+              <div className="matrix-paths">
+                <h4>Causal path explorer</h4>
+                {causalPaths.map((path) => (
+                  <div key={path.id} className="matrix-path-item">
+                    <span>{path.text}</span>
+                    <span>{(path.confidence * 100).toFixed(0)}%</span>
                   </div>
-                  {item.evidence.examples.length ? (
-                    <div className="factor-chips">
-                      {item.evidence.examples.map((example) => (
-                        <span key={example} className="factor-chip">
-                          {example}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+                ))}
+                {causalPaths.length === 0 ? <p>No paths available.</p> : null}
+              </div>
+            </>
           ) : (
             <p>No causal ranking yet.</p>
           )}

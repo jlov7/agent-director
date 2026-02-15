@@ -216,7 +216,7 @@ describe('Matrix', () => {
       />
     );
 
-    expect(screen.getByText('prompt')).toBeInTheDocument();
+    expect(screen.getAllByText('prompt').length).toBeGreaterThan(0);
     expect(screen.getByText('prompt=shorter')).toBeInTheDocument();
   });
 
@@ -278,8 +278,9 @@ describe('Matrix', () => {
     );
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Details' })[0]);
-    expect(screen.getByText('Scenario details')).toBeInTheDocument();
-    expect(screen.getByText('Plan')).toBeInTheDocument();
+    const detailsDialog = screen.getByRole('dialog', { name: 'Scenario details' });
+    expect(detailsDialog).toBeInTheDocument();
+    expect(within(detailsDialog).getByText('Plan')).toBeInTheDocument();
   });
 
   it('shows error banner when error present', () => {
@@ -336,5 +337,35 @@ describe('Matrix', () => {
     expect(screen.getByRole('button', { name: 'Duplicate scenario' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Move scenario up' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Move scenario down' })).toBeInTheDocument();
+  });
+
+  it('runs the selected batch profile orchestration', () => {
+    const onRun = vi.fn();
+    render(
+      <Matrix
+        steps={steps}
+        anchorStepId="s1"
+        onAnchorStepChange={vi.fn()}
+        scenarios={scenarios}
+        onScenarioChange={vi.fn()}
+        onDuplicateScenario={vi.fn()}
+        onMoveScenario={vi.fn()}
+        onAddScenario={vi.fn()}
+        onRemoveScenario={vi.fn()}
+        onRun={onRun}
+        onCancel={vi.fn()}
+        onReplaceScenarios={vi.fn()}
+        loading={false}
+        error={null}
+        job={job}
+        matrix={matrix}
+        safeExport={false}
+        onOpenCompare={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run profile' }));
+    expect(onRun).toHaveBeenCalled();
+    expect(onRun.mock.calls[0]?.[0]).toHaveLength(3);
   });
 });

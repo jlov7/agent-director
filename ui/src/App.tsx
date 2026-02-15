@@ -49,12 +49,31 @@ import { buildIoEdgesFromSummary } from './utils/ioEdgeUtils';
 import { collectStepBoundaries, findNextBoundary } from './utils/playbackBoundaries';
 import { diffTraces } from './utils/diff';
 import { computePollDelay } from './utils/replayPolling';
+import { downloadText } from './utils/export';
+import {
+  DEFAULT_TIMELINE_STUDIO_CONFIG,
+  deriveLaneGroups,
+  normalizeLaneOrder,
+  type LaneStrategy,
+  type TimelineStudioConfig,
+} from './utils/timelineStudio';
+import {
+  mergeSharedAnnotations,
+  parseJsonObject,
+  truncateActivity,
+  type ActivityEntry,
+  type SessionCursor,
+  type SharedAnnotation,
+} from './utils/collaboration';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
 const PRESENCE_STORAGE_KEY = 'agentDirector.presence.v1';
 const PRESENCE_TTL_MS = 20000;
 const PRESENCE_HEARTBEAT_MS = 5000;
+const COLLAB_CURSOR_STORAGE_KEY = 'agentDirector.collab.cursors.v1';
+const COLLAB_ANNOTATION_STORAGE_KEY = 'agentDirector.collab.annotations.v1';
+const COLLAB_ACTIVITY_STORAGE_KEY = 'agentDirector.collab.activity.v1';
 
 type Mode = 'cinema' | 'flow' | 'compare' | 'matrix';
 type IntroPersona = 'builder' | 'executive' | 'operator';
@@ -70,6 +89,15 @@ type DirectorRecommendation = {
   tone: RecommendationTone;
   action: () => void;
 };
+
+type MissionId =
+  | 'playback'
+  | 'flow'
+  | 'inspect'
+  | 'matrix'
+  | 'replay'
+  | 'annotate'
+  | 'collaborate';
 
 type StoryBeat = {
   id: string;
@@ -204,6 +232,7 @@ export default function App() {
   const [extensionRunning, setExtensionRunning] = useState(false);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
   const [safeExport, setSafeExport] = usePersistedState('agentDirector.safeExport', false);
+  const [syncPlayback, setSyncPlayback] = usePersistedState('agentDirector.syncPlayback', true);
   const [compareTrace, setCompareTrace] = useState<TraceSummary | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playheadMs, setPlayheadMs] = useState(0);
@@ -223,6 +252,26 @@ export default function App() {
     'builder'
   );
   const [themeMode, setThemeMode] = usePersistedState<ThemeMode>('agentDirector.themeMode', 'studio');
+  const [laneStrategy, setLaneStrategy] = usePersistedState<LaneStrategy>(
+    'agentDirector.timelineLaneStrategy',
+    'type'
+  );
+  const [timelineStudioConfig, setTimelineStudioConfig] = usePersistedState<TimelineStudioConfig>(
+    'agentDirector.timelineStudioConfig',
+    DEFAULT_TIMELINE_STUDIO_CONFIG
+  );
+  const [missionProgress, setMissionProgress] = usePersistedState<Record<MissionId, boolean>>(
+    'agentDirector.missions',
+    {
+      playback: false,
+      flow: false,
+      inspect: false,
+      matrix: false,
+      replay: false,
+      annotate: false,
+      collaborate: false,
+    }
+  );
   const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
   const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
   const [tourOpen, setTourOpen] = useState(false);
@@ -255,22 +304,43 @@ export default function App() {
   const [matrixError, setMatrixError] = useState<string | null>(null);
   const [activeSessions, setActiveSessions] = useState(1);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
+  const [sharedAnnotations, setSharedAnnotations] = useState<SharedAnnotation[]>([]);
+  const [activityFeed, setActivityFeed] = useState<ActivityEntry[]>([]);
+  const [hydrationLimit, setHydrationLimit] = useState(800);
+  const [filterComputeMs, setFilterComputeMs] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
   const compareTraceRef = useRef<TraceSummary | null>(null);
   const sessionIdRef = useRef<string>(getOrCreateSessionId());
+  const lastCursorWriteRef = useRef(0);
+  const filterMeasureRef = useRef(0);
+  const applyingRemoteCursorRef = useRef(false);
 
-  const textFilteredSteps = useMemo(
-    () => (trace ? filterSteps(trace.steps, deferredQuery, typeFilter) : []),
-    [trace, deferredQuery, typeFilter]
+  const textFilteredSteps = useMemo(() => {
+    if (!trace) return [];
+    const start = performance.now();
+    const filtered = filterSteps(trace.steps, deferredQuery, typeFilter);
+    filterMeasureRef.current = performance.now() - start;
+    return filtered;
+  }, [trace, deferredQuery, typeFilter]);
+  const hydratedSteps = useMemo(
+    () => textFilteredSteps.slice(0, Math.min(textFilteredSteps.length, hydrationLimit)),
+    [hydrationLimit, textFilteredSteps]
   );
   const steps = useMemo(() => {
-    if (!traceQueryResult) return textFilteredSteps;
+    if (!traceQueryResult) return hydratedSteps;
     const matched = new Set(traceQueryResult.matchedStepIds);
-    return textFilteredSteps.filter((step) => matched.has(step.id));
-  }, [textFilteredSteps, traceQueryResult]);
+    return hydratedSteps.filter((step) => matched.has(step.id));
+  }, [hydratedSteps, traceQueryResult]);
   const compareSteps = useMemo(
-    () => (compareTrace ? filterSteps(compareTrace.steps, deferredQuery, typeFilter) : []),
-    [compareTrace, deferredQuery, typeFilter]
+    () =>
+      compareTrace
+        ? filterSteps(compareTrace.steps, deferredQuery, typeFilter).slice(
+            0,
+            Math.min(compareTrace.steps.length, hydrationLimit)
+          )
+        : [],
+    [compareTrace, deferredQuery, typeFilter, hydrationLimit]
   );
   const stepBoundaries = useMemo(() => {
     if (!trace) return [];
@@ -284,11 +354,67 @@ export default function App() {
     () => (trace ? trace.steps.find((step) => step.id === selectedStepId) ?? null : null),
     [trace, selectedStepId]
   );
+  const laneGroups = useMemo(
+    () => (trace ? deriveLaneGroups(trace.steps, laneStrategy) : []),
+    [trace, laneStrategy]
+  );
+  const laneConfig = useMemo(() => {
+    const current = timelineStudioConfig[laneStrategy] ?? DEFAULT_TIMELINE_STUDIO_CONFIG[laneStrategy];
+    return normalizeLaneOrder(laneGroups, current.order, current.hidden);
+  }, [laneGroups, laneStrategy, timelineStudioConfig]);
+  const visibleLaneGroups = useMemo(
+    () => laneConfig.order.filter((group) => !laneConfig.hidden.includes(group)),
+    [laneConfig.hidden, laneConfig.order]
+  );
+  const remoteCursors = useMemo(() => {
+    const sessionId = sessionIdRef.current;
+    return Object.values(sessionCursors)
+      .filter((cursor) => cursor.sessionId !== sessionId)
+      .filter((cursor) => cursor.traceId === (trace?.id ?? 'none'))
+      .sort((left, right) => right.updatedAt - left.updatedAt);
+  }, [sessionCursors, trace?.id]);
+  const remotePlayheads = useMemo(
+    () => remoteCursors.map((cursor) => cursor.playheadMs),
+    [remoteCursors]
+  );
+  const currentTraceAnnotations = useMemo(
+    () => sharedAnnotations.filter((annotation) => annotation.traceId === trace?.id),
+    [sharedAnnotations, trace?.id]
+  );
+  const missionCompletion = useMemo(() => {
+    const total = Object.keys(missionProgress).length;
+    const done = Object.values(missionProgress).filter(Boolean).length;
+    return { done, total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
+  }, [missionProgress]);
 
   useEffect(() => {
     setTraceQueryResult(null);
     setTraceQueryError(null);
   }, [trace?.id]);
+
+  useEffect(() => {
+    setFilterComputeMs(Math.round(filterMeasureRef.current));
+  }, [textFilteredSteps]);
+
+  useEffect(() => {
+    if (!trace) return;
+    const total = textFilteredSteps.length;
+    if (total <= 1200) {
+      setHydrationLimit(total);
+      return;
+    }
+    setHydrationLimit(800);
+    const interval = window.setInterval(() => {
+      setHydrationLimit((prev) => {
+        if (prev >= total) {
+          window.clearInterval(interval);
+          return total;
+        }
+        return Math.min(total, prev + 1000);
+      });
+    }, 70);
+    return () => window.clearInterval(interval);
+  }, [textFilteredSteps.length, trace]);
 
   useEffect(() => {
     let cancelled = false;
@@ -378,6 +504,105 @@ export default function App() {
     }
   }, [mode, setDockOpen]);
 
+  useEffect(() => {
+    if (laneGroups.length === 0) return;
+    setTimelineStudioConfig((prev) => {
+      const current = prev[laneStrategy] ?? DEFAULT_TIMELINE_STUDIO_CONFIG[laneStrategy];
+      const normalized = normalizeLaneOrder(laneGroups, current.order, current.hidden);
+      const unchanged =
+        normalized.order.join('|') === current.order.join('|') &&
+        normalized.hidden.join('|') === current.hidden.join('|');
+      if (unchanged) return prev;
+      return {
+        ...prev,
+        [laneStrategy]: normalized,
+      };
+    });
+  }, [laneGroups, laneStrategy, setTimelineStudioConfig]);
+
+  useEffect(() => {
+    setSessionCursors(parseJsonObject<Record<string, SessionCursor>>(
+      window.localStorage.getItem(COLLAB_CURSOR_STORAGE_KEY),
+      {}
+    ));
+    setSharedAnnotations(parseJsonObject<SharedAnnotation[]>(
+      window.localStorage.getItem(COLLAB_ANNOTATION_STORAGE_KEY),
+      []
+    ));
+    setActivityFeed(parseJsonObject<ActivityEntry[]>(
+      window.localStorage.getItem(COLLAB_ACTIVITY_STORAGE_KEY),
+      []
+    ));
+  }, []);
+
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastCursorWriteRef.current < 120 && isPlaying) return;
+    lastCursorWriteRef.current = now;
+
+    const sessionId = sessionIdRef.current;
+    const nextCursor: SessionCursor = {
+      sessionId,
+      traceId: trace?.id ?? 'none',
+      mode,
+      playheadMs: Math.round(playheadMs),
+      selectedStepId,
+      updatedAt: now,
+    };
+    const existing = parseJsonObject<Record<string, SessionCursor>>(
+      window.localStorage.getItem(COLLAB_CURSOR_STORAGE_KEY),
+      {}
+    );
+    const next = { ...existing, [sessionId]: nextCursor };
+    window.localStorage.setItem(COLLAB_CURSOR_STORAGE_KEY, JSON.stringify(next));
+    setSessionCursors(next);
+  }, [isPlaying, mode, playheadMs, selectedStepId, trace?.id]);
+
+  useEffect(() => {
+    const sessionId = sessionIdRef.current;
+    return () => {
+      const existing = parseJsonObject<Record<string, SessionCursor>>(
+        window.localStorage.getItem(COLLAB_CURSOR_STORAGE_KEY),
+        {}
+      );
+      if (!existing[sessionId]) return;
+      const next = { ...existing };
+      delete next[sessionId];
+      window.localStorage.setItem(COLLAB_CURSOR_STORAGE_KEY, JSON.stringify(next));
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === COLLAB_CURSOR_STORAGE_KEY) {
+        setSessionCursors(parseJsonObject<Record<string, SessionCursor>>(event.newValue, {}));
+      }
+      if (event.key === COLLAB_ANNOTATION_STORAGE_KEY) {
+        const incoming = parseJsonObject<SharedAnnotation[]>(event.newValue, []);
+        setSharedAnnotations((prev) => mergeSharedAnnotations(prev, incoming));
+      }
+      if (event.key === COLLAB_ACTIVITY_STORAGE_KEY) {
+        setActivityFeed(truncateActivity(parseJsonObject<ActivityEntry[]>(event.newValue, [])));
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  const appendActivity = useCallback((message: string) => {
+    const entry: ActivityEntry = {
+      id: `activity-${Math.random().toString(36).slice(2, 9)}`,
+      sessionId: sessionIdRef.current,
+      message,
+      timestamp: Date.now(),
+    };
+    setActivityFeed((prev) => {
+      const next = truncateActivity([entry, ...prev]);
+      window.localStorage.setItem(COLLAB_ACTIVITY_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const handleReplay = useCallback(
     async (stepId: string) => {
       if (!trace) return;
@@ -386,9 +611,11 @@ export default function App() {
         setCompareTrace(newTrace);
         setOverlayEnabled(true);
         setMode('flow');
+        setMissionProgress((prev) => (prev.replay ? prev : { ...prev, replay: true }));
+        appendActivity(`Created replay from ${stepId}`);
       }
     },
-    [trace, setCompareTrace, setMode, setOverlayEnabled]
+    [appendActivity, setMissionProgress, trace, setCompareTrace, setMode, setOverlayEnabled]
   );
 
   const handleTraceQuery = useCallback(async () => {
@@ -467,6 +694,89 @@ export default function App() {
 
     window.setTimeout(() => setShareStatus(null), 1800);
   }, [mode, selectedStepId, selectedTraceId, trace]);
+
+  const handleLaneStrategyChange = useCallback(
+    (strategy: LaneStrategy) => {
+      setLaneStrategy(strategy);
+      appendActivity(`Switched lane strategy to ${strategy}`);
+    },
+    [appendActivity, setLaneStrategy]
+  );
+
+  const toggleLaneGroupVisibility = useCallback(
+    (groupKey: string) => {
+      setTimelineStudioConfig((prev) => {
+        const current = prev[laneStrategy] ?? DEFAULT_TIMELINE_STUDIO_CONFIG[laneStrategy];
+        const hidden = current.hidden.includes(groupKey)
+          ? current.hidden.filter((key) => key !== groupKey)
+          : [...current.hidden, groupKey];
+        return {
+          ...prev,
+          [laneStrategy]: { ...current, hidden },
+        };
+      });
+      appendActivity(`Toggled lane visibility for ${groupKey}`);
+    },
+    [appendActivity, laneStrategy, setTimelineStudioConfig]
+  );
+
+  const moveLaneGroup = useCallback(
+    (groupKey: string, direction: 'up' | 'down') => {
+      setTimelineStudioConfig((prev) => {
+        const current = prev[laneStrategy] ?? DEFAULT_TIMELINE_STUDIO_CONFIG[laneStrategy];
+        const order = [...current.order];
+        const index = order.indexOf(groupKey);
+        if (index === -1) return prev;
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= order.length) return prev;
+        const [moved] = order.splice(index, 1);
+        order.splice(targetIndex, 0, moved);
+        return {
+          ...prev,
+          [laneStrategy]: { ...current, order },
+        };
+      });
+      appendActivity(`Moved lane group ${groupKey} ${direction}`);
+    },
+    [appendActivity, laneStrategy, setTimelineStudioConfig]
+  );
+
+  const resetMissions = useCallback(() => {
+    setMissionProgress({
+      playback: false,
+      flow: false,
+      inspect: false,
+      matrix: false,
+      replay: false,
+      annotate: false,
+      collaborate: false,
+    });
+    appendActivity('Reset onboarding missions');
+  }, [appendActivity, setMissionProgress]);
+
+  const addSharedAnnotation = useCallback(
+    (body: string, stepId: string | null) => {
+      if (!trace || !body.trim()) return;
+      const timestamp = Date.now();
+      const nextAnnotation: SharedAnnotation = {
+        id: `annotation-${Math.random().toString(36).slice(2, 9)}`,
+        traceId: trace.id,
+        stepId,
+        body: body.trim(),
+        authorSessionId: sessionIdRef.current,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
+      setSharedAnnotations((prev) => {
+        const next = mergeSharedAnnotations(prev, [nextAnnotation]);
+        window.localStorage.setItem(COLLAB_ANNOTATION_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+      setMissionProgress((prev) => (prev.annotate ? prev : { ...prev, annotate: true }));
+      appendActivity(stepId ? `Added annotation on step ${stepId}` : 'Added trace annotation');
+    },
+    [appendActivity, setMissionProgress, trace]
+  );
 
   const updateMatrixScenario = useCallback((id: string, patch: Partial<MatrixScenarioDraft>) => {
     setMatrixScenarios((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -557,13 +867,14 @@ export default function App() {
       }
       setReplayMatrix(matrix);
       setMode('matrix');
+      appendActivity(`Ran matrix with ${scenarios.length} scenario(s) from ${stepId}`);
     } catch (err) {
       setMatrixError(err instanceof Error ? err.message : 'Failed to run replay matrix.');
     } finally {
       setMatrixLoading(false);
     }
     },
-    [matrixAnchorStepId, selectedStepId, trace, setMode]
+    [appendActivity, matrixAnchorStepId, selectedStepId, trace, setMode]
   );
 
   const cancelMatrixRun = useCallback(async () => {
@@ -578,10 +889,11 @@ export default function App() {
       setReplayJob(canceled);
       const matrix = await fetchReplayMatrix(canceled.id);
       if (matrix) setReplayMatrix(matrix);
+      appendActivity(`Canceled matrix job ${replayJob.id}`);
     } finally {
       setMatrixLoading(false);
     }
-  }, [replayJob]);
+  }, [appendActivity, replayJob]);
 
   const openMatrixCompare = useCallback(
     async (traceId: string) => {
@@ -593,8 +905,9 @@ export default function App() {
       setCompareTrace(payload.trace);
       setOverlayEnabled(true);
       setMode('compare');
+      appendActivity(`Opened matrix compare trace ${traceId}`);
     },
-    [setMode, setOverlayEnabled]
+    [appendActivity, setMode, setOverlayEnabled]
   );
 
   const handleModeChange = useCallback(
@@ -606,11 +919,13 @@ export default function App() {
         const fromRects = collectStepRects(container);
         const toRects = buildFlowRects(trace.steps, container, trace.id);
         setMorphState({ steps: trace.steps, fromRects, toRects });
+        appendActivity('Morphed cinema to flow');
         return;
       }
       setMode(next);
+      appendActivity(`Switched mode to ${next}`);
     },
-    [mode, trace, setIsPlaying, setMode]
+    [appendActivity, mode, trace, setIsPlaying, setMode]
   );
 
   const togglePlayback = useCallback(() => {
@@ -956,6 +1271,61 @@ export default function App() {
     setMode,
   ]);
 
+  const directorNarrative = useMemo(() => {
+    if (!trace) return 'No trace loaded.';
+    const bottleneck = [...trace.steps].sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0))[0];
+    const failed = trace.steps.filter((step) => step.status === 'failed').length;
+    const topHypothesis = investigation?.hypotheses?.[0];
+    const causal = replayMatrix?.causalRanking?.[0];
+    const lines = [
+      `Run ${trace.id} completed with ${trace.steps.length} steps across ${trace.metadata.wallTimeMs}ms.`,
+      bottleneck ? `Primary latency driver: ${bottleneck.name} (${bottleneck.durationMs ?? 0}ms).` : null,
+      failed > 0 ? `Observed ${failed} failed step(s), indicating reliability risk.` : 'No failed steps observed.',
+      topHypothesis ? `Top investigation hypothesis: ${topHypothesis.title} (${topHypothesis.severity}).` : null,
+      causal ? `Highest ranked causal factor from matrix: ${causal.factor} (${(causal.confidence * 100).toFixed(0)}% confidence).` : null,
+      'Recommended plan: inspect bottleneck evidence, validate with replay matrix, and lock in mitigations.',
+    ].filter(Boolean);
+    return lines.join(' ');
+  }, [investigation, replayMatrix?.causalRanking, trace]);
+
+  const askDirector = useCallback(
+    (question: string) => {
+      const q = question.toLowerCase();
+      if (!trace) return 'No trace is loaded yet.';
+      if (q.includes('bottleneck') || q.includes('slow')) {
+        const bottleneck = [...trace.steps].sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0))[0];
+        return bottleneck
+          ? `The primary bottleneck is ${bottleneck.name} at ${bottleneck.durationMs ?? 0}ms. Prioritize this step for optimization and replay validation.`
+          : 'No bottleneck could be determined from current trace data.';
+      }
+      if (q.includes('risk') || q.includes('failure') || q.includes('error')) {
+        const failures = trace.steps.filter((step) => step.status === 'failed');
+        return failures.length
+          ? `Risk is concentrated in ${failures.length} failed step(s), starting at ${failures[0]?.name ?? 'unknown'}.`
+          : 'Failure risk appears low for this run; no failed steps were observed.';
+      }
+      if (q.includes('cost')) {
+        const cost = trace.metadata.totalCostUsd ?? 0;
+        return `Recorded run cost is ${cost.toFixed(4)} USD. Use matrix scenarios to evaluate cheaper prompt/strategy options.`;
+      }
+      if (q.includes('next') || q.includes('action')) {
+        return directorRecommendations.length
+          ? `Next action: ${directorRecommendations[0]?.title ?? 'Open matrix'}.`
+          : 'Next action: open Cinema mode, inspect bottleneck, then run the matrix.';
+      }
+      return directorNarrative;
+    },
+    [directorNarrative, directorRecommendations, trace]
+  );
+
+  const exportDirectorNarrative = useCallback(() => {
+    if (!trace) return;
+    const markdown = `# Director Narrative\n\n${directorNarrative}\n\n## Recommended Actions\n${directorRecommendations
+      .map((item) => `- ${item.title}: ${item.body}`)
+      .join('\n')}`;
+    downloadText(`agent-director-narrative-${trace.id}.md`, markdown, 'text/markdown');
+  }, [directorNarrative, directorRecommendations, trace]);
+
   useEffect(() => {
     if (!trace) return;
     clearStepDetailsCache();
@@ -1013,6 +1383,53 @@ export default function App() {
       stopStory();
     }
   }, [storyState?.active, trace, storyTraceId, stopStory]);
+
+  useEffect(() => {
+    if (playheadMs > 0) {
+      setMissionProgress((prev) => (prev.playback ? prev : { ...prev, playback: true }));
+    }
+  }, [playheadMs, setMissionProgress]);
+
+  useEffect(() => {
+    if (mode === 'flow') {
+      setMissionProgress((prev) => (prev.flow ? prev : { ...prev, flow: true }));
+    }
+    if (mode === 'matrix') {
+      setMissionProgress((prev) => (prev.matrix ? prev : { ...prev, matrix: true }));
+    }
+  }, [mode, setMissionProgress]);
+
+  useEffect(() => {
+    if (selectedStepId) {
+      setMissionProgress((prev) => (prev.inspect ? prev : { ...prev, inspect: true }));
+    }
+  }, [selectedStepId, setMissionProgress]);
+
+  useEffect(() => {
+    if (activeSessions > 1) {
+      setMissionProgress((prev) => (prev.collaborate ? prev : { ...prev, collaborate: true }));
+    }
+  }, [activeSessions, setMissionProgress]);
+
+  useEffect(() => {
+    if (!syncPlayback || isPlaying || applyingRemoteCursorRef.current) return;
+    const latest = remoteCursors[0];
+    if (!latest || latest.traceId !== trace?.id) return;
+    const drift = Math.abs(latest.playheadMs - playheadMs);
+    const modeMismatch = latest.mode !== mode;
+    const stepMismatch = (latest.selectedStepId ?? null) !== (selectedStepId ?? null);
+    if (drift < 600 && !modeMismatch && !stepMismatch) return;
+
+    applyingRemoteCursorRef.current = true;
+    setPlayheadMs(latest.playheadMs);
+    if (latest.mode === 'cinema' || latest.mode === 'flow' || latest.mode === 'compare' || latest.mode === 'matrix') {
+      setMode(latest.mode);
+    }
+    setSelectedStepId(latest.selectedStepId ?? null);
+    window.setTimeout(() => {
+      applyingRemoteCursorRef.current = false;
+    }, 180);
+  }, [isPlaying, mode, playheadMs, remoteCursors, selectedStepId, setMode, syncPlayback, trace?.id]);
 
   useEffect(() => {
     if (!trace) return;
@@ -1201,6 +1618,7 @@ export default function App() {
   const storyLabel = storyPlan[storyStep]?.label ?? 'Wrapping up';
   const storyTotal = storyPlan.length;
   const isFilteringDeferred = query !== deferredQuery;
+  const hydrationStatus = `${Math.min(textFilteredSteps.length, hydrationLimit)}/${textFilteredSteps.length}`;
 
   const commandActions = useMemo<CommandAction[]>(
     () => [
@@ -1505,6 +1923,8 @@ export default function App() {
           </button>
           {traceQueryResult ? <span className="status-badge">{traceQueryResult.matchCount} match(es)</span> : null}
           {isFilteringDeferred ? <span className="status-badge">Filtering...</span> : null}
+          <span className="status-badge">Hydration {hydrationStatus}</span>
+          <span className="status-badge">Filter {filterComputeMs}ms</span>
           {traceQueryResult ? (
             <button
               className="ghost-button"
@@ -1635,6 +2055,17 @@ export default function App() {
               Overlay
             </label>
           ) : null}
+          <label
+            className="toggle"
+            title="Follow active collaborator cursor and mode updates"
+          >
+            <input
+              type="checkbox"
+              checked={syncPlayback}
+              onChange={() => setSyncPlayback((prev) => !prev)}
+            />
+            Sync playback
+          </label>
         </div>
       </div>
 
@@ -1681,6 +2112,9 @@ export default function App() {
               onToggleWindowed={setWindowed}
               onScrub={(value) => setPlayheadMs(value)}
               persistenceKey={trace.id}
+              laneStrategy={laneStrategy}
+              visibleLaneGroups={visibleLaneGroups}
+              remotePlayheads={remotePlayheads}
             />
           </div>
         </div>
@@ -1704,9 +2138,9 @@ export default function App() {
         </div>
       ) : null}
 
-      <main className={`stage ${mode === 'compare' ? 'stage-compare' : ''}`} role="main">
+      <main className={`stage ${mode === 'compare' ? 'stage-compare' : ''} motion-fade-in`} role="main">
         <div
-          className="main"
+          className="main motion-slide-up"
           ref={viewportRef}
           data-help
           data-help-indicator
@@ -1728,6 +2162,12 @@ export default function App() {
                   timing={insights?.timing}
                   ghostTrace={overlayEnabled ? compareTrace : null}
                   diff={diff}
+                  laneStrategy={laneStrategy}
+                  laneGroupsOrder={laneConfig.order}
+                  hiddenLaneGroups={laneConfig.hidden}
+                  onLaneStrategyChange={handleLaneStrategyChange}
+                  onToggleLaneGroupVisibility={toggleLaneGroupVisibility}
+                  onMoveLaneGroup={moveLaneGroup}
                 />
               ) : null}
               {mode === 'flow' ? (
@@ -1800,6 +2240,15 @@ export default function App() {
               onReplay={handleReplay}
               recommendations={directorRecommendations}
               persona={introPersona}
+              annotations={currentTraceAnnotations}
+              activityFeed={activityFeed}
+              onAddAnnotation={addSharedAnnotation}
+              missionProgress={missionProgress}
+              missionCompletion={missionCompletion}
+              onResetMissions={resetMissions}
+              narrative={directorNarrative}
+              onAskDirector={askDirector}
+              onExportNarrative={exportDirectorNarrative}
             />
           )}
         </Suspense>
