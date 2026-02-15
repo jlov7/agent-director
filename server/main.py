@@ -150,9 +150,15 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(500, {"error": INTERNAL_ERROR_MESSAGE})
 
     def _read_json(self) -> Dict[str, Any]:
-        length = int(self.headers.get("Content-Length", 0))
+        raw_length = self.headers.get("Content-Length", "0")
+        try:
+            length = int(raw_length)
+        except ValueError as exc:
+            raise ValueError("Invalid Content-Length") from exc
+        if length < 0:
+            raise ValueError("Invalid Content-Length")
         if length > MAX_REQUEST_BYTES:
-            self.rfile.read(length)
+            self._discard_request_body(length)
             raise PayloadTooLargeError
         content_type = self.headers.get("Content-Type", "")
         media_type = content_type.split(";", 1)[0].strip().lower()
@@ -165,6 +171,15 @@ class ApiHandler(BaseHTTPRequestHandler):
             return json.loads(body.decode("utf-8"))
         except JSONDecodeError as exc:
             raise ValueError("Malformed JSON payload") from exc
+
+    def _discard_request_body(self, length: int) -> None:
+        remaining = length
+        chunk_size = 64 * 1024
+        while remaining > 0:
+            chunk = self.rfile.read(min(chunk_size, remaining))
+            if not chunk:
+                break
+            remaining -= len(chunk)
 
     def _send_json(self, status: int, payload: Dict[str, Any], extra_headers: Dict[str, str] | None = None) -> None:
         body = json.dumps(payload).encode("utf-8")

@@ -50,3 +50,5 @@
   Decision: add conservative in-memory per-IP rate limiting and return `429` with `Retry-After`.
 - 2026-02-15: API accepted non-JSON media types on POST bodies.
   Decision: enforce `application/json` for non-empty POST payloads and return `415` on mismatch.
+- 2026-02-15: API boundary handling did not explicitly cover malformed `Content-Length` headers.
+  Decision: validate `Content-Length` and return `400 Invalid Content-Length` with regression coverage.

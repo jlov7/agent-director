@@ -84,6 +84,12 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: enforce JSON media type for non-empty POST payloads and return `415` on mismatch with regression tests.
 - Status: `Closed` (2026-02-15, implemented in `server/main.py` with `test_post_requires_json_content_type`)
 
+### GAP-P2-004: API did not explicitly validate malformed `Content-Length` values
+- Evidence: invalid/non-numeric `Content-Length` could bypass explicit boundary semantics and produce generic failure paths.
+- Impacted journey: Robust failure-state UX and API boundary hygiene.
+- Fix strategy: validate header format early, return explicit `400 Invalid Content-Length`, and cover with raw-socket regression tests.
+- Status: `Closed` (2026-02-15, implemented in `server/main.py` with `test_invalid_content_length_returns_400`)
+
 ### GAP-P2-003: API responses missing baseline security headers
 - Evidence: API responses did not include baseline hardening headers like `X-Content-Type-Options`.
 - Impacted journey: Security hygiene for release-ready deployment defaults.

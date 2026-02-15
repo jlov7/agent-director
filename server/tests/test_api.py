@@ -1,4 +1,5 @@
 import json
+import socket
 import threading
 import time
 import unittest
@@ -188,6 +189,33 @@ class TestApi(unittest.TestCase):
         self.assertEqual(payload2.get("error"), "Too many requests")
         self.assertIsNotNone(resp2.getheader("Retry-After"))
         conn2.close()
+
+    def test_invalid_content_length_returns_400(self) -> None:
+        raw_request = (
+            "POST /api/compare HTTP/1.1\r\n"
+            f"Host: 127.0.0.1:{self.port}\r\n"
+            "Content-Type: application/json\r\n"
+            "Content-Length: nope\r\n"
+            "\r\n"
+            "{}"
+        ).encode("utf-8")
+
+        with socket.create_connection(("127.0.0.1", self.port), timeout=2) as sock:
+            sock.sendall(raw_request)
+            sock.settimeout(0.2)
+            chunks: list[bytes] = []
+            while True:
+                try:
+                    chunk = sock.recv(4096)
+                except TimeoutError:
+                    break
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            response = b"".join(chunks).decode("utf-8", errors="ignore")
+
+        self.assertIn("400", response.splitlines()[0])
+        self.assertIn("Invalid Content-Length", response)
 
 
 if __name__ == "__main__":
