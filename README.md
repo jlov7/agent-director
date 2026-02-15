@@ -109,6 +109,22 @@ python3 -m server.mcp_server
 Set `AGENT_DIRECTOR_MCP_TRANSPORT` to `stdio` if your host requires stdio.
 Set `AGENT_DIRECTOR_UI_URL` to the UI entrypoint that the host should load (defaults to `http://127.0.0.1:5173`).
 
+## Environment variables
+- `AGENT_DIRECTOR_DATA_DIR` — overrides the server data directory (default: `~/.agent-director`).
+- `AGENT_DIRECTOR_SAFE_EXPORT=1` — forces safe export on the server (raw payloads disabled).
+- `AGENT_DIRECTOR_MCP_TRANSPORT` — MCP transport (`streamable-http` default, `stdio` for stdio hosts).
+- `AGENT_DIRECTOR_UI_URL` — UI URL for MCP hosts.
+- `VITE_API_BASE` — UI API base URL (default: `http://127.0.0.1:8787`).
+- `VITE_FORCE_DEMO=1` — always use the embedded demo trace (ignores API).
+- `VITE_SKIP_INTRO=1` — skip the intro overlay.
+- `VITE_HIDE_BUILD_DATE=1` — hide the build date in the header.
+
+## Troubleshooting
+- **UI shows demo data when you expect real traces.** Ensure the API is running at `http://127.0.0.1:8787` or set `VITE_API_BASE` to your API URL. Confirm `VITE_FORCE_DEMO` is not set to `1` for the UI build.
+- **UI cannot reach the API.** Verify the server is running and port `8787` is free. If hosting the API elsewhere, set `VITE_API_BASE` and rebuild the UI.
+- **Replay or step details return errors.** Confirm traces exist in `AGENT_DIRECTOR_DATA_DIR` and the directory is writable. If safe export is required, set `AGENT_DIRECTOR_SAFE_EXPORT=1` and restart the server.
+- **MCP host opens a blank UI.** Set `AGENT_DIRECTOR_UI_URL` to the UI address the host can reach. If the host requires stdio, set `AGENT_DIRECTOR_MCP_TRANSPORT=stdio`.
+
 ## Testing
 
 Run the full verification suite:
