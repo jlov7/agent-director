@@ -21,6 +21,8 @@ import MorphOrchestrator from './components/Morph/MorphOrchestrator';
 import { useTrace } from './hooks/useTrace';
 import type {
   ExtensionDefinition,
+  GameplayGuild,
+  GameplaySession,
   InvestigationReport,
   ReplayJob,
   ReplayMatrix,
@@ -34,15 +36,26 @@ import {
   cancelReplayJob,
   clearStepDetailsCache,
   createReplayJob,
+  createGameplaySession,
   fetchInvestigation,
+  getGameplaySession,
   fetchReplayJob,
   fetchReplayMatrix,
   fetchTrace as fetchTraceById,
+  joinGameplaySession,
+  leaveGameplaySession,
   listExtensions,
   prefetchStepDetails,
+  applyGameplayAction,
   replayFromStep,
   runExtension,
   runTraceQuery,
+  subscribeToGameplaySession,
+  createGameplayGuild,
+  getGameplayGuild,
+  joinGameplayGuild,
+  scheduleGameplayGuildEvent,
+  completeGameplayGuildEvent,
 } from './store/api';
 import { usePersistedState } from './hooks/usePersistedState';
 import { buildFlowLayout } from './utils/flowLayout';
@@ -189,6 +202,147 @@ function filterSteps(steps: StepSummary[], query: string, typeFilter: StepType |
   });
 }
 
+function mapGameplaySessionToState(
+  session: GameplaySession,
+  playerId: string,
+  fallback: GameplayState
+): GameplayState {
+  const profile =
+    session.profiles[playerId] ??
+    session.profiles[session.players[0]?.player_id ?? ''] ??
+    Object.values(session.profiles)[0];
+  const roleMap = session.players.reduce<Record<string, 'strategist' | 'operator' | 'analyst' | 'saboteur'>>(
+    (acc, player) => {
+      acc[player.player_id] = player.role;
+      return acc;
+    },
+    {}
+  );
+  const nodes = Object.entries(session.narrative.nodes).map(([nodeId, node]) => ({
+    id: nodeId,
+    title: node.title,
+    body: node.title,
+    choices: node.choices.map((choice) => ({
+      id: choice.id,
+      label: choice.id,
+      nextNodeId: choice.next,
+      tensionDelta: choice.tension,
+      mutator: choice.modifier,
+    })),
+  }));
+  const pvpWinner = session.pvp.winner ?? null;
+  const failureSignals = session.telemetry.failures;
+  const outcome: 'success' | 'failure' | 'mixed' = failureSignals > 0 ? 'failure' : pvpWinner ? 'success' : 'mixed';
+  return {
+    seed: session.seed,
+    raid: {
+      party: session.players.map((player) => player.player_id),
+      roles: roleMap,
+      objectives: session.raid.objectives.map((objective) => ({
+        id: objective.id,
+        label: objective.label,
+        progress: objective.progress,
+        target: objective.target,
+        completed: objective.completed,
+      })),
+      completed: session.raid.completed,
+    },
+    campaign: {
+      depth: session.campaign.depth,
+      lives: session.campaign.lives,
+      currentMission: {
+        id: session.campaign.current_mission.id,
+        title: session.campaign.current_mission.title,
+        difficulty: session.campaign.current_mission.difficulty,
+        hazards: session.campaign.current_mission.hazards,
+        rewardCredits: session.campaign.current_mission.reward_tokens,
+      },
+      completedMissionIds: session.campaign.completed_missions,
+      mutators: [...session.campaign.modifiers, ...session.campaign.unlocked_modifiers],
+    },
+    narrative: {
+      currentNodeId: session.narrative.current_node_id,
+      nodes: nodes.length > 0 ? nodes : fallback.narrative.nodes,
+      history: session.narrative.history.map((entry) => ({ nodeId: entry.node_id, choiceId: entry.choice_id })),
+      tension: session.narrative.tension,
+    },
+    skills: {
+      points: profile?.skill_points ?? fallback.skills.points,
+      nodes: fallback.skills.nodes.map((node) => ({
+        ...node,
+        unlocked: Boolean(profile?.unlocked_skills.includes(node.id)),
+      })),
+      loadout: {
+        capacity: profile?.loadout_capacity ?? fallback.skills.loadout.capacity,
+        equipped: profile?.loadout ?? [],
+      },
+    },
+    pvp: {
+      round: session.pvp.round,
+      stability: session.pvp.operator_stability,
+      sabotage: session.pvp.sabotage_pressure,
+      fog: session.pvp.fog,
+      winner: pvpWinner,
+    },
+    time: {
+      activeForkId: session.time.active_fork_id,
+      forks: session.time.forks.map((fork) => ({
+        id: fork.id,
+        label: fork.label,
+        playheadMs: fork.playhead_ms,
+        history: fork.history,
+      })),
+    },
+    boss: {
+      name: session.boss.name,
+      phase: session.boss.phase,
+      hp: session.boss.hp,
+      maxHp: session.boss.max_hp,
+      enraged: session.boss.enraged,
+    },
+    director: {
+      risk: session.director.risk,
+      hint: session.director.hint,
+      recommendedModifier: session.director.hazard_bias,
+      lastOutcome: outcome,
+    },
+    economy: {
+      credits: session.economy.tokens,
+      materials: session.economy.materials,
+      crafted: session.economy.crafted,
+    },
+    guild: {
+      name: session.guild.guild_id ?? 'Trace Guild',
+      members: session.players.length,
+      operationsScore: session.guild.operations_score,
+      eventsCompleted: session.guild.events_completed,
+    },
+    cinematic: {
+      queue: session.cinematic.events.map((event) => ({
+        id: event.id,
+        type: (event.type === 'critical' || event.type === 'success' || event.type === 'warning' || event.type === 'twist'
+          ? event.type
+          : 'warning'),
+        message: event.message,
+        intensity: (event.intensity as 1 | 2 | 3) || 1,
+        at: Date.parse(event.at) || Date.now(),
+      })),
+    },
+    liveops: {
+      season: session.liveops.season,
+      week: session.liveops.week,
+      challenge: {
+        id: session.liveops.challenge.id,
+        title: session.liveops.challenge.title,
+        goal: session.liveops.challenge.goal,
+        progress: session.liveops.challenge.progress,
+        rewardCredits: session.liveops.challenge.reward,
+        completed: session.liveops.challenge.completed,
+      },
+    },
+  };
+}
+
 function getOrCreateSessionId() {
   const existing = window.sessionStorage.getItem('agentDirector.sessionId');
   if (existing) return existing;
@@ -309,6 +463,14 @@ export default function App() {
     createInitialGameplayState('bootstrap')
   );
   const [gameplayTraceId, setGameplayTraceId] = usePersistedState('agentDirector.gameplayTraceId.v1', '');
+  const [gameplayPlayerId] = usePersistedState(
+    'agentDirector.gameplayPlayerId.v1',
+    `player-${Math.random().toString(36).slice(2, 8)}`
+  );
+  const [gameplaySessionId, setGameplaySessionId] = usePersistedState('agentDirector.gameplaySessionId.v1', '');
+  const [gameplaySession, setGameplaySession] = useState<GameplaySession | null>(null);
+  const [gameplaySessionError, setGameplaySessionError] = useState<string | null>(null);
+  const [gameplayGuild, setGameplayGuild] = useState<GameplayGuild | null>(null);
   const [activeSessions, setActiveSessions] = useState(1);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
@@ -400,6 +562,58 @@ export default function App() {
     setGameplayState(createInitialGameplayState(trace.id));
     setGameplayTraceId(trace.id);
   }, [gameplayTraceId, setGameplayState, setGameplayTraceId, trace]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!gameplaySessionId) {
+      setGameplaySession(null);
+      return;
+    }
+    void getGameplaySession(gameplaySessionId).then((session) => {
+      if (cancelled) return;
+      setGameplaySession(session);
+      if (!session) {
+        setGameplaySessionError('Gameplay session not found.');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameplaySessionId]);
+
+  useEffect(() => {
+    if (!gameplaySessionId) return;
+    const unsubscribe = subscribeToGameplaySession(
+      gameplaySessionId,
+      (session) => {
+        setGameplaySession(session);
+        setGameplaySessionError(null);
+      },
+      () => setGameplaySessionError('Realtime sync disconnected. Falling back to polling.')
+    );
+    return () => unsubscribe();
+  }, [gameplaySessionId]);
+
+  useEffect(() => {
+    if (!gameplaySession) return;
+    setGameplayState((prev) => mapGameplaySessionToState(gameplaySession, gameplayPlayerId, prev));
+  }, [gameplayPlayerId, gameplaySession, setGameplayState]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const guildId = gameplaySession?.guild.guild_id;
+    if (!guildId) {
+      setGameplayGuild(null);
+      return;
+    }
+    void getGameplayGuild(guildId).then((guild) => {
+      if (cancelled) return;
+      setGameplayGuild(guild);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameplaySession?.guild.guild_id]);
 
   useEffect(() => {
     setTraceQueryResult(null);
@@ -732,6 +946,175 @@ export default function App() {
       appendActivity(`Toggled lane visibility for ${groupKey}`);
     },
     [appendActivity, laneStrategy, setTimelineStudioConfig]
+  );
+
+  const handleCreateGameplaySession = useCallback(
+    async (name: string) => {
+      if (!trace) return;
+      const session = await createGameplaySession({
+        traceId: trace.id,
+        hostPlayerId: gameplayPlayerId,
+        name: name.trim() || 'Night Ops',
+      });
+      if (!session) {
+        setGameplaySessionError('Failed to create gameplay session.');
+        return;
+      }
+      setGameplaySession(session);
+      setGameplaySessionId(session.id);
+      setGameplaySessionError(null);
+      appendActivity(`Created gameplay session ${session.id}`);
+    },
+    [appendActivity, gameplayPlayerId, setGameplaySessionId, trace]
+  );
+
+  const handleJoinGameplaySession = useCallback(
+    async (sessionId: string, playerId: string, role: 'strategist' | 'operator' | 'analyst' | 'saboteur') => {
+      if (!sessionId.trim()) {
+        setGameplaySessionError('Session id is required.');
+        return;
+      }
+      const session = await joinGameplaySession({
+        sessionId: sessionId.trim(),
+        playerId: playerId.trim(),
+        role,
+      });
+      if (!session) {
+        setGameplaySessionError('Failed to join gameplay session.');
+        return;
+      }
+      setGameplaySession(session);
+      setGameplaySessionId(session.id);
+      setGameplaySessionError(null);
+      appendActivity(`Joined gameplay session ${session.id} as ${playerId}`);
+    },
+    [appendActivity, setGameplaySessionId]
+  );
+
+  const handleLeaveGameplaySession = useCallback(async () => {
+    if (!gameplaySessionId) return;
+    const session = await leaveGameplaySession({ sessionId: gameplaySessionId, playerId: gameplayPlayerId });
+    if (!session) {
+      setGameplaySessionError('Failed to leave gameplay session.');
+      return;
+    }
+    setGameplaySession(null);
+    setGameplaySessionId('');
+    setGameplaySessionError(null);
+    appendActivity(`Left gameplay session ${gameplaySessionId}`);
+  }, [appendActivity, gameplayPlayerId, gameplaySessionId, setGameplaySessionId]);
+
+  const handleGameplayAction = useCallback(
+    async (actionType: string, payload?: Record<string, unknown>) => {
+      if (!gameplaySession?.id) return;
+      const result = await applyGameplayAction({
+        sessionId: gameplaySession.id,
+        playerId: gameplayPlayerId,
+        type: actionType,
+        payload,
+        expectedVersion: gameplaySession.version,
+      });
+      if (result.session) {
+        setGameplaySession(result.session);
+        setGameplaySessionError(null);
+        appendActivity(`Gameplay action: ${actionType}`);
+        return;
+      }
+      if (result.conflict) {
+        const latest = await getGameplaySession(gameplaySession.id);
+        if (latest) setGameplaySession(latest);
+        setGameplaySessionError('Session changed by another player. Synced latest state.');
+        return;
+      }
+      setGameplaySessionError(result.error ?? 'Gameplay action failed.');
+    },
+    [appendActivity, gameplayPlayerId, gameplaySession]
+  );
+
+  const handleCreateGameplayGuild = useCallback(
+    async (guildId: string, name: string) => {
+      if (!guildId.trim() || !name.trim()) {
+        setGameplaySessionError('Guild id and name are required.');
+        return;
+      }
+      const guild = await createGameplayGuild({
+        guildId: guildId.trim(),
+        name: name.trim(),
+        ownerPlayerId: gameplayPlayerId,
+      });
+      if (!guild) {
+        setGameplaySessionError('Failed to create guild.');
+        return;
+      }
+      setGameplayGuild(guild);
+      if (gameplaySession) {
+        const result = await applyGameplayAction({
+          sessionId: gameplaySession.id,
+          playerId: gameplayPlayerId,
+          type: 'guild.bind',
+          payload: { guild_id: guild.id },
+          expectedVersion: gameplaySession.version,
+        });
+        if (result.session) setGameplaySession(result.session);
+      }
+      setGameplaySessionError(null);
+      appendActivity(`Created guild ${guild.id}`);
+    },
+    [appendActivity, gameplayPlayerId, gameplaySession]
+  );
+
+  const handleJoinGameplayGuild = useCallback(
+    async (guildId: string, playerId: string) => {
+      if (!guildId.trim() || !playerId.trim()) {
+        setGameplaySessionError('Guild id and player id are required.');
+        return;
+      }
+      const guild = await joinGameplayGuild(guildId.trim(), playerId.trim());
+      if (!guild) {
+        setGameplaySessionError('Failed to join guild.');
+        return;
+      }
+      setGameplayGuild(guild);
+      setGameplaySessionError(null);
+      appendActivity(`Joined guild ${guild.id} as ${playerId}`);
+    },
+    [appendActivity]
+  );
+
+  const handleScheduleGameplayGuildEvent = useCallback(
+    async (guildId: string, title: string, scheduledAt: string) => {
+      if (!guildId.trim() || !title.trim() || !scheduledAt.trim()) {
+        setGameplaySessionError('Guild id, title, and schedule are required.');
+        return;
+      }
+      const payload = await scheduleGameplayGuildEvent({
+        guildId: guildId.trim(),
+        title: title.trim(),
+        scheduledAt: scheduledAt.trim(),
+      });
+      if (!payload) {
+        setGameplaySessionError('Failed to schedule guild event.');
+        return;
+      }
+      setGameplayGuild(payload.guild);
+      setGameplaySessionError(null);
+      appendActivity(`Scheduled guild event ${payload.event.id}`);
+    },
+    [appendActivity]
+  );
+
+  const handleCompleteGameplayGuildEvent = useCallback(
+    async (guildId: string, eventId: string, impact: number) => {
+      const guild = await completeGameplayGuildEvent(guildId, eventId, impact);
+      if (!guild) {
+        setGameplaySessionError('Failed to complete guild event.');
+        return;
+      }
+      setGameplayGuild(guild);
+      setGameplaySessionError(null);
+      appendActivity(`Completed guild event ${eventId}`);
+    },
+    [appendActivity]
   );
 
   const moveLaneGroup = useCallback(
@@ -2268,6 +2651,18 @@ export default function App() {
                   state={gameplayState}
                   playheadMs={playheadMs}
                   onUpdate={(updater) => setGameplayState((prev) => updater(prev))}
+                  session={gameplaySession}
+                  playerId={gameplayPlayerId}
+                  sessionError={gameplaySessionError}
+                  onCreateSession={handleCreateGameplaySession}
+                  onJoinSession={handleJoinGameplaySession}
+                  onLeaveSession={handleLeaveGameplaySession}
+                  onDispatchAction={handleGameplayAction}
+                  guild={gameplayGuild}
+                  onCreateGuild={handleCreateGameplayGuild}
+                  onJoinGuild={handleJoinGameplayGuild}
+                  onScheduleGuildEvent={handleScheduleGameplayGuildEvent}
+                  onCompleteGuildEvent={handleCompleteGameplayGuildEvent}
                 />
               ) : null}
             </Suspense>

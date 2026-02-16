@@ -200,6 +200,28 @@ See `TESTING.md` for details.
 - `docs/executive-summary.pdf` — one-page summary
 - `docs/demo-script.md` — 90s live demo script
 
+## Gameplay Systems (v2)
+
+The Gameplay Command Center now supports backend-authoritative multiplayer and progression systems:
+
+- Realtime co-op gameplay sessions (`/api/gameplay/sessions` + `/api/stream/gameplay/{session_id}`)
+- Conflict-safe synchronized actions with optimistic version checks
+- Persistent player skill/loadout profiles
+- Roguelike campaign runs and branching narrative outcomes
+- Asymmetric PvP loop, timeline fork/rewind/merge, and boss phases
+- Guild operations (roster, events, scoreboards)
+- Seasonal liveops rotation with telemetry-backed difficulty factor
+
+Quick API smoke examples:
+
+```bash
+curl -X POST http://127.0.0.1:8787/api/gameplay/sessions \
+  -H 'Content-Type: application/json' \
+  -d '{"trace_id":"trace-1","host_player_id":"jason","name":"Night Ops"}'
+
+curl http://127.0.0.1:8787/api/gameplay/liveops/current
+```
+
 ## Project hygiene
 - `CONTRIBUTING.md` — dev flow + tests
 - `SECURITY.md` — responsible disclosure

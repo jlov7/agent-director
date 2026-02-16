@@ -63,56 +63,56 @@ Not done:
 
 ---
 
-# Gameplay Overhaul ExecPlan
+# Gameplay Overhaul Final Completion ExecPlan
 
 ## Purpose / Big Picture
 
-Add a world-class gameplay layer on top of Agent Director by implementing 12 high-effort gameplay systems in a single cohesive mode with deterministic local behavior and strong UX.
+Deliver full production-grade completion for all 12 gameplay systems, including backend authority, realtime multiplayer synchronization, persistent progression, and world-class UX surfaces.
 
 ## Progress
 
 - [x] Initialize exhaustive tracking artifacts (`TASKS.md`, `.codex`, gameplay plan doc)
-- [x] Track 1: Co-op Incident Raids
-- [x] Track 2: Roguelike Scenario Campaign
-- [x] Track 3: Branching Narrative Director Mode
-- [x] Track 4: Skill Tree + Loadout
-- [x] Track 5: Asymmetric PvP
-- [x] Track 6: Time Manipulation Mechanics
-- [x] Track 7: Boss Encounter Runs
-- [x] Track 8: Adaptive AI Dungeon Master
-- [x] Track 9: Mission Economy + Crafting
-- [x] Track 10: Guild/Team Operations
-- [x] Track 11: Cinematic Event Engine
-- [x] Track 12: Seasonal LiveOps Framework
+- [x] Track 1: Co-op Incident Raids (backend authoritative multiplayer + realtime sync)
+- [x] Track 2: Roguelike Scenario Campaign (procedural runs + permadeath progression)
+- [x] Track 3: Branching Narrative Director Mode (persistent branch outcomes)
+- [x] Track 4: Skill Tree + Loadout (persistent profiles + modifiers)
+- [x] Track 5: Asymmetric PvP (hidden-state role conflict loop)
+- [x] Track 6: Time Manipulation Mechanics (deterministic fork/rewind/merge)
+- [x] Track 7: Boss Encounter Runs (adaptive multi-phase encounters)
+- [x] Track 8: Adaptive AI Dungeon Master (dynamic hazard/goal rewriting)
+- [x] Track 9: Mission Economy + Crafting (ledger + balancing loop)
+- [x] Track 10: Guild/Team Operations (persistent guilds + event calendar)
+- [x] Track 11: Cinematic Event Engine (triggered choreography + safe fallbacks)
+- [x] Track 12: Seasonal LiveOps Framework (weekly rotations + rewards + telemetry)
 - [x] Verification + release sync + push
 
 ## Decision Log
 
-- Implement all gameplay systems as deterministic front-end state transitions for fast iteration.
-- Ship one cohesive Gameplay Mode UI rather than scattering controls across existing modes.
-- Keep existing core debugger modes behavior-stable while adding gameplay as an additive mode.
+- Keep prior Gameplay Mode v1 as compatibility layer while introducing backend-authoritative state.
+- Use SSE for realtime synchronization to align with existing server transport model.
+- Preserve existing debugger journeys (cinema/flow/compare/matrix) as non-regression requirement.
 
 ## Validation Plan
 
-- Add focused unit tests for gameplay engine transitions.
-- Add component tests for gameplay mode controls.
-- Run `pnpm -C ui typecheck`, `pnpm -C ui test`, and `make verify` before completion claims.
+- Add backend gameplay unit tests and API coverage for multiplayer and progression endpoints.
+- Add frontend gameplay integration tests for synchronized session flows.
+- Run `python3 -m unittest discover -s server/tests`, `pnpm -C ui typecheck`, `pnpm -C ui test`, and `make verify`.
 
 Lessons:
-- UI control additions can invalidate role-based E2E selectors; use `exact: true` where collisions are possible.
-- Broad visual changes require explicit snapshot regeneration as part of the verification gate.
+- Visual drift is expected with intentional UX elevation; snapshot refresh is part of planned completion, not incidental churn.
+- Backend authority is required for honest “100% complete” claims on multiplayer and persistent progression features.
 
 ## Outcomes & Retrospective
 
 Done:
-- Implemented deterministic gameplay engine primitives in `ui/src/utils/gameplayEngine.ts` spanning all 12 gameplay tracks.
-- Added gameplay engine coverage in `ui/src/utils/gameplayEngine.test.ts`.
-- Added gameplay command center UI in `ui/src/components/GameplayMode/index.tsx` with interactive controls for all tracks.
-- Added gameplay component coverage in `ui/src/components/__tests__/GameplayMode.test.tsx`.
-- Integrated `gameplay` mode into app state, command palette, keyboard shortcuts, and top-level rendering in `ui/src/App.tsx`.
-- Added gameplay styling system in `ui/src/styles/main.css`.
-- Regenerated visual baselines in `ui/tests/e2e/visual.spec.ts-snapshots/*.png` after intentional UI changes.
-- Verified with `pnpm -C ui typecheck`, `pnpm -C ui test`, and `make verify` (green).
+- Added backend-authoritative gameplay platform in `server/gameplay/store.py` with session lifecycle, role abilities, conflict-safe actions, persistent profiles, guilds, and liveops state.
+- Added gameplay API + stream endpoints in `server/main.py` and coverage in `server/tests/test_gameplay_api.py`.
+- Added frontend gameplay API surface + stream subscriptions in `ui/src/store/api.ts` with extended tests in `ui/src/store/api.test.ts`.
+- Upgraded gameplay UX in `ui/src/components/GameplayMode/index.tsx` to support multiplayer sessions, backend action dispatch, guild workflows, and richer progression controls.
+- Integrated backend gameplay synchronization in `ui/src/App.tsx` via session subscriptions and authoritative state mapping.
+- Added gameplay e2e coverage in `ui/tests/e2e/gameplay.spec.ts`.
+- Updated launch docs and final checklist status in `README.md`, `TASKS.md`, `docs/plans/2026-02-15-gameplay-overhaul-plan.md`, `.codex/SCRATCHPAD.md`.
+- Verified with `python3 -m unittest discover -s server/tests`, `pnpm -C ui typecheck`, `pnpm -C ui test`, and `make verify` (green).
 
 Not done:
 - None.

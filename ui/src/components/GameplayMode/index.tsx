@@ -19,21 +19,70 @@ import {
   type GameplayState,
   type RaidRole,
 } from '../../utils/gameplayEngine';
+import type { GameplayGuild, GameplaySession } from '../../types';
 
 type GameplayModeProps = {
   state: GameplayState;
   playheadMs: number;
   onUpdate: (updater: (prev: GameplayState) => GameplayState) => void;
+  session?: GameplaySession | null;
+  playerId?: string;
+  sessionError?: string | null;
+  onCreateSession?: (name: string) => void;
+  onJoinSession?: (sessionId: string, playerId: string, role: RaidRole) => void;
+  onLeaveSession?: () => void;
+  onDispatchAction?: (actionType: string, payload?: Record<string, unknown>) => void;
+  guild?: GameplayGuild | null;
+  onCreateGuild?: (guildId: string, name: string) => void;
+  onJoinGuild?: (guildId: string, playerId: string) => void;
+  onScheduleGuildEvent?: (guildId: string, title: string, scheduledAt: string) => void;
+  onCompleteGuildEvent?: (guildId: string, eventId: string, impact: number) => void;
 };
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayModeProps) {
+export default function GameplayMode({
+  state,
+  playheadMs,
+  onUpdate,
+  session,
+  playerId,
+  sessionError,
+  onCreateSession,
+  onJoinSession,
+  onLeaveSession,
+  onDispatchAction,
+  guild,
+  onCreateGuild,
+  onJoinGuild,
+  onScheduleGuildEvent,
+  onCompleteGuildEvent,
+}: GameplayModeProps) {
   const [memberName, setMemberName] = useState('');
   const [memberRole, setMemberRole] = useState<RaidRole>('strategist');
   const [forkLabel, setForkLabel] = useState('alt path');
+  const [sessionName, setSessionName] = useState('Night Ops');
+  const [joinSessionId, setJoinSessionId] = useState('');
+  const [joinRole, setJoinRole] = useState<RaidRole>('operator');
+  const [guildIdInput, setGuildIdInput] = useState('guild-night-ops');
+  const [guildNameInput, setGuildNameInput] = useState('Night Ops Guild');
+  const [guildEventTitle, setGuildEventTitle] = useState('Weekly Raid Drill');
+  const [guildEventAt, setGuildEventAt] = useState('2026-02-16T20:00:00Z');
+  const multiplayerActive = Boolean(session?.id && onDispatchAction);
+
+  const applyAction = (
+    actionType: string,
+    payload: Record<string, unknown>,
+    fallback: (prev: GameplayState) => GameplayState
+  ) => {
+    if (multiplayerActive) {
+      onDispatchAction?.(actionType, payload);
+      return;
+    }
+    onUpdate(fallback);
+  };
 
   const activeNarrativeNode = useMemo(
     () => state.narrative.nodes.find((node) => node.id === state.narrative.currentNodeId),
@@ -65,6 +114,48 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
         <div>
           <h2>Gameplay Command Center</h2>
           <p>World-class mechanics stack: raids, campaign, narrative, PvP, time control, boss runs, and liveops.</p>
+          <div className="gameplay-inline">
+            <input
+              className="search-input"
+              value={sessionName}
+              onChange={(event) => setSessionName(event.target.value)}
+              placeholder="Session name"
+              aria-label="Session name"
+            />
+            <button className="ghost-button" type="button" onClick={() => onCreateSession?.(sessionName)}>
+              Create multiplayer session
+            </button>
+            <input
+              className="search-input"
+              value={joinSessionId}
+              onChange={(event) => setJoinSessionId(event.target.value)}
+              placeholder="Session id"
+              aria-label="Join session id"
+            />
+            <select value={joinRole} onChange={(event) => setJoinRole(event.target.value as RaidRole)}>
+              <option value="strategist">Strategist</option>
+              <option value="operator">Operator</option>
+              <option value="analyst">Analyst</option>
+              <option value="saboteur">Saboteur</option>
+            </select>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => onJoinSession?.(joinSessionId, playerId ?? 'director', joinRole)}
+            >
+              Join session
+            </button>
+            {session?.id ? (
+              <button className="ghost-button" type="button" onClick={() => onLeaveSession?.()}>
+                Leave session
+              </button>
+            ) : null}
+          </div>
+          <p>
+            Session: {session?.id ?? 'local-only'} {playerId ? `• Player ${playerId}` : ''}{' '}
+            {session ? `• Version ${session.version}` : ''}
+          </p>
+          {sessionError ? <p>{sessionError}</p> : null}
         </div>
         <div className="gameplay-completion" aria-label="Gameplay completion">
           <strong>{completion.done}/{completion.total}</strong>
@@ -95,7 +186,11 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
               type="button"
               onClick={() => {
                 if (!memberName.trim()) return;
-                onUpdate((prev) => joinRaid(prev, memberName.trim(), memberRole));
+                if (multiplayerActive) {
+                  onJoinSession?.(session?.id ?? '', memberName.trim(), memberRole);
+                } else {
+                  onUpdate((prev) => joinRaid(prev, memberName.trim(), memberRole));
+                }
                 setMemberName('');
               }}
             >
@@ -110,7 +205,13 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
                 <button
                   className="ghost-button"
                   type="button"
-                  onClick={() => onUpdate((prev) => advanceRaidObjective(prev, objective.id, 25))}
+                  onClick={() =>
+                    applyAction(
+                      'raid.objective_progress',
+                      { objective_id: objective.id, delta: 25 },
+                      (prev) => advanceRaidObjective(prev, objective.id, 25)
+                    )
+                  }
                 >
                   +25
                 </button>
@@ -124,10 +225,30 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
           <p>Depth {state.campaign.depth} • Lives {state.campaign.lives}</p>
           <p>{state.campaign.currentMission.title} (difficulty {state.campaign.currentMission.difficulty})</p>
           <div className="gameplay-inline">
-            <button className="primary-button" type="button" onClick={() => onUpdate((prev) => completeCampaignMission(prev, true))}>
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() =>
+                applyAction(
+                  'campaign.resolve_mission',
+                  { success: true },
+                  (prev) => completeCampaignMission(prev, true)
+                )
+              }
+            >
               Mission success
             </button>
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => completeCampaignMission(prev, false))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() =>
+                applyAction(
+                  'campaign.resolve_mission',
+                  { success: false },
+                  (prev) => completeCampaignMission(prev, false)
+                )
+              }
+            >
               Mission fail
             </button>
           </div>
@@ -139,7 +260,18 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
           <p>Tension {state.narrative.tension}</p>
           <div className="gameplay-list">
             {(activeNarrativeNode?.choices ?? []).map((choice) => (
-              <button key={choice.id} className="ghost-button" type="button" onClick={() => onUpdate((prev) => applyNarrativeChoice(prev, choice.id))}>
+              <button
+                key={choice.id}
+                className="ghost-button"
+                type="button"
+                onClick={() =>
+                  applyAction(
+                    'narrative.choose',
+                    { choice_id: choice.id },
+                    (prev) => applyNarrativeChoice(prev, choice.id)
+                  )
+                }
+              >
                 {choice.label}
               </button>
             ))}
@@ -153,10 +285,30 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
             {state.skills.nodes.map((node) => (
               <div key={node.id} className="gameplay-node">
                 <span>{node.label} ({node.cost})</span>
-                <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => unlockSkillNode(prev, node.id))}>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() =>
+                    applyAction(
+                      'skills.unlock',
+                      { player_id: playerId ?? 'director', skill_id: node.id },
+                      (prev) => unlockSkillNode(prev, node.id)
+                    )
+                  }
+                >
                   {node.unlocked ? 'Unlocked' : 'Unlock'}
                 </button>
-                <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => equipLoadoutSkill(prev, node.id))}>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() =>
+                    applyAction(
+                      'skills.equip',
+                      { player_id: playerId ?? 'director', skill_id: node.id },
+                      (prev) => equipLoadoutSkill(prev, node.id)
+                    )
+                  }
+                >
                   Equip
                 </button>
               </div>
@@ -168,13 +320,25 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
           <h3>5) Asymmetric PvP</h3>
           <p>Round {state.pvp.round} • Stability {state.pvp.stability} • Sabotage {state.pvp.sabotage}</p>
           <div className="gameplay-inline">
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => runPvPRound(prev, 'sabotage'))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => applyAction('pvp.act', { action: 'sabotage' }, (prev) => runPvPRound(prev, 'sabotage'))}
+            >
               Sabotage
             </button>
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => runPvPRound(prev, 'stabilize'))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => applyAction('pvp.act', { action: 'stabilize' }, (prev) => runPvPRound(prev, 'stabilize'))}
+            >
               Stabilize
             </button>
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => runPvPRound(prev, 'scan'))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => applyAction('pvp.act', { action: 'scan' }, (prev) => runPvPRound(prev, 'scan'))}
+            >
               Scan
             </button>
           </div>
@@ -190,16 +354,36 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
               onChange={(event) => setForkLabel(event.target.value)}
               aria-label="Fork label"
             />
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => createTimeFork(prev, forkLabel, playheadMs))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() =>
+                applyAction(
+                  'time.create_fork',
+                  { label: forkLabel, playhead_ms: playheadMs },
+                  (prev) => createTimeFork(prev, forkLabel, playheadMs)
+                )
+              }
+            >
               Create fork
             </button>
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => rewindActiveFork(prev, 1000))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => applyAction('time.rewind', { amount_ms: 1000 }, (prev) => rewindActiveFork(prev, 1000))}
+            >
               Rewind 1s
             </button>
             <button
               className="ghost-button"
               type="button"
-              onClick={() => onUpdate((prev) => mergeForkIntoPrimary(prev, prev.time.activeForkId))}
+              onClick={() =>
+                applyAction(
+                  'time.merge',
+                  { fork_id: state.time.activeForkId },
+                  (prev) => mergeForkIntoPrimary(prev, prev.time.activeForkId)
+                )
+              }
             >
               Merge
             </button>
@@ -210,13 +394,27 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
           <h3>7) Boss Encounter Runs</h3>
           <p>{state.boss.name} • Phase {state.boss.phase} • HP {state.boss.hp}/{state.boss.maxHp}</p>
           <div className="gameplay-inline">
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => applyBossAction(prev, 'strike'))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => applyAction('boss.act', { action: 'strike' }, (prev) => applyBossAction(prev, 'strike'))}
+            >
               Strike
             </button>
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => applyBossAction(prev, 'shield'))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => applyAction('boss.act', { action: 'shield' }, (prev) => applyBossAction(prev, 'shield'))}
+            >
               Shield
             </button>
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => applyBossAction(prev, 'exploit'))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() =>
+                applyAction('boss.act', { action: 'exploit' }, (prev) => applyBossAction(prev, 'exploit'))
+              }
+            >
               Exploit
             </button>
           </div>
@@ -229,15 +427,16 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
           <button
             className="ghost-button"
             type="button"
-            onClick={() =>
-              onUpdate((prev) =>
-                generateAdaptiveDirectorUpdate(prev, {
-                  failures: prev.pvp.sabotage > prev.pvp.stability ? 2 : 0,
-                  retries: Math.floor(prev.raid.objectives[0]?.progress ?? 0 / 40),
-                  latencyMs: 900 + (prev.pvp.fog * 10),
-                })
-              )
-            }
+            onClick={() => {
+              const failures = state.pvp.sabotage > state.pvp.stability ? 2 : 0;
+              const retries = Math.floor(((state.raid.objectives[0]?.progress ?? 0) as number) / 40);
+              const latencyMs = 900 + (state.pvp.fog * 10);
+              applyAction(
+                'director.evaluate',
+                { failures, retries, latency_ms: latencyMs },
+                (prev) => generateAdaptiveDirectorUpdate(prev, { failures, retries, latencyMs })
+              );
+            }}
           >
             Recompute guidance
           </button>
@@ -247,13 +446,43 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
           <h3>9) Mission Economy + Crafting</h3>
           <p>Credits {state.economy.credits} • Materials {state.economy.materials}</p>
           <div className="gameplay-inline">
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => craftUpgrade(prev, 'stability_patch'))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() =>
+                applyAction(
+                  'economy.craft',
+                  { recipe_id: 'stability_patch' },
+                  (prev) => craftUpgrade(prev, 'stability_patch')
+                )
+              }
+            >
               Craft stability patch
             </button>
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => craftUpgrade(prev, 'precision_lens'))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() =>
+                applyAction(
+                  'economy.craft',
+                  { recipe_id: 'precision_lens' },
+                  (prev) => craftUpgrade(prev, 'precision_lens')
+                )
+              }
+            >
               Craft precision lens
             </button>
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => craftUpgrade(prev, 'overclock_core'))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() =>
+                applyAction(
+                  'economy.craft',
+                  { recipe_id: 'overclock_core' },
+                  (prev) => craftUpgrade(prev, 'overclock_core')
+                )
+              }
+            >
               Craft overclock core
             </button>
           </div>
@@ -263,10 +492,90 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
           <h3>10) Guild Operations</h3>
           <p>{state.guild.name} • Ops score {state.guild.operationsScore} • Events {state.guild.eventsCompleted}</p>
           <div className="gameplay-inline">
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => advanceGuildOperation(prev, 6))}>
+            <input
+              className="search-input"
+              value={guildIdInput}
+              onChange={(event) => setGuildIdInput(event.target.value)}
+              placeholder="Guild id"
+              aria-label="Guild id"
+            />
+            <input
+              className="search-input"
+              value={guildNameInput}
+              onChange={(event) => setGuildNameInput(event.target.value)}
+              placeholder="Guild name"
+              aria-label="Guild name"
+            />
+            <button className="ghost-button" type="button" onClick={() => onCreateGuild?.(guildIdInput, guildNameInput)}>
+              Create guild
+            </button>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => onJoinGuild?.(guildIdInput, memberName.trim() || playerId || 'director')}
+            >
+              Join guild
+            </button>
+          </div>
+          <div className="gameplay-inline">
+            <input
+              className="search-input"
+              value={guildEventTitle}
+              onChange={(event) => setGuildEventTitle(event.target.value)}
+              placeholder="Event title"
+              aria-label="Guild event title"
+            />
+            <input
+              className="search-input"
+              value={guildEventAt}
+              onChange={(event) => setGuildEventAt(event.target.value)}
+              placeholder="2026-02-16T20:00:00Z"
+              aria-label="Guild event schedule"
+            />
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => onScheduleGuildEvent?.(guildIdInput, guildEventTitle, guildEventAt)}
+            >
+              Schedule event
+            </button>
+          </div>
+          {guild ? (
+            <div className="gameplay-list">
+              <p>{guild.member_count} members • Score {guild.operations_score}</p>
+              {guild.scoreboard.slice(0, 4).map((row) => (
+                <div key={row.player_id} className="gameplay-node">
+                  <span>{row.player_id}</span>
+                  <span>{row.score}</span>
+                </div>
+              ))}
+              {guild.events.slice(-3).map((event) => (
+                <div key={event.id} className="gameplay-node">
+                  <span>{event.title}</span>
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => onCompleteGuildEvent?.(guild.id, event.id, 10)}
+                  >
+                    Complete
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <div className="gameplay-inline">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => applyAction('guild.op', { impact: 6 }, (prev) => advanceGuildOperation(prev, 6))}
+            >
               Positive op
             </button>
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => advanceGuildOperation(prev, -3))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => applyAction('guild.op', { impact: -3 }, (prev) => advanceGuildOperation(prev, -3))}
+            >
               Risky op
             </button>
           </div>
@@ -279,14 +588,26 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
             <button
               className="ghost-button"
               type="button"
-              onClick={() => onUpdate((prev) => pushCinematicEvent(prev, 'critical', 'Critical cascade detected', 3))}
+              onClick={() =>
+                applyAction(
+                  'cinematic.emit',
+                  { event_type: 'critical', message: 'Critical cascade detected', intensity: 3 },
+                  (prev) => pushCinematicEvent(prev, 'critical', 'Critical cascade detected', 3)
+                )
+              }
             >
               Critical beat
             </button>
             <button
               className="ghost-button"
               type="button"
-              onClick={() => onUpdate((prev) => pushCinematicEvent(prev, 'success', 'System stabilizing', 2))}
+              onClick={() =>
+                applyAction(
+                  'cinematic.emit',
+                  { event_type: 'success', message: 'System stabilizing', intensity: 2 },
+                  (prev) => pushCinematicEvent(prev, 'success', 'System stabilizing', 2)
+                )
+              }
             >
               Success beat
             </button>
@@ -298,24 +619,32 @@ export default function GameplayMode({ state, playheadMs, onUpdate }: GameplayMo
           <p>{state.liveops.season} • Week {state.liveops.week}</p>
           <p>{state.liveops.challenge.title}</p>
           <div className="gameplay-inline">
-            <button className="ghost-button" type="button" onClick={() => onUpdate((prev) => advanceLiveOpsWeek(prev))}>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => applyAction('liveops.advance_week', {}, (prev) => advanceLiveOpsWeek(prev))}
+            >
               Next week
             </button>
             <button
               className="ghost-button"
               type="button"
               onClick={() =>
-                onUpdate((prev) => ({
-                  ...prev,
-                  liveops: {
-                    ...prev.liveops,
-                    challenge: {
-                      ...prev.liveops.challenge,
-                      progress: clamp(prev.liveops.challenge.progress + 1, 0, prev.liveops.challenge.goal),
-                      completed: prev.liveops.challenge.progress + 1 >= prev.liveops.challenge.goal,
+                applyAction(
+                  'liveops.progress',
+                  { delta: 1 },
+                  (prev) => ({
+                    ...prev,
+                    liveops: {
+                      ...prev.liveops,
+                      challenge: {
+                        ...prev.liveops.challenge,
+                        progress: clamp(prev.liveops.challenge.progress + 1, 0, prev.liveops.challenge.goal),
+                        completed: prev.liveops.challenge.progress + 1 >= prev.liveops.challenge.goal,
+                      },
                     },
-                  },
-                }))
+                  })
+                )
               }
             >
               Progress challenge

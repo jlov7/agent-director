@@ -100,3 +100,23 @@
 - [x] `pnpm -C ui test`
 - [x] `make verify`
 - [x] Playwright visual baseline refresh: `pnpm -C ui exec playwright test tests/e2e/visual.spec.ts --update-snapshots`
+
+---
+
+## Final Completion Pass (Complete)
+
+Goal refinement: elevate gameplay from v1 local simulation to backend-authoritative, realtime, persistent systems to satisfy full world-class scope.
+
+- [x] Add gameplay backend domain and APIs for sessions/progression/guild/liveops.
+- [x] Add realtime gameplay SSE stream and conflict-safe action versioning.
+- [x] Integrate Gameplay Mode with backend state and multiplayer lifecycle.
+- [x] Add coverage for backend and frontend advanced gameplay journeys.
+- [x] Re-run full verification and close final completion checklists.
+
+### Final Completion Evidence
+
+- [x] `python3 -m unittest discover -s server/tests`
+- [x] `pnpm -C ui typecheck`
+- [x] `pnpm -C ui test`
+- [x] `pnpm -C ui exec playwright test tests/e2e/gameplay.spec.ts`
+- [x] `make verify`

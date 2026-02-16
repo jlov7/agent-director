@@ -13,6 +13,7 @@ from urllib.parse import parse_qs, urlparse
 
 from .config import DEFAULT_HOST, DEFAULT_PORT, data_dir, demo_dir, safe_export_enabled
 from .extensions.loader import ExtensionRegistry
+from .gameplay import ConflictError, GameplayStore
 from .mcp.tools.compare_traces import execute as compare_execute
 from .mcp.tools.get_step_details import execute as step_execute
 from .mcp.tools.list_traces import execute as list_execute
@@ -43,6 +44,7 @@ class ApiHandler(BaseHTTPRequestHandler):
     replay_jobs: ReplayJobStore
     live_broker: LiveTraceBroker
     extension_registry: ExtensionRegistry
+    gameplay_store: GameplayStore
     rate_limit_window_s = 60
     rate_limit_max_requests = 240
     _rate_limit_hits: Dict[str, deque[float]] = defaultdict(deque)
@@ -82,6 +84,11 @@ class ApiHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/stream/traces/latest":
             self._stream_latest_trace()
             return
+        if parsed.path.startswith("/api/stream/gameplay/"):
+            path_parts = [p for p in parsed.path.split("/") if p]
+            if len(path_parts) == 4:
+                self._stream_gameplay_session(path_parts[3])
+                return
         path_parts = [p for p in parsed.path.split("/") if p]
         query = parse_qs(parsed.query)
 
@@ -89,6 +96,31 @@ class ApiHandler(BaseHTTPRequestHandler):
             if parsed.path == "/api/health":
                 self._send_json(200, {"status": "ok"})
                 return
+            if path_parts[:2] == ["api", "gameplay"]:
+                if path_parts == ["api", "gameplay", "sessions"]:
+                    self._send_json(200, {"sessions": self.gameplay_store.list_sessions()})
+                    return
+                if len(path_parts) == 4 and path_parts[2] == "sessions":
+                    session = self.gameplay_store.get_session(path_parts[3])
+                    if not session:
+                        self._send_json(404, {"error": f"Gameplay session not found: {path_parts[3]}"})
+                        return
+                    self._send_json(200, {"session": session})
+                    return
+                if len(path_parts) == 4 and path_parts[2] == "profiles":
+                    profile = self.gameplay_store.get_profile(path_parts[3])
+                    self._send_json(200, {"profile": profile})
+                    return
+                if len(path_parts) == 4 and path_parts[2] == "guilds":
+                    guild = self.gameplay_store.get_guild(path_parts[3])
+                    if not guild:
+                        self._send_json(404, {"error": f"Guild not found: {path_parts[3]}"})
+                        return
+                    self._send_json(200, {"guild": guild})
+                    return
+                if path_parts == ["api", "gameplay", "liveops", "current"]:
+                    self._send_json(200, {"liveops": self.gameplay_store.current_liveops()})
+                    return
             if parsed.path == "/api/extensions":
                 self._send_json(200, {"extensions": self.extension_registry.list_extensions()})
                 return
@@ -187,6 +219,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(404, {"error": "Not found"})
         except FileNotFoundError as exc:
             self._send_json(404, {"error": str(exc)})
+        except ConflictError as exc:
+            self._send_json(409, {"error": str(exc)})
         except ValueError as exc:
             self._send_json(400, {"error": str(exc)})
         except Exception:  # pragma: no cover - generic handler
@@ -201,6 +235,91 @@ class ApiHandler(BaseHTTPRequestHandler):
         path_parts = [p for p in parsed.path.split("/") if p]
         try:
             body = self._read_json()
+            if path_parts[:2] == ["api", "gameplay"]:
+                if path_parts == ["api", "gameplay", "sessions"]:
+                    session = self.gameplay_store.create_session(
+                        trace_id=str(body.get("trace_id") or ""),
+                        host_player_id=str(body.get("host_player_id") or ""),
+                        name=body.get("name"),
+                    )
+                    self._send_json(201, {"session": session})
+                    return
+                if len(path_parts) == 5 and path_parts[2] == "sessions" and path_parts[4] == "join":
+                    session = self.gameplay_store.join_session(
+                        session_id=path_parts[3],
+                        player_id=str(body.get("player_id") or ""),
+                        role=str(body.get("role") or ""),
+                    )
+                    self._send_json(200, {"session": session})
+                    return
+                if len(path_parts) == 5 and path_parts[2] == "sessions" and path_parts[4] == "leave":
+                    session = self.gameplay_store.leave_session(
+                        session_id=path_parts[3], player_id=str(body.get("player_id") or "")
+                    )
+                    self._send_json(200, {"session": session})
+                    return
+                if len(path_parts) == 5 and path_parts[2] == "sessions" and path_parts[4] == "action":
+                    expected_version = body.get("expected_version")
+                    if expected_version is not None and not isinstance(expected_version, int):
+                        raise ValueError("expected_version must be int")
+                    session = self.gameplay_store.apply_action(
+                        session_id=path_parts[3],
+                        player_id=str(body.get("player_id") or ""),
+                        action_type=str(body.get("type") or ""),
+                        payload=body.get("payload") if isinstance(body.get("payload"), dict) else {},
+                        expected_version=expected_version,
+                    )
+                    self._send_json(200, {"session": session})
+                    return
+                if len(path_parts) == 6 and path_parts[2] == "profiles" and path_parts[4] == "skills" and path_parts[5] == "unlock":
+                    profile = self.gameplay_store.unlock_profile_skill(
+                        player_id=path_parts[3], skill_id=str(body.get("skill_id") or "")
+                    )
+                    self._send_json(200, {"profile": profile})
+                    return
+                if len(path_parts) == 6 and path_parts[2] == "profiles" and path_parts[4] == "loadout" and path_parts[5] == "equip":
+                    profile = self.gameplay_store.equip_profile_skill(
+                        player_id=path_parts[3], skill_id=str(body.get("skill_id") or "")
+                    )
+                    self._send_json(200, {"profile": profile})
+                    return
+                if path_parts == ["api", "gameplay", "guilds"]:
+                    guild = self.gameplay_store.create_guild(
+                        guild_id=str(body.get("guild_id") or ""),
+                        name=str(body.get("name") or ""),
+                        owner_player_id=str(body.get("owner_player_id") or ""),
+                    )
+                    self._send_json(201, {"guild": guild})
+                    return
+                if len(path_parts) == 5 and path_parts[2] == "guilds" and path_parts[4] == "join":
+                    guild = self.gameplay_store.join_guild(path_parts[3], str(body.get("player_id") or ""))
+                    self._send_json(200, {"guild": guild})
+                    return
+                if len(path_parts) == 5 and path_parts[2] == "guilds" and path_parts[4] == "events":
+                    guild, event = self.gameplay_store.schedule_guild_event(
+                        guild_id=path_parts[3],
+                        title=str(body.get("title") or ""),
+                        scheduled_at=str(body.get("scheduled_at") or ""),
+                    )
+                    self._send_json(201, {"guild": guild, "event": event})
+                    return
+                if (
+                    len(path_parts) == 7
+                    and path_parts[2] == "guilds"
+                    and path_parts[4] == "events"
+                    and path_parts[6] == "complete"
+                ):
+                    guild = self.gameplay_store.complete_guild_event(
+                        guild_id=path_parts[3],
+                        event_id=path_parts[5],
+                        impact=int(body.get("impact") or 0),
+                    )
+                    self._send_json(200, {"guild": guild})
+                    return
+                if path_parts == ["api", "gameplay", "liveops", "advance-week"]:
+                    liveops = self.gameplay_store.advance_liveops_week()
+                    self._send_json(200, {"liveops": liveops})
+                    return
             if path_parts == ["api", "replay-jobs"]:
                 trace_id = str(body.get("trace_id") or "")
                 step_id = str(body.get("step_id") or "")
@@ -317,6 +436,8 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._send_json(415, {"error": str(exc)})
         except FileNotFoundError as exc:
             self._send_json(404, {"error": str(exc)})
+        except ConflictError as exc:
+            self._send_json(409, {"error": str(exc)})
         except ValueError as exc:
             self._send_json(400, {"error": str(exc)})
         except Exception:  # pragma: no cover
@@ -371,6 +492,32 @@ class ApiHandler(BaseHTTPRequestHandler):
         finally:
             self.live_broker.unsubscribe(token)
 
+    def _stream_gameplay_session(self, session_id: str) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+
+        subscription = self.gameplay_store.subscribe(session_id)
+        try:
+            session = self.gameplay_store.get_session(session_id)
+            if session:
+                self._write_sse("gameplay", {"session": session, "event": {"type": "session.snapshot"}})
+            else:
+                self._write_sse("heartbeat", {"status": "missing"})
+            while True:
+                try:
+                    event = subscription.queue.get(timeout=10.0)
+                    self._write_sse(event.get("type", "gameplay"), event)
+                except Empty:
+                    self._write_sse("heartbeat", {"ts": int(time.time())})
+        except (BrokenPipeError, ConnectionResetError):
+            return
+        finally:
+            self.gameplay_store.unsubscribe(session_id, subscription.token)
+
     def _write_sse(self, event_name: str, payload: Dict[str, Any]) -> None:
         body = f"event: {event_name}\ndata: {json.dumps(payload)}\n\n".encode("utf-8")
         self.wfile.write(body)
@@ -411,6 +558,7 @@ def main() -> None:
     ApiHandler.replay_jobs = ReplayJobStore()
     ApiHandler.live_broker = LiveTraceBroker()
     ApiHandler.extension_registry = ExtensionRegistry()
+    ApiHandler.gameplay_store = GameplayStore(data_dir())
     server = ThreadingHTTPServer((DEFAULT_HOST, DEFAULT_PORT), ApiHandler)
     print(f"Agent Director server running on http://{DEFAULT_HOST}:{DEFAULT_PORT}")
     server.serve_forever()

@@ -219,64 +219,93 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] `pnpm -C ui test`
 - [x] `make verify`
 
-## Overnight Gameplay Overhaul Program (Complete)
+## Overnight Gameplay Overhaul Program — Final Completion Pass (Complete)
 
 ### Tracking + Governance
 - [x] Create exhaustive implementation plan in `docs/plans/2026-02-15-gameplay-overhaul-plan.md`.
 - [x] Sync `.codex/PLANS.md` and `.codex/SCRATCHPAD.md` for this active stream.
-- [x] Keep this section status-accurate until all tracks are complete.
+- [x] Re-open execution checklist against full “world-class + multi-hour” scope and close all residual gaps.
 
 ### Track 1 — Co-op Incident Raids
-- [x] Shared raid state with party roles and multi-objective progress.
-- [x] Cooperative action controls with mission progress updates.
+- [x] Backend: session lifecycle API (create/join/leave/start/end) with strict 2–5 player limit.
+- [x] Backend: role abilities with cooldowns and authoritative objective progression.
+- [x] Backend: optimistic concurrency (`version`) and conflict-safe action application.
+- [x] Realtime sync: gameplay SSE stream with session, event, and presence updates.
+- [x] UI: multiplayer lobby, role assignment, objective board, synchronized state indicator.
+- [x] Tests: API + multiplayer sync + UI raid flow.
 
 ### Track 2 — Roguelike Scenario Campaign
-- [x] Procedural mission generation with escalating difficulty.
-- [x] Campaign run state (depth/lives/rewards) with progression loop.
+- [x] Backend: seeded procedural mission generation with escalating constraints.
+- [x] Backend: run lifecycle with permadeath penalties and campaign reset rules.
+- [x] Backend: unlockable mutator rewards and campaign state persistence.
+- [x] UI: campaign map/run summary/reward choices.
+- [x] Tests: deterministic generation + run progression + failure penalties.
 
 ### Track 3 — Branching Narrative Director Mode
-- [x] Decision-branch graph with persistent choice history.
-- [x] Branch outcomes that influence campaign modifiers.
+- [x] Backend: narrative graph with branch state persisted per session.
+- [x] Backend: branch outcomes mutate mission constraints/tool availability.
+- [x] UI: narrative decision panel with branch history and consequences.
+- [x] Tests: branch transitions and branch-effect propagation.
 
 ### Track 4 — Skill Tree + Loadout System
-- [x] Unlockable skill nodes with dependency checks.
-- [x] Loadout equip system that affects gameplay modifiers.
+- [x] Backend: persistent player profile with skill unlocks and prerequisites.
+- [x] Backend: loadout equip/unequip validation + derived gameplay modifiers.
+- [x] UI: skill tree map + equipable loadout with saved presets.
+- [x] Tests: prerequisite enforcement + modifier application + persistence.
 
 ### Track 5 — Asymmetric PvP (Saboteur vs Operator)
-- [x] Round-based sabotage/defense interactions.
-- [x] Win-pressure model (stability vs sabotage intensity).
+- [x] Backend: role-locked asymmetric actions and hidden sabotage state.
+- [x] Backend: fog-of-war visibility model and round resolution with win conditions.
+- [x] UI: dual-role controls and state views with fog-aware rendering.
+- [x] Tests: role constraints + hidden information + victory logic.
 
 ### Track 6 — Time Manipulation Mechanics
-- [x] Timeline fork creation and branch history.
-- [x] Rewind/merge controls with deterministic state updates.
+- [x] Backend: branchable timeline model with fork snapshots and deterministic merge.
+- [x] Backend: rewind semantics with irreversible audit trail entries.
+- [x] UI: fork graph controls (fork/rewind/merge) with branch metadata.
+- [x] Tests: deterministic rewind/merge and branch integrity.
 
 ### Track 7 — Boss Encounter Runs
-- [x] Multi-phase boss state machine with HP/enrage thresholds.
-- [x] Player action impact model for boss encounter outcomes.
+- [x] Backend: multi-phase boss behavior engine with adaptive counter-moves.
+- [x] Backend: enrage + team-check mechanics and phase-specific hazards.
+- [x] UI: phase timeline, boss telegraphing, team coordination prompts.
+- [x] Tests: phase transitions, adaptation, and defeat conditions.
 
 ### Track 8 — Adaptive AI Dungeon Master
-- [x] Adaptive mission guidance generated from recent run performance.
-- [x] Dynamic risk/hint outputs surfaced in gameplay UI.
+- [x] Backend: adaptive mission orchestrator that rewrites goals/hazards/hints from telemetry.
+- [x] Backend: skill-tier targeting and anti-repetition safeguards for generated directives.
+- [x] UI: DM guidance feed with rationale and difficulty telemetry.
+- [x] Tests: adaptation policies and hazard/hint generation constraints.
 
 ### Track 9 — Mission Economy + Crafting
-- [x] Resource ledger (credits/materials) and spend/earn loop.
-- [x] Crafting recipes tied to gameplay upgrades.
+- [x] Backend: token/material economy with source/sink ledger and balance rules.
+- [x] Backend: crafting recipes, rarity tiers, and risk/reward tradeoff modifiers.
+- [x] UI: crafting station with affordability, recipe preview, and outcomes.
+- [x] Tests: ledger correctness, recipe costs, and modifier effects.
 
 ### Track 10 — Guild/Team Operations Layer
-- [x] Guild roster and operation score progression.
-- [x] Team operation events and completion tracking.
+- [x] Backend: persistent guild model (roster, shared objectives, team progression).
+- [x] Backend: event calendar + cooperative operation scheduling + scoreboards.
+- [x] UI: guild dashboard with roster, event schedule, and progression board.
+- [x] Tests: guild state transitions, event completion, and rankings.
 
 ### Track 11 — Cinematic Event Engine
-- [x] Event queue with intensity/type metadata.
-- [x] High-fidelity gameplay event feed integrated into UI.
+- [x] Backend: cinematic event timeline with choreography metadata and trigger hooks.
+- [x] UI: high-fidelity reactive transitions tied to gameplay moments and states.
+- [x] UI: reduced-motion-safe choreography fallback path.
+- [x] Tests: event trigger sequencing and motion state transitions.
 
 ### Track 12 — Seasonal LiveOps Framework
-- [x] Weekly challenge rotation with season state.
-- [x] Challenge completion tracking and season progression.
+- [x] Backend: season/week scheduler with rotating modifiers and challenge templates.
+- [x] Backend: reward pipeline + telemetry capture + balancing knobs.
+- [x] UI: seasonal hub with weekly challenge rotation and reward claim flow.
+- [x] Tests: schedule rotation, reward issuance, and telemetry integrity.
 
 ### Validation + Release
-- [x] Unit tests for gameplay engine/state transitions.
-- [x] Component tests for gameplay mode UX controls.
+- [x] Unit tests for backend gameplay domain logic.
+- [x] API tests for gameplay endpoints and realtime streams.
+- [x] UI component tests for multiplayer/campaign/pvp/liveops journeys.
+- [x] `python3 -m unittest discover -s server/tests`
 - [x] `pnpm -C ui typecheck`
 - [x] `pnpm -C ui test`
 - [x] `make verify`

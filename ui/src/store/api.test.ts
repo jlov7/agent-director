@@ -31,6 +31,13 @@ import {
   fetchReplayJob,
   fetchReplayMatrix,
   cancelReplayJob,
+  createGameplaySession,
+  getGameplaySession,
+  joinGameplaySession,
+  applyGameplayAction,
+  fetchGameplayLiveOps,
+  advanceGameplayLiveOpsWeek,
+  subscribeToGameplaySession,
   clearStepDetailsCache,
 } from './api';
 
@@ -913,6 +920,107 @@ describe('API Layer', () => {
         expect.stringContaining('/api/extensions/latency_hotspots/run'),
         expect.objectContaining({ method: 'POST' })
       );
+    });
+  });
+
+  describe('gameplay api', () => {
+    it('creates, loads, and joins a gameplay session', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ session: { id: 'session-1', version: 1, players: [] } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ session: { id: 'session-1', version: 1, players: [] } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            session: { id: 'session-1', version: 2, players: [{ player_id: 'alice', role: 'operator' }] },
+          }),
+        });
+
+      const created = await createGameplaySession({ traceId: 'trace-1', hostPlayerId: 'alice', name: 'Ops' });
+      const loaded = await getGameplaySession('session-1');
+      const joined = await joinGameplaySession({ sessionId: 'session-1', playerId: 'alice', role: 'operator' });
+
+      expect(created?.id).toBe('session-1');
+      expect(loaded?.id).toBe('session-1');
+      expect(joined?.version).toBe(2);
+    });
+
+    it('reports conflict on gameplay action version mismatch', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => ({ error: 'Session version mismatch' }),
+      });
+      const result = await applyGameplayAction({
+        sessionId: 'session-1',
+        playerId: 'alice',
+        type: 'raid.objective_progress',
+        payload: { objective_id: 'obj-root-cause', delta: 25 },
+        expectedVersion: 3,
+      });
+      expect(result.conflict).toBe(true);
+      expect(result.error).toContain('version');
+    });
+
+    it('loads and advances liveops state', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ liveops: { season: 'Season-2026', week: 1, challenge: { id: 'challenge-raid' } } }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ liveops: { season: 'Season-2026', week: 2, challenge: { id: 'challenge-boss' } } }),
+        });
+      const current = await fetchGameplayLiveOps();
+      const next = await advanceGameplayLiveOpsWeek();
+      expect(current?.week).toBe(1);
+      expect(next?.week).toBe(2);
+    });
+  });
+
+  describe('subscribeToGameplaySession', () => {
+    it('parses gameplay stream events and closes subscription', () => {
+      const listeners: Record<string, Array<(event: MessageEvent<string>) => void>> = {};
+      const close = vi.fn();
+      class MockEventSource {
+        onmessage: ((event: MessageEvent<string>) => void) | null = null;
+        onerror: ((event: Event) => void) | null = null;
+
+        constructor(url: string) {
+          void url;
+        }
+
+        addEventListener(type: string, listener: EventListener) {
+          if (!listeners[type]) listeners[type] = [];
+          listeners[type].push(listener as (event: MessageEvent<string>) => void);
+        }
+
+        removeEventListener(type: string, listener: EventListener) {
+          listeners[type] = (listeners[type] ?? []).filter((fn) => fn !== listener);
+        }
+
+        close() {
+          close();
+        }
+      }
+
+      globalThis.EventSource = MockEventSource as unknown as typeof EventSource;
+      let sessionId = '';
+      const unsubscribe = subscribeToGameplaySession('session-1', (session) => {
+        sessionId = session.id;
+      });
+
+      const event = listeners.gameplay?.[0];
+      event?.({ data: JSON.stringify({ session: { id: 'session-1', version: 3 } }) } as MessageEvent<string>);
+      expect(sessionId).toBe('session-1');
+      unsubscribe();
+      expect(close).toHaveBeenCalledTimes(1);
     });
   });
 });

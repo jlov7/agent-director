@@ -1,5 +1,9 @@
 import type {
   ExtensionDefinition,
+  GameplayGuild,
+  GameplayLiveOps,
+  GameplayProfile,
+  GameplaySession,
   InvestigationReport,
   ReplayJob,
   ReplayMatrix,
@@ -609,4 +613,224 @@ function buildDemoReplayJob(input: {
     replayJobCache.set(jobId, { job: completedJob, matrix: completedMatrix });
   }, 600);
   return job;
+}
+
+export async function listGameplaySessions(): Promise<GameplaySession[]> {
+  if (FORCE_DEMO) return [];
+  const payload = await safeFetchJson<{ sessions: GameplaySession[] }>(`${API_BASE}/api/gameplay/sessions`);
+  return payload?.sessions ?? [];
+}
+
+export async function createGameplaySession(input: {
+  traceId: string;
+  hostPlayerId: string;
+  name: string;
+}): Promise<GameplaySession | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ session: GameplaySession }>(`${API_BASE}/api/gameplay/sessions`, {
+    trace_id: input.traceId,
+    host_player_id: input.hostPlayerId,
+    name: input.name,
+  });
+  return payload?.session ?? null;
+}
+
+export async function getGameplaySession(sessionId: string): Promise<GameplaySession | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safeFetchJson<{ session: GameplaySession }>(
+    `${API_BASE}/api/gameplay/sessions/${encodeURIComponent(sessionId)}`
+  );
+  return payload?.session ?? null;
+}
+
+export async function joinGameplaySession(input: {
+  sessionId: string;
+  playerId: string;
+  role: 'strategist' | 'operator' | 'analyst' | 'saboteur';
+}): Promise<GameplaySession | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ session: GameplaySession }>(
+    `${API_BASE}/api/gameplay/sessions/${encodeURIComponent(input.sessionId)}/join`,
+    {
+      player_id: input.playerId,
+      role: input.role,
+    }
+  );
+  return payload?.session ?? null;
+}
+
+export async function leaveGameplaySession(input: {
+  sessionId: string;
+  playerId: string;
+}): Promise<GameplaySession | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ session: GameplaySession }>(
+    `${API_BASE}/api/gameplay/sessions/${encodeURIComponent(input.sessionId)}/leave`,
+    {
+      player_id: input.playerId,
+    }
+  );
+  return payload?.session ?? null;
+}
+
+export async function applyGameplayAction(input: {
+  sessionId: string;
+  playerId: string;
+  type: string;
+  payload?: Record<string, unknown>;
+  expectedVersion?: number;
+}): Promise<{ session: GameplaySession | null; conflict: boolean; error: string | null }> {
+  if (FORCE_DEMO) return { session: null, conflict: false, error: null };
+  try {
+    const response = await fetch(`${API_BASE}/api/gameplay/sessions/${encodeURIComponent(input.sessionId)}/action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player_id: input.playerId,
+        type: input.type,
+        payload: input.payload ?? {},
+        expected_version: input.expectedVersion,
+      }),
+    });
+    if (response.ok) {
+      const payload = (await response.json()) as { session: GameplaySession };
+      return { session: payload.session, conflict: false, error: null };
+    }
+    let error = 'Action failed';
+    try {
+      const payload = (await response.json()) as { error?: string };
+      if (payload.error) error = payload.error;
+    } catch {
+      // ignore json parse failures
+    }
+    return { session: null, conflict: response.status === 409, error };
+  } catch {
+    return { session: null, conflict: false, error: 'Action failed' };
+  }
+}
+
+export async function getGameplayProfile(playerId: string): Promise<GameplayProfile | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safeFetchJson<{ profile: GameplayProfile }>(
+    `${API_BASE}/api/gameplay/profiles/${encodeURIComponent(playerId)}`
+  );
+  return payload?.profile ?? null;
+}
+
+export async function unlockGameplayProfileSkill(playerId: string, skillId: string): Promise<GameplayProfile | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ profile: GameplayProfile }>(
+    `${API_BASE}/api/gameplay/profiles/${encodeURIComponent(playerId)}/skills/unlock`,
+    { skill_id: skillId }
+  );
+  return payload?.profile ?? null;
+}
+
+export async function equipGameplayProfileSkill(playerId: string, skillId: string): Promise<GameplayProfile | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ profile: GameplayProfile }>(
+    `${API_BASE}/api/gameplay/profiles/${encodeURIComponent(playerId)}/loadout/equip`,
+    { skill_id: skillId }
+  );
+  return payload?.profile ?? null;
+}
+
+export async function createGameplayGuild(input: {
+  guildId: string;
+  name: string;
+  ownerPlayerId: string;
+}): Promise<GameplayGuild | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ guild: GameplayGuild }>(`${API_BASE}/api/gameplay/guilds`, {
+    guild_id: input.guildId,
+    name: input.name,
+    owner_player_id: input.ownerPlayerId,
+  });
+  return payload?.guild ?? null;
+}
+
+export async function getGameplayGuild(guildId: string): Promise<GameplayGuild | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safeFetchJson<{ guild: GameplayGuild }>(
+    `${API_BASE}/api/gameplay/guilds/${encodeURIComponent(guildId)}`
+  );
+  return payload?.guild ?? null;
+}
+
+export async function joinGameplayGuild(guildId: string, playerId: string): Promise<GameplayGuild | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ guild: GameplayGuild }>(
+    `${API_BASE}/api/gameplay/guilds/${encodeURIComponent(guildId)}/join`,
+    { player_id: playerId }
+  );
+  return payload?.guild ?? null;
+}
+
+export async function scheduleGameplayGuildEvent(input: {
+  guildId: string;
+  title: string;
+  scheduledAt: string;
+}): Promise<{ guild: GameplayGuild; event: { id: string; title: string; scheduled_at: string; status: string } } | null> {
+  if (FORCE_DEMO) return null;
+  return safePostJson<{ guild: GameplayGuild; event: { id: string; title: string; scheduled_at: string; status: string } }>(
+    `${API_BASE}/api/gameplay/guilds/${encodeURIComponent(input.guildId)}/events`,
+    {
+      title: input.title,
+      scheduled_at: input.scheduledAt,
+    }
+  );
+}
+
+export async function completeGameplayGuildEvent(
+  guildId: string,
+  eventId: string,
+  impact: number
+): Promise<GameplayGuild | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ guild: GameplayGuild }>(
+    `${API_BASE}/api/gameplay/guilds/${encodeURIComponent(guildId)}/events/${encodeURIComponent(eventId)}/complete`,
+    { impact }
+  );
+  return payload?.guild ?? null;
+}
+
+export async function fetchGameplayLiveOps(): Promise<GameplayLiveOps | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safeFetchJson<{ liveops: GameplayLiveOps }>(`${API_BASE}/api/gameplay/liveops/current`);
+  return payload?.liveops ?? null;
+}
+
+export async function advanceGameplayLiveOpsWeek(): Promise<GameplayLiveOps | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ liveops: GameplayLiveOps }>(`${API_BASE}/api/gameplay/liveops/advance-week`, {});
+  return payload?.liveops ?? null;
+}
+
+export function subscribeToGameplaySession(
+  sessionId: string,
+  onSession: (session: GameplaySession) => void,
+  onError?: (error: unknown) => void
+): () => void {
+  if (FORCE_DEMO || typeof EventSource === 'undefined' || !sessionId) {
+    return () => undefined;
+  }
+  const source = new EventSource(`${API_BASE}/api/stream/gameplay/${encodeURIComponent(sessionId)}`);
+  const parseAndEmit = (rawData: string) => {
+    try {
+      const payload = JSON.parse(rawData) as { session?: GameplaySession };
+      if (payload.session) onSession(payload.session);
+    } catch {
+      // ignore malformed events
+    }
+  };
+  const gameplayHandler = (event: MessageEvent<string>) => parseAndEmit(event.data);
+  source.addEventListener('gameplay', gameplayHandler as EventListener);
+  source.onmessage = (event) => parseAndEmit(event.data);
+  source.onerror = (event) => {
+    if (onError) onError(event);
+  };
+  return () => {
+    source.removeEventListener('gameplay', gameplayHandler as EventListener);
+    source.close();
+  };
 }

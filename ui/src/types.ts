@@ -233,3 +233,201 @@ export interface ExtensionDefinition {
   name: string;
   description: string;
 }
+
+export type GameplayRole = 'strategist' | 'operator' | 'analyst' | 'saboteur';
+
+export interface GameplaySessionPlayer {
+  player_id: string;
+  role: GameplayRole;
+  joined_at: string;
+  cooldowns: Record<string, number>;
+  presence: 'active' | 'idle';
+}
+
+export interface GameplayObjective {
+  id: string;
+  label: string;
+  progress: number;
+  target: number;
+  completed: boolean;
+}
+
+export interface GameplayMission {
+  id: string;
+  title: string;
+  difficulty: number;
+  hazards: string[];
+  reward_tokens: number;
+  reward_materials: number;
+}
+
+export interface GameplayProfile {
+  player_id: string;
+  xp: number;
+  level: number;
+  skill_points: number;
+  unlocked_skills: string[];
+  loadout: string[];
+  loadout_capacity: number;
+  stats: Record<string, number>;
+  modifiers: Record<string, Record<string, number>>;
+}
+
+export interface GameplaySession {
+  id: string;
+  name: string;
+  trace_id: string;
+  status: 'lobby' | 'running' | 'completed';
+  seed: number;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  players: GameplaySessionPlayer[];
+  raid: {
+    objectives: GameplayObjective[];
+    completed: boolean;
+  };
+  campaign: {
+    depth: number;
+    lives: number;
+    permadeath: boolean;
+    modifiers: string[];
+    unlocked_modifiers: string[];
+    completed_missions: string[];
+    current_mission: GameplayMission;
+  };
+  narrative: {
+    current_node_id: string;
+    history: Array<{ node_id: string; choice_id: string; at: string }>;
+    tension: number;
+    nodes: Record<
+      string,
+      { title: string; choices: Array<{ id: string; next: string; tension: number; modifier: string }> }
+    >;
+  };
+  profiles: Record<string, GameplayProfile>;
+  pvp: {
+    round: number;
+    operator_stability: number;
+    sabotage_pressure: number;
+    fog: number;
+    winner: 'operator' | 'saboteur' | null;
+  };
+  time: {
+    active_fork_id: string;
+    forks: Array<{
+      id: string;
+      label: string;
+      playhead_ms: number;
+      history: number[];
+      parent_fork_id: string | null;
+    }>;
+    audits: Array<Record<string, unknown>>;
+  };
+  boss: {
+    name: string;
+    phase: 1 | 2 | 3;
+    hp: number;
+    max_hp: number;
+    enraged: boolean;
+    adaptive_pattern: string;
+  };
+  director: {
+    risk: number;
+    skill_tier: string;
+    hazard_bias: string;
+    goal: string;
+    hint: string;
+  };
+  economy: {
+    tokens: number;
+    materials: number;
+    crafted: string[];
+    ledger: Array<Record<string, unknown>>;
+    ledger_count: number;
+  };
+  guild: {
+    guild_id: string | null;
+    operations_score: number;
+    events_completed: number;
+  };
+  cinematic: {
+    events: Array<{
+      id: string;
+      type: string;
+      message: string;
+      intensity: number;
+      camera_state: string;
+      at: string;
+    }>;
+    camera_state: string;
+  };
+  liveops: {
+    season: string;
+    seed: number;
+    week: number;
+    challenge: {
+      id: string;
+      title: string;
+      goal: number;
+      reward: number;
+      progress: number;
+      completed: boolean;
+    };
+    telemetry: {
+      sessionsStarted: number;
+      sessionsCompleted: number;
+      actionsApplied: number;
+      challengeCompletions: number;
+      difficultyFactor: number;
+    };
+  };
+  telemetry: {
+    actions: number;
+    successes: number;
+    failures: number;
+    avg_latency_ms: number;
+    boss_damage_total: number;
+  };
+}
+
+export interface GameplayGuild {
+  id: string;
+  name: string;
+  owner_player_id: string;
+  members: string[];
+  member_count: number;
+  operations_score: number;
+  events: Array<{
+    id: string;
+    title: string;
+    scheduled_at: string;
+    status: string;
+    created_at: string;
+    completed_at?: string;
+  }>;
+  events_completed: number;
+  scoreboard: Array<{ player_id: string; score: number }>;
+  created_at: string;
+}
+
+export interface GameplayLiveOps {
+  season: string;
+  seed: number;
+  week: number;
+  challenge: {
+    id: string;
+    title: string;
+    goal: number;
+    reward: number;
+    progress: number;
+    completed: boolean;
+  };
+  telemetry: {
+    sessionsStarted: number;
+    sessionsCompleted: number;
+    actionsApplied: number;
+    challengeCompletions: number;
+    difficultyFactor: number;
+  };
+}
