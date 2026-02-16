@@ -134,4 +134,24 @@ describe('IntroOverlay', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Executive lens' }));
     expect(onPersonaChange).toHaveBeenCalledWith('executive');
   });
+
+  it('supports launch path selection and start action', () => {
+    const onLaunchPathChange = vi.fn();
+    const onStartLaunchPath = vi.fn();
+    render(
+      <IntroOverlay
+        onComplete={mockOnComplete}
+        launchPath="rapid_triage"
+        onLaunchPathChange={onLaunchPathChange}
+        onStartLaunchPath={onStartLaunchPath}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Deep diagnosis' }));
+    expect(onLaunchPathChange).toHaveBeenCalledWith('deep_diagnosis');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start Team sync' }));
+    expect(onStartLaunchPath).toHaveBeenCalledWith('team_sync');
+    expect(mockOnComplete).toHaveBeenCalled();
+  });
 });

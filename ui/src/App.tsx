@@ -93,6 +93,8 @@ const COLLAB_ACTIVITY_STORAGE_KEY = 'agentDirector.collab.activity.v1';
 type Mode = 'cinema' | 'flow' | 'compare' | 'matrix' | 'gameplay';
 type IntroPersona = 'builder' | 'executive' | 'operator';
 type ThemeMode = 'studio' | 'focus' | 'contrast';
+type MotionMode = 'cinematic' | 'balanced' | 'minimal';
+type LaunchPath = 'rapid_triage' | 'deep_diagnosis' | 'team_sync';
 type RecommendationTone = 'priority' | 'warning' | 'info';
 
 type Rect = { left: number; top: number; width: number; height: number };
@@ -407,7 +409,12 @@ export default function App() {
     'agentDirector.introPersona',
     'builder'
   );
+  const [launchPath, setLaunchPath] = usePersistedState<LaunchPath>(
+    'agentDirector.launchPath',
+    'rapid_triage'
+  );
   const [themeMode, setThemeMode] = usePersistedState<ThemeMode>('agentDirector.themeMode', 'studio');
+  const [motionMode, setMotionMode] = usePersistedState<MotionMode>('agentDirector.motionMode', 'balanced');
   const [laneStrategy, setLaneStrategy] = usePersistedState<LaneStrategy>(
     'agentDirector.timelineLaneStrategy',
     'type'
@@ -473,6 +480,7 @@ export default function App() {
   const [gameplayGuild, setGameplayGuild] = useState<GameplayGuild | null>(null);
   const [activeSessions, setActiveSessions] = useState(1);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [handoffStatus, setHandoffStatus] = useState<string | null>(null);
   const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
   const [sharedAnnotations, setSharedAnnotations] = useState<SharedAnnotation[]>([]);
   const [activityFeed, setActivityFeed] = useState<ActivityEntry[]>([]);
@@ -555,6 +563,22 @@ export default function App() {
     const done = Object.values(missionProgress).filter(Boolean).length;
     return { done, total, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
   }, [missionProgress]);
+  const runHealthScore = useMemo(() => {
+    if (!trace) return 100;
+    const base = 100;
+    const errorPenalty = Math.min(60, (insights?.errors ?? 0) * 16);
+    const retryPenalty = Math.min(24, (insights?.retries ?? 0) * 6);
+    const wallPenalty = trace.metadata.wallTimeMs > 60000 ? 12 : trace.metadata.wallTimeMs > 30000 ? 6 : 0;
+    const timingPenalty = insights?.timing?.degraded ? 8 : 0;
+    return Math.max(0, Math.min(100, Math.round(base - errorPenalty - retryPenalty - wallPenalty - timingPenalty)));
+  }, [insights?.errors, insights?.retries, insights?.timing?.degraded, trace]);
+  const modeHotkeys = useMemo(() => {
+    if (mode === 'flow') return 'F / C / Space';
+    if (mode === 'compare') return 'C / Space / ← →';
+    if (mode === 'matrix') return 'G / C / Cmd+K';
+    if (mode === 'gameplay') return 'G / S / Cmd+K';
+    return 'C / F / Space';
+  }, [mode]);
 
   useEffect(() => {
     if (!trace) return;
@@ -682,6 +706,13 @@ export default function App() {
       delete document.body.dataset.theme;
     };
   }, [themeMode]);
+
+  useEffect(() => {
+    document.body.dataset.motion = motionMode;
+    return () => {
+      delete document.body.dataset.motion;
+    };
+  }, [motionMode]);
 
   useEffect(() => {
     const sessionId = sessionIdRef.current;
@@ -1325,6 +1356,44 @@ export default function App() {
     [appendActivity, mode, trace, setIsPlaying, setMode]
   );
 
+  const startLaunchPath = useCallback(
+    async (path: LaunchPath) => {
+      setLaunchPath(path);
+      if (path === 'rapid_triage') {
+        setExplainMode(true);
+        handleModeChange('cinema');
+        jumpToError();
+        if (!trace?.steps.some((step) => step.status === 'failed')) {
+          jumpToBottleneck();
+        }
+        appendActivity('Started rapid triage launch path');
+        return;
+      }
+      if (path === 'deep_diagnosis') {
+        setExplainMode(true);
+        handleModeChange('flow');
+        setTourOpen(true);
+        appendActivity('Started deep diagnosis launch path');
+        return;
+      }
+      setSyncPlayback(true);
+      handleModeChange('matrix');
+      await shareSession();
+      appendActivity('Started team sync launch path');
+    },
+    [
+      appendActivity,
+      handleModeChange,
+      jumpToBottleneck,
+      jumpToError,
+      setExplainMode,
+      setLaunchPath,
+      setSyncPlayback,
+      shareSession,
+      trace,
+    ]
+  );
+
   const togglePlayback = useCallback(() => {
     if (mode === 'flow') {
       handleModeChange('cinema');
@@ -1668,6 +1737,28 @@ export default function App() {
     setMode,
   ]);
 
+  const journeyPriorityQueue = useMemo(
+    () =>
+      directorRecommendations.map((item, index) => {
+        const severity: 'high' | 'medium' | 'low' =
+          item.tone === 'warning' ? 'high' : item.tone === 'priority' ? 'medium' : 'low';
+        return {
+          id: `priority-${item.id}`,
+          title: item.title,
+          detail: item.body,
+          severity,
+          actionLabel: item.actionLabel,
+          onAction: item.action,
+          done:
+            index === 0
+              ? (item.id === 'jump-error' && Boolean(selectedStepId)) ||
+                (item.id === 'jump-bottleneck' && Boolean(selectedStepId))
+              : false,
+        };
+      }),
+    [directorRecommendations, selectedStepId]
+  );
+
   const directorNarrative = useMemo(() => {
     if (!trace) return 'No trace loaded.';
     const bottleneck = [...trace.steps].sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0))[0];
@@ -1722,6 +1813,32 @@ export default function App() {
       .join('\n')}`;
     downloadText(`agent-director-narrative-${trace.id}.md`, markdown, 'text/markdown');
   }, [directorNarrative, directorRecommendations, trace]);
+
+  const createHandoffDigest = useCallback(async () => {
+    if (!trace) return;
+    const topRecommendation = directorRecommendations[0];
+    const failed = trace.steps.filter((step) => step.status === 'failed').length;
+    const digestLines = [
+      `Session handoff (${new Date().toISOString()})`,
+      `Trace: ${trace.id}`,
+      `Mode: ${mode}`,
+      `Selected step: ${selectedStepId ?? 'none'}`,
+      `Run health: ${runHealthScore}/100`,
+      `Failures: ${failed}`,
+      `Wall time: ${trace.metadata.wallTimeMs}ms`,
+      `Top recommendation: ${topRecommendation ? `${topRecommendation.title} -> ${topRecommendation.actionLabel}` : 'None'}`,
+      `Narrative: ${directorNarrative}`,
+    ];
+    const digest = digestLines.join('\n');
+    try {
+      await navigator.clipboard.writeText(digest);
+      setHandoffStatus('Handoff digest copied');
+    } catch {
+      window.prompt('Copy handoff digest', digest);
+      setHandoffStatus('Handoff digest ready');
+    }
+    window.setTimeout(() => setHandoffStatus(null), 2200);
+  }, [directorNarrative, directorRecommendations, mode, runHealthScore, selectedStepId, trace]);
 
   useEffect(() => {
     if (!trace) return;
@@ -2032,6 +2149,33 @@ export default function App() {
   const commandActions = useMemo<CommandAction[]>(
     () => [
       {
+        id: 'macro-rapid-triage',
+        label: 'Run rapid triage launch path',
+        description: 'Jump to the highest-risk step and start mitigation.',
+        group: 'Macros',
+        onTrigger: () => {
+          void startLaunchPath('rapid_triage');
+        },
+      },
+      {
+        id: 'macro-deep-diagnosis',
+        label: 'Run deep diagnosis launch path',
+        description: 'Open flow analysis and guided tour.',
+        group: 'Macros',
+        onTrigger: () => {
+          void startLaunchPath('deep_diagnosis');
+        },
+      },
+      {
+        id: 'macro-team-sync',
+        label: 'Run team sync launch path',
+        description: 'Enable sync mode and generate shareable context.',
+        group: 'Macros',
+        onTrigger: () => {
+          void startLaunchPath('team_sync');
+        },
+      },
+      {
         id: 'story-toggle',
         label: storyActive ? 'Stop story mode' : 'Start story mode',
         description: 'Auto-runs a cinematic walkthrough.',
@@ -2154,8 +2298,19 @@ export default function App() {
         group: 'Meta',
         onTrigger: reload,
       },
+      {
+        id: 'handoff-digest',
+        label: 'Copy handoff digest',
+        description: 'Capture mode, risk summary, and next actions for teammates.',
+        group: 'Meta',
+        keys: 'H',
+        onTrigger: () => {
+          void createHandoffDigest();
+        },
+      },
     ],
     [
+      createHandoffDigest,
       storyActive,
       toggleStory,
       explainMode,
@@ -2175,6 +2330,7 @@ export default function App() {
       setSafeExport,
       setShowShortcuts,
       setTourOpen,
+      startLaunchPath,
     ]
   );
 
@@ -2232,12 +2388,20 @@ export default function App() {
         onOpenPalette={() => setShowPalette(true)}
         onToggleExplain={() => setExplainMode((prev) => !prev)}
         onShareSession={shareSession}
+        onCreateHandoffDigest={() => void createHandoffDigest()}
         onThemeChange={setThemeMode}
+        onMotionChange={setMotionMode}
         themeMode={themeMode}
+        motionMode={motionMode}
         activeSessions={activeSessions}
         shareStatus={shareStatus}
+        handoffStatus={handoffStatus}
         explainMode={explainMode}
         storyActive={storyActive}
+        mode={mode}
+        missionCompletion={missionCompletion}
+        runHealthScore={runHealthScore}
+        modeHotkeys={modeHotkeys}
       />
       {!introDismissed && !skipIntro ? (
         <IntroOverlay
@@ -2249,6 +2413,9 @@ export default function App() {
           onStartStory={startStory}
           persona={introPersona}
           onPersonaChange={setIntroPersona}
+          launchPath={launchPath}
+          onLaunchPathChange={setLaunchPath}
+          onStartLaunchPath={(path) => void startLaunchPath(path)}
         />
       ) : null}
       {introDismissed && !heroDismissed ? (
@@ -2315,6 +2482,7 @@ export default function App() {
         onJumpToBottleneck={jumpToBottleneck}
         onReplay={handleReplay}
         onStartTour={() => setTourOpen(true)}
+        priorityQueue={journeyPriorityQueue}
       />
 
       <div
@@ -2702,6 +2870,25 @@ export default function App() {
           )}
         </Suspense>
       </main>
+      <div className="mobile-quick-rail" aria-label="Mobile quick actions">
+        <button
+          className={`ghost-button ${storyActive ? 'active' : ''}`}
+          type="button"
+          onClick={toggleStory}
+          aria-label={storyActive ? 'Stop story mode' : 'Start story mode'}
+        >
+          {storyActive ? 'Stop Story' : 'Story'}
+        </button>
+        <button className="ghost-button" type="button" onClick={() => setTourOpen(true)} aria-label="Start guided tour">
+          Guide
+        </button>
+        <button className="ghost-button" type="button" onClick={() => setShowPalette(true)} aria-label="Open command palette">
+          Command
+        </button>
+        <button className="ghost-button" type="button" onClick={() => void createHandoffDigest()} aria-label="Copy handoff digest">
+          Handoff
+        </button>
+      </div>
       <QuickActions
         mode={mode === 'matrix' || mode === 'gameplay' ? 'cinema' : mode}
         isPlaying={isPlaying}

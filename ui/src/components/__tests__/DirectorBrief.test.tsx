@@ -77,6 +77,7 @@ describe('DirectorBrief', () => {
       />
     );
 
+    fireEvent.click(screen.getByRole('tab', { name: 'Narrative' }));
     fireEvent.change(screen.getByLabelText('Ask director question'), { target: { value: 'What changed?' } });
     fireEvent.click(screen.getByRole('button', { name: 'Ask' }));
     expect(screen.getByText('Director answer')).toBeInTheDocument();

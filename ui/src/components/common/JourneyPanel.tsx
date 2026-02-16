@@ -15,6 +15,15 @@ type JourneyPanelProps = {
   onJumpToBottleneck: () => void;
   onReplay: (stepId: string) => void;
   onStartTour?: () => void;
+  priorityQueue?: Array<{
+    id: string;
+    title: string;
+    detail: string;
+    severity: 'high' | 'medium' | 'low';
+    actionLabel: string;
+    done?: boolean;
+    onAction: () => void;
+  }>;
 };
 
 type JourneyStatus = 'done' | 'active' | 'next';
@@ -48,6 +57,7 @@ export default function JourneyPanel({
   onJumpToBottleneck,
   onReplay,
   onStartTour,
+  priorityQueue = [],
 }: JourneyPanelProps) {
   const steps = trace.steps ?? [];
   const bottleneck = pickBottleneck(steps);
@@ -127,6 +137,8 @@ export default function JourneyPanel({
     },
   ];
   const activeStep = journeySteps[currentIndex];
+  const unresolvedPriority = priorityQueue.filter((item) => !item.done);
+  const nextPriority = unresolvedPriority[0];
 
   if (collapsed) {
     return (
@@ -146,6 +158,11 @@ export default function JourneyPanel({
         </div>
         <div className="journey-collapsed-actions">
           <span className="journey-progress-text">{progress}/3 complete</span>
+          {nextPriority ? (
+            <span className={`journey-priority-chip severity-${nextPriority.severity}`}>
+              Next priority: {nextPriority.title}
+            </span>
+          ) : null}
           {activeStep ? (
             <button
               className="primary-button journey-next"
@@ -242,6 +259,35 @@ export default function JourneyPanel({
           Tip: Use Flow to spot fan-out, Compare to validate your changes.
         </div>
       </div>
+      {priorityQueue.length ? (
+        <div className="journey-priority-queue">
+          <div className="journey-priority-head">
+            <div className="journey-progress-label">Priority queue</div>
+            <span>{priorityQueue.filter((item) => item.done).length}/{priorityQueue.length} resolved</span>
+          </div>
+          <div className="journey-priority-list">
+            {priorityQueue.map((item) => (
+              <article key={item.id} className={`journey-priority-item ${item.done ? 'done' : ''}`}>
+                <div className="journey-priority-main">
+                  <span className={`journey-priority-chip severity-${item.severity}`}>{item.severity}</span>
+                  <div>
+                    <div className="journey-priority-title">{item.title}</div>
+                    <div className="journey-priority-body">{item.detail}</div>
+                  </div>
+                </div>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={item.onAction}
+                  disabled={item.done}
+                >
+                  {item.done ? 'Resolved' : item.actionLabel}
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

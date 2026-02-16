@@ -222,6 +222,19 @@ curl -X POST http://127.0.0.1:8787/api/gameplay/sessions \
 curl http://127.0.0.1:8787/api/gameplay/liveops/current
 ```
 
+## Overnight UX Transformation (2026-02-16)
+
+The latest frontend sprint adds:
+
+- Mission pulse header (run health score, mission completion snapshot, mode hotkeys).
+- Motion profiles (`cinematic`, `balanced`, `minimal`) with persisted preference.
+- Intro launch paths (rapid triage, deep diagnosis, team sync) with one-click startup flows.
+- Journey priority queue with severity-ranked, action-ready items.
+- Command palette intelligence (macros, pinned commands, recent commands).
+- Director Brief workspace tabs (Overview, Narrative, Collaboration) and action-plan completion state.
+- Session handoff digest copy flow for fast team context sharing.
+- Mobile sticky quick rail for story/tour/palette/handoff actions.
+
 ## Project hygiene
 - `CONTRIBUTING.md` — dev flow + tests
 - `SECURITY.md` — responsible disclosure

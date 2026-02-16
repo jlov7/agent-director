@@ -17,10 +17,18 @@ type HeaderProps = {
   onShareSession?: () => void;
   onThemeChange?: (theme: 'studio' | 'focus' | 'contrast') => void;
   themeMode?: 'studio' | 'focus' | 'contrast';
+  motionMode?: 'cinematic' | 'balanced' | 'minimal';
   activeSessions?: number;
   shareStatus?: string | null;
+  handoffStatus?: string | null;
   explainMode?: boolean;
   storyActive?: boolean;
+  mode?: 'cinema' | 'flow' | 'compare' | 'matrix' | 'gameplay';
+  missionCompletion?: { done: number; total: number; pct: number };
+  runHealthScore?: number;
+  modeHotkeys?: string;
+  onMotionChange?: (mode: 'cinematic' | 'balanced' | 'minimal') => void;
+  onCreateHandoffDigest?: () => void;
 };
 
 export default function Header({
@@ -35,12 +43,25 @@ export default function Header({
   onToggleExplain,
   onShareSession,
   onThemeChange,
+  onMotionChange,
   themeMode = 'studio',
+  motionMode = 'balanced',
   activeSessions = 1,
   shareStatus = null,
+  handoffStatus = null,
   explainMode = false,
   storyActive = false,
+  mode = 'cinema',
+  missionCompletion,
+  runHealthScore = 100,
+  modeHotkeys = 'C / F / Space',
+  onCreateHandoffDigest,
 }: HeaderProps) {
+  const clampedHealth = Math.max(0, Math.min(100, Math.round(runHealthScore)));
+  const missionLabel = missionCompletion
+    ? `${missionCompletion.done}/${missionCompletion.total} missions`
+    : 'Missions n/a';
+
   return (
     <header
       className="header"
@@ -91,7 +112,23 @@ export default function Header({
           <span className="header-presence" aria-label="Active sessions">
             Live: {activeSessions}
           </span>
+          <span className="header-mode-pill" aria-label="Current mode">
+            Mode: {mode}
+          </span>
+          <span className="header-hotkeys" aria-label="Mode hotkeys">
+            Keys: {modeHotkeys}
+          </span>
+          <span className="header-mission" aria-label="Mission completion">
+            {missionLabel}
+          </span>
+          <span className="header-health" aria-label={`Run health score ${clampedHealth}`}>
+            <span className="header-health-bar">
+              <span className="header-health-fill" style={{ width: `${clampedHealth}%` }} />
+            </span>
+            <span>Health {clampedHealth}</span>
+          </span>
           {shareStatus ? <span className="header-share-status">{shareStatus}</span> : null}
+          {handoffStatus ? <span className="header-share-status">{handoffStatus}</span> : null}
         </div>
       </div>
       <div className="header-actions">
@@ -108,6 +145,21 @@ export default function Header({
             <option value="studio">Studio</option>
             <option value="focus">Focus</option>
             <option value="contrast">Contrast</option>
+          </select>
+        </label>
+        <label className="theme-picker">
+          Motion
+          <select
+            className="trace-select"
+            value={motionMode}
+            aria-label="Select motion profile"
+            onChange={(event) =>
+              onMotionChange?.(event.target.value as 'cinematic' | 'balanced' | 'minimal')
+            }
+          >
+            <option value="cinematic">Cinematic</option>
+            <option value="balanced">Balanced</option>
+            <option value="minimal">Minimal</option>
           </select>
         </label>
         <button
@@ -181,6 +233,15 @@ export default function Header({
           title="Copy live session link"
         >
           Share
+        </button>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={onCreateHandoffDigest}
+          aria-label="Copy session handoff digest"
+          title="Copy session handoff digest"
+        >
+          Handoff
         </button>
         <a
           className="ghost-button"

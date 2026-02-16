@@ -20,11 +20,21 @@ const trace: TraceSummary = {
 
 describe('Header', () => {
   it('renders a Help link to the docs/help page', () => {
-    render(<Header trace={trace} />);
+    render(
+      <Header
+        trace={trace}
+        mode="cinema"
+        missionCompletion={{ done: 3, total: 7, pct: 43 }}
+        runHealthScore={82}
+      />
+    );
 
     const helpLink = screen.getByRole('link', { name: 'Help' });
     expect(helpLink).toHaveAttribute('href', '/help.html');
     expect(helpLink).toHaveAttribute('target', '_blank');
     expect(helpLink).toHaveAttribute('rel', 'noreferrer');
+    expect(screen.getByText(/Health 82/)).toBeInTheDocument();
+    expect(screen.getByText(/3\/7 missions/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy session handoff digest' })).toBeInTheDocument();
   });
 });

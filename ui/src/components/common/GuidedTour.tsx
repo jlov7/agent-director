@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 
 export type TourStep = {
   id: string;
@@ -17,6 +17,19 @@ type GuidedTourProps = {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+function getFocusable(container: HTMLElement | null) {
+  const candidates = Array.from(
+    container?.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    ) ?? []
+  );
+  return candidates.filter((element) => {
+    if (element.hasAttribute('disabled')) return false;
+    if (element.getAttribute('aria-hidden') === 'true') return false;
+    return true;
+  });
+}
 
 export default function GuidedTour({ steps, open, onClose, onComplete }: GuidedTourProps) {
   const [index, setIndex] = useState(0);
@@ -90,7 +103,7 @@ export default function GuidedTour({ steps, open, onClose, onComplete }: GuidedT
     }
     previousFocusRef.current = document.activeElement as HTMLElement | null;
     const timer = window.setTimeout(() => {
-      const focusable = cardRef.current?.querySelector<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      const focusable = getFocusable(cardRef.current)[0];
       (focusable ?? cardRef.current)?.focus();
     }, 0);
     return () => window.clearTimeout(timer);
@@ -124,18 +137,39 @@ export default function GuidedTour({ steps, open, onClose, onComplete }: GuidedT
     };
   }, [open, updateTarget, updateCardPosition]);
 
+  useEffect(() => {
+    if (!open) return;
+    const trapKeydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = getFocusable(cardRef.current);
+      if (!focusable.length) return;
+      const active = document.activeElement as HTMLElement | null;
+      const currentIndex = focusable.indexOf(active as HTMLElement);
+      const nextIndex = event.shiftKey
+        ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+        : (currentIndex + 1) % focusable.length;
+      focusable[nextIndex]?.focus();
+      event.preventDefault();
+    };
+    document.addEventListener('keydown', trapKeydown, true);
+    return () => document.removeEventListener('keydown', trapKeydown, true);
+  }, [onClose, open]);
+
   if (!open || !step) return null;
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault();
       onClose();
       return;
     }
     if (event.key !== 'Tab') return;
-    const focusable = Array.from(
-      cardRef.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') ?? []
-    );
+    const focusable = getFocusable(cardRef.current);
     if (focusable.length === 0) return;
     const active = document.activeElement as HTMLElement | null;
     const currentIndex = focusable.indexOf(active as HTMLElement);

@@ -219,6 +219,64 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] `pnpm -C ui test`
 - [x] `make verify`
 
+## Overnight Frontend UX Transformation Sprint (Complete)
+
+### Tracking + Governance
+- [x] Create exhaustive sprint plan in `docs/plans/2026-02-16-overnight-ux-transformation-plan.md`.
+- [x] Sync `.codex/PLANS.md` and `.codex/SCRATCHPAD.md` with active status and progress.
+- [x] Keep this section status-accurate until every track below is complete.
+
+### Track 1 — Mission Pulse Header
+- [x] Add run-health pulse summary in header.
+- [x] Add mission completion snapshot in header.
+- [x] Add mode-aware keyboard hint strip in header.
+
+### Track 2 — Adaptive Intro Launch Paths
+- [x] Add launch path cards (rapid triage, deep diagnosis, team sync).
+- [x] Wire launch paths to app startup behavior.
+- [x] Add persisted launch-path preference.
+
+### Track 3 — Journey Priority Queue
+- [x] Add urgency queue panel in Journey with severity labels.
+- [x] Add queue actions wired to existing jump/replay/mode actions.
+- [x] Add completion indicator for resolved queue items.
+
+### Track 4 — Command Palette Intelligence
+- [x] Add recent-command memory.
+- [x] Add pinned-command controls.
+- [x] Add quick macros/suggestions section.
+
+### Track 5 — Director Brief Workspace Tabs
+- [x] Add Overview/Narrative/Collab tab layout.
+- [x] Keep progressive-disclosure locks per mission stage.
+- [x] Preserve existing annotation + activity workflows in tabbed UI.
+
+### Track 6 — Action Plan Completion UX
+- [x] Add recommendation action checklist with completion states.
+- [x] Add plan completion summary in Director Brief.
+- [x] Support narrative export and ask-director from the narrative workspace tab.
+
+### Track 7 — Session Handoff Digest
+- [x] Add one-click handoff digest generator with current mode/step/risk summary.
+- [x] Add clipboard copy status feedback in header.
+- [x] Add command-palette action for digest generation.
+
+### Track 8 — Motion Direction Controls
+- [x] Add motion mode selector (cinematic/balanced/minimal).
+- [x] Bind selector to CSS motion tokens and reduced-motion-safe behavior.
+- [x] Persist motion mode and apply globally.
+
+### Track 9 — Mobile Quick Rail
+- [x] Add sticky mobile quick-action rail for story/tour/palette.
+- [x] Keep desktop unchanged while improving small-screen reachability.
+- [x] Ensure keyboard/a11y labels exist for mobile rail controls.
+
+### Track 10 — Validation + Docs
+- [x] Update relevant component tests for all new UX surfaces.
+- [x] Run `pnpm -C ui typecheck`.
+- [x] Run `pnpm -C ui test`.
+- [x] Update README UX notes without removing the R&D/passion-project disclaimer footer.
+
 ## Overnight Gameplay Overhaul Program — Final Completion Pass (Complete)
 
 ### Tracking + Governance

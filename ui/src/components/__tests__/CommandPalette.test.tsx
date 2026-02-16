@@ -15,6 +15,7 @@ describe('CommandPalette', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     mockActions.forEach(action => {
       (action.onTrigger as ReturnType<typeof vi.fn>).mockClear();
     });
@@ -297,5 +298,23 @@ describe('CommandPalette', () => {
 
     const secondOption = screen.getByRole('option', { name: /Search Files/i });
     expect(secondOption).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('pins an action and shows it in the pinned section', () => {
+    render(<CommandPalette open={true} onClose={mockOnClose} actions={mockActions} />);
+
+    fireEvent.click(screen.getByLabelText('Pin Open Settings'));
+    expect(screen.getByText('Pinned')).toBeInTheDocument();
+    expect(screen.getByLabelText('Unpin Open Settings')).toBeInTheDocument();
+  });
+
+  it('records recently triggered actions', () => {
+    const { rerender } = render(<CommandPalette open={true} onClose={mockOnClose} actions={mockActions} />);
+    fireEvent.click(screen.getByText('Search Files'));
+
+    rerender(<CommandPalette open={false} onClose={mockOnClose} actions={mockActions} />);
+    rerender(<CommandPalette open={true} onClose={mockOnClose} actions={mockActions} />);
+    expect(screen.getByText('Recent')).toBeInTheDocument();
+    expect(screen.getByText('Search Files')).toBeInTheDocument();
   });
 });

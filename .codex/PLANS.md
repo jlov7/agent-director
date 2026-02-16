@@ -168,3 +168,55 @@ Done:
 
 Not done:
 - None.
+
+---
+
+# Overnight UX Transformation ExecPlan
+
+## Purpose / Big Picture
+
+Deliver a focused overnight frontend transformation that materially improves usability, user journeys, and perceived product quality without destabilizing existing production flows.
+
+## Progress
+
+- [x] Initialize exhaustive sprint tracking artifacts
+- [x] Track 1: Mission Pulse Header
+- [x] Track 2: Adaptive Intro Launch Paths
+- [x] Track 3: Journey Priority Queue
+- [x] Track 4: Command Palette Intelligence
+- [x] Track 5: Director Brief Workspace Tabs
+- [x] Track 6: Action Plan Completion UX
+- [x] Track 7: Session Handoff Digest
+- [x] Track 8: Motion Direction Controls
+- [x] Track 9: Mobile Quick Rail
+- [x] Track 10: Tests, verification, and docs sync
+
+## Decision Log
+
+- Prioritize additive UX layers over architecture rewrites to keep delivery risk low.
+- Reuse existing gameplay/matrix/onboarding data to drive new journey and guidance experiences.
+- Keep all new controls keyboard-accessible and persisted when behavior is preference-driven.
+
+## Validation Plan
+
+- Update component tests for Header, IntroOverlay, JourneyPanel, DirectorBrief, and CommandPalette.
+- Run `pnpm -C ui typecheck`.
+- Run `pnpm -C ui test`.
+
+## Outcomes & Retrospective
+
+Done:
+- Added mission health pulse, mission completion status, hotkey hints, motion profile selector, and handoff digest controls in the header.
+- Added adaptive launch-path onboarding cards (rapid triage, deep diagnosis, team sync) with persisted preference and app-level execution wiring.
+- Added a severity-ranked Journey priority queue with action wiring and resolved-state indicators.
+- Added command palette recents, pinned commands, and macro surfaces.
+- Added Director Brief tabbed workspaces plus recommendation completion tracking.
+- Added global handoff digest generation and command palette macro/action entries.
+- Added motion profile persistence and global motion dataset binding.
+- Added mobile sticky quick-action rail for story/tour/command/handoff.
+- Updated component tests and added JourneyPanel coverage.
+- Re-generated visual baseline snapshots for changed intentional UX layout.
+- Verified with `pnpm -C ui typecheck`, `pnpm -C ui test`, and `make verify`.
+
+Not done:
+- None.
