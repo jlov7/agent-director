@@ -34,7 +34,8 @@ test('flow visual snapshot', async ({ page }) => {
   await initStorage(page);
   await page.goto('/');
   await page.getByTitle('Graph view').click();
-  await expect(page.locator('.flow-node').first()).toBeVisible();
+  await expect(page.locator('.flow-canvas')).toBeVisible();
+  await expect(page.locator('.react-flow__node').first()).toBeAttached();
   await maybePercySnapshot(page, 'flow');
   await expect(page.locator('.app')).toHaveScreenshot('flow.png');
 });
