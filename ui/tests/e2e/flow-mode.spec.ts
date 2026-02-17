@@ -29,7 +29,7 @@ test.describe('Flow mode', () => {
 
     await page.getByTitle('Graph view').click();
     await expect(page.locator('.flow-canvas')).toBeVisible();
-    await expect(page.locator('.react-flow__node').first()).toBeVisible();
+    await expect(page.locator('.react-flow__node:visible').first()).toBeVisible();
 
     await expect(page.getByLabel('Structure')).toBeVisible();
     await expect(page.getByLabel('Sequence')).toBeVisible();
@@ -59,7 +59,7 @@ test.describe('Flow mode', () => {
     await page.goto('/');
     await page.getByTitle('Graph view').click();
 
-    await page.locator('.react-flow__node').first().click();
+    await page.locator('.react-flow__node:visible').first().click();
     await expect(page.getByRole('button', { name: 'Close inspector' })).toBeVisible();
 
     await page.keyboard.press('Escape');
