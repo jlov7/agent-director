@@ -1,6 +1,6 @@
 ## Current Task
 
-Execute the world-class pre-release launch program from `WORLD_CLASS_RELEASE_TODO.md` to full completion with exhaustive tracking and continuous implementation.
+Execute the pre-release hardening wave from `docs/plans/2026-02-17-pre-release-hardening-plan.md` to full completion with exhaustive tracking and verification evidence.
 
 ## Status
 
@@ -8,30 +8,25 @@ Completed
 
 ## Plan
 
-1. [x] Initialize master exhaustive tracker (`WORLD_CLASS_RELEASE_TODO.md`) and sync `TASKS.md`
-2. [x] Complete Batch A docs/features (WR-031, WR-036, WR-038, WR-039, WR-018)
-3. [x] Implement Batch B release-critical gameplay and telemetry foundations (WR-029, WR-030 done)
-4. [x] Implement Batch C remaining world-class systems and polish
-5. [x] Run full verification gates and finalize release evidence
+1. [x] RRH-001 Initialize tracker and plan sync across `TASKS.md`, `.codex/PLANS.md`, `.codex/SCRATCHPAD.md`
+2. [x] RRH-002 Apply deterministic Vercel toolchain hardening (`package.json`, `vercel.json`)
+3. [x] RRH-003 Add deployment verification automation (`scripts/vercel_release_check.sh`, `Makefile`)
+4. [x] RRH-004 Harden public deployment docs (`README.md`, `docs/hosting.md`)
+5. [x] RRH-005 Run full verification (`make verify`, `make doctor`, `make scorecard`, `make vercel-check`) and close tasks
 
 ## Decisions Made
 
-- Use a single source-of-truth tracker with fixed IDs (`WR-001..WR-040`) to prevent scope loss.
-- Execute in batches with explicit definition-of-done criteria per item.
-- Deliver legal/support/release-op artifacts first so launch risk and trust gaps are closed early.
-- Complete each WR item only after implementation + verification evidence, then sync all tracker artifacts.
-- WR-001 through WR-004 are complete (core loop, outcomes, difficulty ramp, onboarding telemetry); next focus is observability + analytics.
-- WR-029/WR-030, WR-005, WR-006, WR-007, WR-008, WR-009, WR-010, and WR-011 are complete; Batch C now continues at WR-012.
-- WR-012..WR-017, WR-019..WR-028, WR-032..WR-035, WR-037, and WR-040 are now complete with code/docs coverage and verification evidence.
+- Treat passing tests as necessary but not sufficient; include deployment platform determinism checks.
+- Keep hardening changes additive and low-risk.
+- Add a dedicated Vercel readiness gate so production alias health is verified with release checks.
 
 ## Open Questions
 
-- None blocking Batch A implementation.
+- None currently blocking implementation.
 
 ## Verification Gates
 
-- `pnpm -C ui typecheck`
-- `pnpm -C ui test`
 - `make verify`
 - `make doctor`
 - `make scorecard`
+- `make vercel-check`

@@ -8,6 +8,13 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] Batch B: WR-029, WR-030
 - [x] Batch C: WR-011..WR-017, WR-019..WR-028, WR-032..WR-035, WR-037, WR-040
 
+## Pre-Release Hardening Wave (Active)
+- [x] RRH-001 Tracker + plan sync (`docs/plans/2026-02-17-pre-release-hardening-plan.md`, `.codex/PLANS.md`, `.codex/SCRATCHPAD.md`)
+- [x] RRH-002 Deterministic Vercel toolchain hardening (`package.json`, `vercel.json`)
+- [x] RRH-003 Deployment verification automation (`scripts/vercel_release_check.sh`, `Makefile`)
+- [x] RRH-004 Public docs hardening (`README.md`, `docs/hosting.md`)
+- [x] RRH-005 Full verification + evidence refresh (`make verify`, `make doctor`, `make scorecard`, `make vercel-check`)
+
 ## P0 — Must‑Have Excellence (UX + Correctness + Scale)
 - [x] UX audit pass across Cinema / Flow / Compare / Inspector (spacing, hierarchy, zero dead‑zones)
 - [x] Accessibility baseline: focus order, ARIA labels, keyboard traps, contrast check

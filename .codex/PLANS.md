@@ -1,3 +1,45 @@
+# Pre-Release Hardening ExecPlan
+
+## Purpose / Big Picture
+
+Close final release-operations gaps so deployment behavior on Vercel and public documentation remain deterministic and verifiable.
+
+## Scope
+
+- In scope: RRH-001 through RRH-005 in `docs/plans/2026-02-17-pre-release-hardening-plan.md`.
+- Out of scope: new gameplay/UX feature expansion and architecture rewrites.
+
+## Progress
+
+- [x] RRH-001 tracker + plan initialization
+- [x] RRH-002 deterministic Vercel toolchain hardening
+- [x] RRH-003 deployment verification automation
+- [x] RRH-004 deployment docs hardening
+- [x] RRH-005 full verification and evidence refresh
+
+## Decision Log
+
+- Prioritize production-safety hardening before any additional feature work.
+- Keep changes additive and low-risk: config pinning, scripts, and documentation only.
+
+## Validation Plan
+
+- `make verify`
+- `make doctor`
+- `make scorecard`
+- `make vercel-check`
+
+## Outcomes & Retrospective
+
+Done:
+- Added root `package.json` with pinned `packageManager` for deterministic workspace/Vercel installs.
+- Updated Vercel install command to use `corepack pnpm install --frozen-lockfile`.
+- Added `scripts/vercel_release_check.sh` and `make vercel-check` release gate.
+- Hardened deployment docs in `README.md` and `docs/hosting.md`.
+- Verified green with `make verify`, `make doctor`, `make scorecard`, and `make vercel-check`.
+
+---
+
 # Pre-Release World-Class Launch ExecPlan
 
 ## Purpose / Big Picture

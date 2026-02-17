@@ -301,12 +301,14 @@ python3 scripts/content_authoring.py validate-liveops ./challenge.json
 
 ### Vercel
 - The repository includes `vercel.json` with explicit install/build/output settings for `ui`.
+- Toolchain pinning is enforced at repo root via `package.json` (`pnpm@10.29.3`).
 - Required Vercel env vars for deterministic public demo: `VITE_FORCE_DEMO=1`, `VITE_HIDE_BUILD_DATE=1`.
 - Production URL: https://agent-director.vercel.app
 - Recommended deploy flow:
   - `vercel deploy -y` (preview)
   - `vercel deploy --prod -y` (production)
   - `vercel inspect agent-director.vercel.app --logs` (post-deploy verification)
+  - `make vercel-check` (release-gate readiness check for production alias)
 - See `docs/hosting.md` for full hosting runbook.
 
 ### GitHub Pages

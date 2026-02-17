@@ -19,7 +19,8 @@ Deploys the Vite UI as a static site with demo data baked in.
 - Config: `vercel.json`
 - Env vars: `VITE_FORCE_DEMO=1`, `VITE_HIDE_BUILD_DATE=1`
 - Linked project: `jlov7s-projects/agent-director` (`agent-director.vercel.app`)
-- Install command: `pnpm install --frozen-lockfile`
+- Toolchain pin: root `package.json` enforces `packageManager: pnpm@10.29.3`
+- Install command: `corepack pnpm install --frozen-lockfile`
 - Build command: `pnpm -C ui build`
 - Output directory: `ui/dist`
 
@@ -38,6 +39,8 @@ Deploys the Vite UI as a static site with demo data baked in.
    - `vercel inspect agent-director.vercel.app --logs`
 5. Confirm latest project deployments:
    - `vercel ls agent-director`
+6. Run deterministic production status check:
+   - `make vercel-check`
 
 ### Vercel quality checks
 
@@ -45,6 +48,7 @@ Deploys the Vite UI as a static site with demo data baked in.
 - Keep `VITE_HIDE_BUILD_DATE=1` in Preview and Production for stable visuals/screenshots.
 - `vercel.json` enforces security headers on all responses and immutable cache headers for `/assets/*`.
 - Production alias should resolve to `https://agent-director.vercel.app`.
+- `make vercel-check` should return `Vercel deployment check: PASS` before release sign-off.
 
 ## Render (full stack)
 Host the Python API and static UI separately.

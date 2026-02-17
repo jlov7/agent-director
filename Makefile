@@ -12,3 +12,6 @@ doctor:
 
 scorecard:
 	python3 ./scripts/scorecard.py --refresh
+
+vercel-check:
+	./scripts/vercel_release_check.sh
