@@ -4,8 +4,8 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 
 ## Pre-Release World-Class Launch Program (Active)
 - [x] Master tracker: `WORLD_CLASS_RELEASE_TODO.md`
-- [ ] Batch A: WR-031, WR-036, WR-038, WR-039
-- [ ] Batch B: WR-001, WR-002, WR-003, WR-004, WR-018, WR-029, WR-030
+- [x] Batch A: WR-031, WR-036, WR-038, WR-039, WR-018
+- [x] Batch B: WR-029, WR-030
 - [ ] Batch C: WR-005..WR-017, WR-019..WR-028, WR-032..WR-035, WR-037, WR-040
 
 ## P0 — Must‑Have Excellence (UX + Correctness + Scale)

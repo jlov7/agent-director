@@ -121,6 +121,12 @@ class ApiHandler(BaseHTTPRequestHandler):
                 if path_parts == ["api", "gameplay", "liveops", "current"]:
                     self._send_json(200, {"liveops": self.gameplay_store.current_liveops()})
                     return
+                if path_parts == ["api", "gameplay", "observability", "summary"]:
+                    self._send_json(200, {"observability": self.gameplay_store.observability_snapshot()})
+                    return
+                if path_parts == ["api", "gameplay", "analytics", "funnels"]:
+                    self._send_json(200, {"analytics": self.gameplay_store.analytics_funnel_snapshot()})
+                    return
             if parsed.path == "/api/extensions":
                 self._send_json(200, {"extensions": self.extension_registry.list_extensions()})
                 return

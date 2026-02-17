@@ -193,6 +193,7 @@ See `TESTING.md` for details.
 - `docs/story.md` — product narrative + positioning
 - `docs/architecture.md` — system design + diagrams
 - `docs/ux.md` — interaction model + magic moments
+- `docs/gameplay-core-loop.md` — v1 gameplay loop, outcomes, funnels, and difficulty ramp
 - `docs/hosting.md` — live demo hosting options
 - `docs/brand.md` — logo + voice guidelines
 - `docs/visual-system.md` — color, motion, and layout rules
@@ -205,6 +206,7 @@ See `TESTING.md` for details.
 - `docs/legal/privacy.md` — draft privacy notice
 - `docs/ops/support-operations.md` — support intake, triage, and response model
 - `docs/ops/live-balancing-runbook.md` — weekly gameplay balancing workflow
+- `docs/ops/observability-analytics.md` — runtime observability metrics, alerts, funnels, and retention
 - `docs/ops/release-safety.md` — canary + rollback runbook
 
 ## Gameplay Systems (v2)
@@ -218,6 +220,7 @@ The Gameplay Command Center now supports backend-authoritative multiplayer and p
 - Asymmetric PvP loop, timeline fork/rewind/merge, and boss phases
 - Guild operations (roster, events, scoreboards)
 - Seasonal liveops rotation with telemetry-backed difficulty factor
+- Core loop contract (18-22 minute target), explicit run outcomes, and deterministic depth-based difficulty bands
 
 Quick API smoke examples:
 

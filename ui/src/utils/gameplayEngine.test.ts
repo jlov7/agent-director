@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   advanceGuildOperation,
+  applyLiveOpsBalancing,
   advanceLiveOpsWeek,
   advanceRaidObjective,
   applyBossAction,
@@ -10,6 +11,7 @@ import {
   craftUpgrade,
   createInitialGameplayState,
   createTimeFork,
+  difficultyForDepth,
   equipLoadoutSkill,
   generateAdaptiveDirectorUpdate,
   joinRaid,
@@ -37,6 +39,7 @@ describe('gameplayEngine', () => {
     state = completeCampaignMission(state, true);
     expect(state.campaign.depth).toBe(initialDepth + 1);
     expect(state.economy.credits).toBeGreaterThan(0);
+    expect(state.outcome.status).toBe('partial');
   });
 
   it('applies branching narrative choices', () => {
@@ -61,6 +64,13 @@ describe('gameplayEngine', () => {
     state = runPvPRound(state, 'sabotage');
     state = runPvPRound(state, 'stabilize');
     expect(state.pvp.round).toBe(2);
+  });
+
+  it('uses deterministic difficulty ramp bands', () => {
+    expect(difficultyForDepth(1)).toBe(1);
+    expect(difficultyForDepth(3)).toBe(2);
+    expect(difficultyForDepth(6)).toBe(4);
+    expect(difficultyForDepth(25)).toBe(10);
   });
 
   it('supports time fork create, rewind, and merge', () => {
@@ -111,6 +121,19 @@ describe('gameplayEngine', () => {
     expect(next.liveops.challenge.id).not.toBe(state.liveops.challenge.id);
   });
 
+  it('applies liveops balancing and records tuning history', () => {
+    const state = createInitialGameplayState('trace-1');
+    const next = applyLiveOpsBalancing(state, {
+      difficultyFactor: 1.35,
+      rewardMultiplier: 1.5,
+      note: 'Nightly tuning',
+    });
+    expect(next.liveops.difficultyFactor).toBeCloseTo(1.35, 2);
+    expect(next.liveops.rewardMultiplier).toBeCloseTo(1.5, 2);
+    expect(next.liveops.tuningHistory[0]?.note).toBe('Nightly tuning');
+    expect(next.liveops.challenge.rewardCredits).toBeGreaterThan(state.liveops.challenge.rewardCredits);
+  });
+
   it('tracks player safety moderation actions', () => {
     let state = createInitialGameplayState('trace-1');
     state = mutePlayer(state, 'griefer-1');
@@ -119,5 +142,13 @@ describe('gameplayEngine', () => {
     expect(state.safety.mutedPlayerIds).toContain('griefer-1');
     expect(state.safety.blockedPlayerIds).toContain('griefer-2');
     expect(state.safety.reports[0]?.targetPlayerId).toBe('griefer-2');
+  });
+
+  it('marks run as win when campaign reaches success threshold', () => {
+    let state = createInitialGameplayState('trace-1');
+    for (let index = 0; index < 4; index += 1) {
+      state = completeCampaignMission(state, true);
+    }
+    expect(state.outcome.status).toBe('win');
   });
 });

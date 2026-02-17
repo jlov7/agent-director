@@ -6,6 +6,7 @@ Welcome to the Agent Director documentation hub.
 - `story.md` — product narrative, positioning, and the “why now”
 - `architecture.md` — system diagrams, data flow, and storage layout
 - `ux.md` — interaction model, shortcuts, magic moments, and Matrix mode workflow
+- `gameplay-core-loop.md` — v1 loop stages, outcomes, funnels, and difficulty ramp
 - `brand.md` — logo, voice, and visual tone
 - `visual-system.md` — color, motion, and composition rules
 - `pitch-deck.md` — presentation deck source
@@ -21,6 +22,7 @@ Welcome to the Agent Director documentation hub.
 - `ops/release-safety.md` — canary + rollback release runbook
 - `ops/live-balancing-runbook.md` — live difficulty/economy balancing workflow
 - `ops/support-operations.md` — support triage, severity model, and response flow
+- `ops/observability-analytics.md` — runtime metrics, alerts, funnel, and retention dashboard contract
 - `legal/terms.md` — draft terms of use
 - `legal/privacy.md` — draft privacy notice
 

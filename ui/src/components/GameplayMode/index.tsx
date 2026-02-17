@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  applyLiveOpsBalancing,
   advanceGuildOperation,
   advanceLiveOpsWeek,
   advanceRaidObjective,
@@ -22,7 +23,7 @@ import {
   type GameplayState,
   type RaidRole,
 } from '../../utils/gameplayEngine';
-import type { GameplayGuild, GameplaySession } from '../../types';
+import type { GameplayAnalyticsFunnelSummary, GameplayGuild, GameplayObservabilitySummary, GameplaySession } from '../../types';
 
 type GameplayModeProps = {
   state: GameplayState;
@@ -40,6 +41,8 @@ type GameplayModeProps = {
   onJoinGuild?: (guildId: string, playerId: string) => void;
   onScheduleGuildEvent?: (guildId: string, title: string, scheduledAt: string) => void;
   onCompleteGuildEvent?: (guildId: string, eventId: string, impact: number) => void;
+  observability?: GameplayObservabilitySummary | null;
+  analytics?: GameplayAnalyticsFunnelSummary | null;
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -62,6 +65,8 @@ export default function GameplayMode({
   onJoinGuild,
   onScheduleGuildEvent,
   onCompleteGuildEvent,
+  observability,
+  analytics,
 }: GameplayModeProps) {
   const [memberName, setMemberName] = useState('');
   const [memberRole, setMemberRole] = useState<RaidRole>('strategist');
@@ -75,6 +80,9 @@ export default function GameplayMode({
   const [guildEventAt, setGuildEventAt] = useState('2026-02-16T20:00:00Z');
   const [safetyTargetPlayer, setSafetyTargetPlayer] = useState('');
   const [safetyReason, setSafetyReason] = useState('Abusive behavior');
+  const [liveopsDifficultyFactor, setLiveopsDifficultyFactor] = useState('1');
+  const [liveopsRewardMultiplier, setLiveopsRewardMultiplier] = useState('1');
+  const [liveopsTuningNote, setLiveopsTuningNote] = useState('Weekly balance update');
   const multiplayerActive = Boolean(session?.id && onDispatchAction);
 
   const applyAction = (
@@ -113,6 +121,14 @@ export default function GameplayMode({
     return { done, total: tracks.length, pct: Math.round((done / tracks.length) * 100) };
   }, [state]);
   const safety = state.safety ?? { mutedPlayerIds: [], blockedPlayerIds: [], reports: [] };
+  const coreLoopPhase = useMemo(() => {
+    if (state.outcome.status === 'win' || state.outcome.status === 'loss') return 4;
+    const executionSignals =
+      state.raid.objectives.some((objective) => objective.progress > 0) || state.pvp.round > 0 || state.time.forks.length > 1;
+    if (!executionSignals) return 1;
+    if (state.campaign.depth > 1 || state.narrative.history.length > 0) return 3;
+    return 2;
+  }, [state]);
 
   return (
     <section className="gameplay-mode">
@@ -120,6 +136,7 @@ export default function GameplayMode({
         <div>
           <h2>Gameplay Command Center</h2>
           <p>World-class mechanics stack: raids, campaign, narrative, PvP, time control, boss runs, and liveops.</p>
+          <p>v1 core loop target session length: 18-22 minutes.</p>
           <div className="gameplay-inline">
             <input
               className="search-input"
@@ -170,6 +187,33 @@ export default function GameplayMode({
       </header>
 
       <div className="gameplay-grid">
+        <article className="gameplay-card">
+          <h3>0) Core Loop + Outcomes</h3>
+          <p>Phase {coreLoopPhase}/4 • Outcome {state.outcome.status.replace('_', ' ')}</p>
+          <p>{state.outcome.reason}</p>
+          <div className="gameplay-list">
+            <div className="gameplay-node">
+              <span>{coreLoopPhase >= 1 ? 'x' : 'o'} Brief: inspect run and set objective</span>
+            </div>
+            <div className="gameplay-node">
+              <span>{coreLoopPhase >= 2 ? 'x' : 'o'} Execute: complete raid and mission actions</span>
+            </div>
+            <div className="gameplay-node">
+              <span>{coreLoopPhase >= 3 ? 'x' : 'o'} Adapt: choose narrative and tune loadout/liveops</span>
+            </div>
+            <div className="gameplay-node">
+              <span>{coreLoopPhase >= 4 ? 'x' : 'o'} Resolve: finish with win/loss review</span>
+            </div>
+          </div>
+          <div className="gameplay-list">
+            <p>Telemetry funnels:</p>
+            <div className="gameplay-node"><span>funnel.session_start</span></div>
+            <div className="gameplay-node"><span>funnel.first_objective_progress</span></div>
+            <div className="gameplay-node"><span>funnel.first_mission_outcome</span></div>
+            <div className="gameplay-node"><span>funnel.run_outcome</span></div>
+          </div>
+        </article>
+
         <article className="gameplay-card">
           <h3>1) Co-op Incident Raids</h3>
           <p>Party: {state.raid.party.length} members</p>
@@ -230,6 +274,7 @@ export default function GameplayMode({
           <h3>2) Roguelike Scenario Campaign</h3>
           <p>Depth {state.campaign.depth} • Lives {state.campaign.lives}</p>
           <p>{state.campaign.currentMission.title} (difficulty {state.campaign.currentMission.difficulty})</p>
+          <p>Difficulty ramp bands: D1-1, D2-3, D4-5, D6-7, D8-9, D10+.</p>
           <div className="gameplay-inline">
             <button
               className="primary-button"
@@ -624,6 +669,9 @@ export default function GameplayMode({
           <h3>12) Seasonal LiveOps</h3>
           <p>{state.liveops.season} • Week {state.liveops.week}</p>
           <p>{state.liveops.challenge.title}</p>
+          <p>
+            Difficulty x{state.liveops.difficultyFactor.toFixed(2)} • Reward x{state.liveops.rewardMultiplier.toFixed(2)}
+          </p>
           <div className="gameplay-inline">
             <button
               className="ghost-button"
@@ -656,6 +704,65 @@ export default function GameplayMode({
               Progress challenge
             </button>
           </div>
+          <div className="gameplay-inline">
+            <input
+              className="search-input"
+              value={liveopsDifficultyFactor}
+              onChange={(event) => setLiveopsDifficultyFactor(event.target.value)}
+              placeholder="Difficulty (0.6-1.6)"
+              aria-label="LiveOps difficulty factor"
+            />
+            <input
+              className="search-input"
+              value={liveopsRewardMultiplier}
+              onChange={(event) => setLiveopsRewardMultiplier(event.target.value)}
+              placeholder="Reward (0.5-2.0)"
+              aria-label="LiveOps reward multiplier"
+            />
+          </div>
+          <div className="gameplay-inline">
+            <input
+              className="search-input"
+              value={liveopsTuningNote}
+              onChange={(event) => setLiveopsTuningNote(event.target.value)}
+              placeholder="Tuning note"
+              aria-label="LiveOps tuning note"
+            />
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => {
+                const difficultyFactor = Number.parseFloat(liveopsDifficultyFactor);
+                const rewardMultiplier = Number.parseFloat(liveopsRewardMultiplier);
+                applyAction(
+                  'liveops.balance',
+                  {
+                    difficulty_factor: Number.isFinite(difficultyFactor) ? difficultyFactor : 1,
+                    reward_multiplier: Number.isFinite(rewardMultiplier) ? rewardMultiplier : 1,
+                    note: liveopsTuningNote,
+                  },
+                  (prev) =>
+                    applyLiveOpsBalancing(prev, {
+                      difficultyFactor: Number.isFinite(difficultyFactor) ? difficultyFactor : 1,
+                      rewardMultiplier: Number.isFinite(rewardMultiplier) ? rewardMultiplier : 1,
+                      note: liveopsTuningNote,
+                    })
+                );
+              }}
+            >
+              Apply balancing
+            </button>
+          </div>
+          {state.liveops.tuningHistory.length > 0 ? (
+            <div className="gameplay-list">
+              {state.liveops.tuningHistory.slice(0, 3).map((entry) => (
+                <div key={entry.id} className="gameplay-node">
+                  <span>{new Date(entry.changedAt).toLocaleDateString()} • {entry.note}</span>
+                  <span>D x{entry.difficultyFactor.toFixed(2)} / R x{entry.rewardMultiplier.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </article>
 
         <article className="gameplay-card">
@@ -684,21 +791,39 @@ export default function GameplayMode({
             <button
               className="ghost-button"
               type="button"
-              onClick={() => onUpdate((prev) => mutePlayer(prev, safetyTargetPlayer))}
+              onClick={() =>
+                applyAction(
+                  'safety.mute',
+                  { target_player_id: safetyTargetPlayer },
+                  (prev) => mutePlayer(prev, safetyTargetPlayer)
+                )
+              }
             >
               Mute player
             </button>
             <button
               className="ghost-button"
               type="button"
-              onClick={() => onUpdate((prev) => blockPlayer(prev, safetyTargetPlayer))}
+              onClick={() =>
+                applyAction(
+                  'safety.block',
+                  { target_player_id: safetyTargetPlayer },
+                  (prev) => blockPlayer(prev, safetyTargetPlayer)
+                )
+              }
             >
               Block player
             </button>
             <button
               className="ghost-button"
               type="button"
-              onClick={() => onUpdate((prev) => reportPlayer(prev, safetyTargetPlayer, safetyReason))}
+              onClick={() =>
+                applyAction(
+                  'safety.report',
+                  { target_player_id: safetyTargetPlayer, reason: safetyReason },
+                  (prev) => reportPlayer(prev, safetyTargetPlayer, safetyReason)
+                )
+              }
             >
               Report player
             </button>
@@ -709,6 +834,56 @@ export default function GameplayMode({
                 <div key={report.id} className="gameplay-node">
                   <span>{report.targetPlayerId}</span>
                   <span>{report.reason}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </article>
+
+        <article className="gameplay-card">
+          <h3>14) Observability + Funnel Analytics</h3>
+          <p>
+            Sessions {observability?.metrics.total_sessions ?? 0} • Running {observability?.metrics.running_sessions ?? 0}
+          </p>
+          <p>
+            Avg latency {Math.round(observability?.metrics.avg_latency_ms ?? 0)}ms • P95{' '}
+            {Math.round(observability?.metrics.p95_latency_ms ?? 0)}ms
+          </p>
+          <p>
+            Failure rate {(observability?.metrics.failure_rate_pct ?? 0).toFixed(2)}% • Challenge completion{' '}
+            {(observability?.metrics.challenge_completion_rate_pct ?? 0).toFixed(2)}%
+          </p>
+          <div className="gameplay-list">
+            <p>Funnels</p>
+            <div className="gameplay-node">
+              <span>Session start</span>
+              <span>{analytics?.funnels.session_start ?? 0}</span>
+            </div>
+            <div className="gameplay-node">
+              <span>First objective progress</span>
+              <span>{analytics?.funnels.first_objective_progress ?? 0}</span>
+            </div>
+            <div className="gameplay-node">
+              <span>First mission outcome</span>
+              <span>{analytics?.funnels.first_mission_outcome ?? 0}</span>
+            </div>
+            <div className="gameplay-node">
+              <span>Run outcome</span>
+              <span>{analytics?.funnels.run_outcome ?? 0}</span>
+            </div>
+          </div>
+          <div className="gameplay-list">
+            <p>
+              Retention D1 {(analytics?.retention.d1_pct ?? 0).toFixed(2)}% • D7{' '}
+              {(analytics?.retention.d7_pct ?? 0).toFixed(2)}% • D30 {(analytics?.retention.d30_pct ?? 0).toFixed(2)}%
+            </p>
+          </div>
+          {observability?.alerts.length ? (
+            <div className="gameplay-list">
+              {observability.alerts.slice(0, 3).map((alert) => (
+                <div key={alert.id} className="gameplay-node">
+                  <span>{alert.severity.toUpperCase()}</span>
+                  <span>{alert.message}</span>
                 </div>
               ))}
             </div>

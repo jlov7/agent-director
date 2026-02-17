@@ -20,7 +20,9 @@ import MorphOrchestrator from './components/Morph/MorphOrchestrator';
 import { useTrace } from './hooks/useTrace';
 import type {
   ExtensionDefinition,
+  GameplayAnalyticsFunnelSummary,
   GameplayGuild,
+  GameplayObservabilitySummary,
   GameplaySession,
   InvestigationReport,
   ReplayJob,
@@ -36,7 +38,9 @@ import {
   clearStepDetailsCache,
   createReplayJob,
   createGameplaySession,
+  fetchGameplayAnalyticsFunnels,
   fetchInvestigation,
+  fetchGameplayObservabilitySummary,
   getGameplaySession,
   fetchReplayJob,
   fetchReplayMatrix,
@@ -58,6 +62,7 @@ import {
 } from './store/api';
 import { usePersistedState } from './hooks/usePersistedState';
 import { buildFlowLayout } from './utils/flowLayout';
+import { recordGameplayFunnelEvent } from './utils/gameplayFunnel';
 import { buildIoEdgesFromSummary } from './utils/ioEdgeUtils';
 import { collectStepBoundaries, findNextBoundary } from './utils/playbackBoundaries';
 import { diffTraces } from './utils/diff';
@@ -342,8 +347,49 @@ function mapGameplaySessionToState(
         rewardCredits: session.liveops.challenge.reward,
         completed: session.liveops.challenge.completed,
       },
+      difficultyFactor: session.liveops.telemetry.difficultyFactor ?? fallback.liveops.difficultyFactor ?? 1,
+      rewardMultiplier: session.liveops.telemetry.rewardMultiplier ?? fallback.liveops.rewardMultiplier ?? 1,
+      tuningHistory:
+        session.liveops.tuning_history?.map((entry) => ({
+          id: entry.id,
+          changedAt: Date.parse(entry.changed_at) || Date.now(),
+          difficultyFactor: entry.difficultyFactor,
+          rewardMultiplier: entry.rewardMultiplier,
+          note: entry.note,
+        })) ?? fallback.liveops.tuningHistory ?? [],
     },
-    safety: fallback.safety,
+    safety: {
+      mutedPlayerIds: session.safety?.muted_player_ids ?? fallback.safety.mutedPlayerIds ?? [],
+      blockedPlayerIds: session.safety?.blocked_player_ids ?? fallback.safety.blockedPlayerIds ?? [],
+      reports:
+        session.safety?.reports?.map((report) => ({
+          id: report.id,
+          targetPlayerId: report.target_player_id,
+          reason: report.reason,
+          createdAt: Date.parse(report.created_at) || Date.now(),
+        })) ?? fallback.safety.reports ?? [],
+    },
+    outcome:
+      session.status === 'completed'
+        ? {
+            status: session.telemetry.successes >= session.telemetry.failures ? 'win' : 'loss',
+            reason:
+              session.telemetry.successes >= session.telemetry.failures
+                ? 'Session completed with positive outcomes.'
+                : 'Session completed with unresolved failures.',
+            updatedAt: Date.now(),
+          }
+        : session.telemetry.failures > 0
+          ? {
+              status: 'partial',
+              reason: `${session.telemetry.failures} failure signals observed; run still active.`,
+              updatedAt: Date.now(),
+            }
+          : fallback.outcome ?? {
+              status: 'in_progress',
+              reason: 'Run in progress.',
+              updatedAt: Date.now(),
+            },
   };
 }
 
@@ -480,6 +526,8 @@ export default function App() {
   const [gameplaySession, setGameplaySession] = useState<GameplaySession | null>(null);
   const [gameplaySessionError, setGameplaySessionError] = useState<string | null>(null);
   const [gameplayGuild, setGameplayGuild] = useState<GameplayGuild | null>(null);
+  const [gameplayObservability, setGameplayObservability] = useState<GameplayObservabilitySummary | null>(null);
+  const [gameplayAnalytics, setGameplayAnalytics] = useState<GameplayAnalyticsFunnelSummary | null>(null);
   const [activeSessions, setActiveSessions] = useState(1);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [handoffStatus, setHandoffStatus] = useState<string | null>(null);
@@ -494,6 +542,7 @@ export default function App() {
   const lastCursorWriteRef = useRef(0);
   const filterMeasureRef = useRef(0);
   const applyingRemoteCursorRef = useRef(false);
+  const gameplayFunnelFlagsRef = useRef<Record<string, boolean>>({});
 
   const textFilteredSteps = useMemo(() => {
     if (!trace) return [];
@@ -640,6 +689,27 @@ export default function App() {
       cancelled = true;
     };
   }, [gameplaySession?.guild.guild_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      const [observability, analytics] = await Promise.all([
+        fetchGameplayObservabilitySummary(),
+        fetchGameplayAnalyticsFunnels(),
+      ]);
+      if (cancelled) return;
+      if (observability) setGameplayObservability(observability);
+      if (analytics) setGameplayAnalytics(analytics);
+    };
+    void refresh();
+    const interval = window.setInterval(() => {
+      void refresh();
+    }, 30000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     setTraceQueryResult(null);
@@ -863,6 +933,15 @@ export default function App() {
       return next;
     });
   }, []);
+
+  const emitGameplayFunnelOnce = useCallback(
+    (key: string, name: Parameters<typeof recordGameplayFunnelEvent>[0], metadata: Record<string, unknown>) => {
+      if (gameplayFunnelFlagsRef.current[key]) return;
+      gameplayFunnelFlagsRef.current[key] = true;
+      recordGameplayFunnelEvent(name, metadata);
+    },
+    []
+  );
 
   const handleReplay = useCallback(
     async (stepId: string) => {
@@ -1901,6 +1980,24 @@ export default function App() {
   }, [storyState?.active, trace, storyTraceId, stopStory]);
 
   useEffect(() => {
+    if (introDismissed || skipIntro) return;
+    emitGameplayFunnelOnce(
+      `tutorial_start:${trace?.id || gameplayTraceId || gameplayState.seed}`,
+      'funnel.tutorial_start',
+      { traceId: trace?.id || gameplayTraceId || 'unknown', persona: introPersona, launchPath }
+    );
+  }, [
+    emitGameplayFunnelOnce,
+    gameplayState.seed,
+    gameplayTraceId,
+    introDismissed,
+    introPersona,
+    launchPath,
+    skipIntro,
+    trace?.id,
+  ]);
+
+  useEffect(() => {
     if (playheadMs > 0) {
       setMissionProgress((prev) => (prev.playback ? prev : { ...prev, playback: true }));
     }
@@ -1926,6 +2023,40 @@ export default function App() {
       setMissionProgress((prev) => (prev.collaborate ? prev : { ...prev, collaborate: true }));
     }
   }, [activeSessions, setMissionProgress]);
+
+  useEffect(() => {
+    emitGameplayFunnelOnce(
+      `session_start:${gameplayTraceId || gameplayState.seed}`,
+      'funnel.session_start',
+      { traceId: gameplayTraceId || trace?.id || 'unknown', seed: gameplayState.seed }
+    );
+  }, [emitGameplayFunnelOnce, gameplayState.seed, gameplayTraceId, trace?.id]);
+
+  useEffect(() => {
+    const objectiveProgressed = gameplayState.raid.objectives.some((objective) => objective.progress > 0);
+    if (!objectiveProgressed) return;
+    emitGameplayFunnelOnce(
+      `objective_progress:${gameplayTraceId || gameplayState.seed}`,
+      'funnel.first_objective_progress',
+      { traceId: gameplayTraceId || trace?.id || 'unknown' }
+    );
+  }, [emitGameplayFunnelOnce, gameplayState.raid.objectives, gameplayState.seed, gameplayTraceId, trace?.id]);
+
+  useEffect(() => {
+    if (gameplayState.outcome.status === 'in_progress') return;
+    emitGameplayFunnelOnce(
+      `first_outcome:${gameplayTraceId || gameplayState.seed}`,
+      'funnel.first_mission_outcome',
+      { status: gameplayState.outcome.status, reason: gameplayState.outcome.reason }
+    );
+    if (gameplayState.outcome.status === 'win' || gameplayState.outcome.status === 'loss') {
+      emitGameplayFunnelOnce(
+        `run_outcome:${gameplayTraceId || gameplayState.seed}`,
+        'funnel.run_outcome',
+        { status: gameplayState.outcome.status, reason: gameplayState.outcome.reason }
+      );
+    }
+  }, [emitGameplayFunnelOnce, gameplayState.outcome.reason, gameplayState.outcome.status, gameplayState.seed, gameplayTraceId]);
 
   useEffect(() => {
     if (!syncPlayback || isPlaying || applyingRemoteCursorRef.current) return;
@@ -2336,6 +2467,40 @@ export default function App() {
     ]
   );
 
+  const handleIntroSkip = useCallback(() => {
+    emitGameplayFunnelOnce(
+      `tutorial_skip:intro:${trace?.id || gameplayTraceId || gameplayState.seed}`,
+      'funnel.tutorial_skip',
+      { traceId: trace?.id || gameplayTraceId || 'unknown', source: 'intro_overlay' }
+    );
+    setIntroDismissed(true);
+  }, [emitGameplayFunnelOnce, gameplayState.seed, gameplayTraceId, setIntroDismissed, trace?.id]);
+
+  const handleStartIntroTour = useCallback(() => {
+    setIntroDismissed(true);
+    setTourOpen(true);
+  }, [setIntroDismissed, setTourOpen]);
+
+  const handleGuidedTourClose = useCallback(() => {
+    emitGameplayFunnelOnce(
+      `tutorial_skip:tour:${trace?.id || gameplayTraceId || gameplayState.seed}`,
+      'funnel.tutorial_skip',
+      { traceId: trace?.id || gameplayTraceId || 'unknown', source: 'guided_tour' }
+    );
+    setTourOpen(false);
+    setTourCompleted(true);
+  }, [emitGameplayFunnelOnce, gameplayState.seed, gameplayTraceId, setTourCompleted, trace?.id]);
+
+  const handleGuidedTourComplete = useCallback(() => {
+    emitGameplayFunnelOnce(
+      `tutorial_complete:${trace?.id || gameplayTraceId || gameplayState.seed}`,
+      'funnel.tutorial_complete',
+      { traceId: trace?.id || gameplayTraceId || 'unknown' }
+    );
+    setTourOpen(false);
+    setTourCompleted(true);
+  }, [emitGameplayFunnelOnce, gameplayState.seed, gameplayTraceId, setTourCompleted, trace?.id]);
+
   if (loading) {
     return <div className="loading">Loading trace...</div>;
   }
@@ -2407,11 +2572,8 @@ export default function App() {
       />
       {!introDismissed && !skipIntro ? (
         <IntroOverlay
-          onComplete={() => setIntroDismissed(true)}
-          onStartTour={() => {
-            setIntroDismissed(true);
-            setTourOpen(true);
-          }}
+          onComplete={handleIntroSkip}
+          onStartTour={handleStartIntroTour}
           onStartStory={startStory}
           persona={introPersona}
           onPersonaChange={setIntroPersona}
@@ -2439,14 +2601,8 @@ export default function App() {
       <GuidedTour
         steps={tourSteps}
         open={tourOpen}
-        onClose={() => {
-          setTourOpen(false);
-          setTourCompleted(true);
-        }}
-        onComplete={() => {
-          setTourOpen(false);
-          setTourCompleted(true);
-        }}
+        onClose={handleGuidedTourClose}
+        onComplete={handleGuidedTourComplete}
       />
       <ContextHelpOverlay enabled={explainMode} />
       <StoryModeBanner
@@ -2833,6 +2989,8 @@ export default function App() {
                   onJoinGuild={handleJoinGameplayGuild}
                   onScheduleGuildEvent={handleScheduleGameplayGuildEvent}
                   onCompleteGuildEvent={handleCompleteGameplayGuildEvent}
+                  observability={gameplayObservability}
+                  analytics={gameplayAnalytics}
                 />
               ) : null}
             </Suspense>

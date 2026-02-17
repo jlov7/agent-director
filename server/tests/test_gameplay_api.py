@@ -178,7 +178,11 @@ class TestGameplayApi(unittest.TestCase):
             ("guild.op", {"impact": 6}),
             ("cinematic.emit", {"event_type": "critical", "message": "Boss phase shift", "intensity": 3}),
             ("liveops.progress", {"delta": 1}),
+            ("liveops.balance", {"difficulty_factor": 1.2, "reward_multiplier": 1.35, "note": "ops tune"}),
             ("liveops.advance_week", {}),
+            ("safety.mute", {"target_player_id": "griefer-1"}),
+            ("safety.block", {"target_player_id": "griefer-2"}),
+            ("safety.report", {"target_player_id": "griefer-2", "reason": "abusive behavior"}),
         ]
 
         current_version = join_data["session"]["version"]
@@ -212,6 +216,10 @@ class TestGameplayApi(unittest.TestCase):
         self.assertGreater(session["guild"]["operations_score"], 0)
         self.assertGreater(len(session["cinematic"]["events"]), 0)
         self.assertGreaterEqual(session["liveops"]["week"], 2)
+        self.assertGreaterEqual(len(session["liveops"]["tuning_history"]), 1)
+        self.assertIn("griefer-1", session["safety"]["muted_player_ids"])
+        self.assertIn("griefer-2", session["safety"]["blocked_player_ids"])
+        self.assertEqual(session["safety"]["reports"][0]["target_player_id"], "griefer-2")
 
     def test_guild_and_liveops_endpoints(self) -> None:
         status, data = self._request(
@@ -245,10 +253,20 @@ class TestGameplayApi(unittest.TestCase):
         status, data = self._request("GET", "/api/gameplay/liveops/current")
         self.assertEqual(status, 200)
         self.assertIn("season", data["liveops"])
+        self.assertIn("rewardMultiplier", data["liveops"]["telemetry"])
 
         status, data = self._request("POST", "/api/gameplay/liveops/advance-week", {})
         self.assertEqual(status, 200)
         self.assertGreaterEqual(data["liveops"]["week"], 2)
+
+        status, data = self._request("GET", "/api/gameplay/observability/summary")
+        self.assertEqual(status, 200)
+        self.assertIn("metrics", data["observability"])
+
+        status, data = self._request("GET", "/api/gameplay/analytics/funnels")
+        self.assertEqual(status, 200)
+        self.assertIn("funnels", data["analytics"])
+        self.assertIn("retention", data["analytics"])
 
     def test_gameplay_stream_emits_session_snapshot(self) -> None:
         status, data = self._request(

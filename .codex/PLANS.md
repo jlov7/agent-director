@@ -13,8 +13,8 @@ Ship Agent Director at a true public-launch quality bar: durable gameplay, opera
 
 - [x] Initialize exhaustive tracker and task IDs (`WORLD_CLASS_RELEASE_TODO.md`)
 - [x] Sync launcher section in `TASKS.md`
-- [ ] Batch A (WR-031, WR-036, WR-038, WR-039, WR-018)
-- [ ] Batch B (WR-001, WR-002, WR-003, WR-004, WR-018, WR-029, WR-030)
+- [x] Batch A (WR-031, WR-036, WR-038, WR-039, WR-018)
+- [x] Batch B (WR-029, WR-030)
 - [ ] Batch C (remaining WR items)
 - [ ] Final verification and release evidence refresh
 
@@ -44,7 +44,10 @@ Batch A update:
 - Completed WR-036 (terms/privacy docs and doc navigation wiring).
 - Completed WR-038 (release safety canary/rollback runbook).
 - Completed WR-039 (support operations runbook and user-facing help section).
-- Advanced WR-018 with in-app safety controls (report/mute/block) in Gameplay Mode.
+- Completed WR-018 with in-app safety controls, multiplayer-safe safety actions, and persisted reports.
+- Completed WR-031 with operator live-balancing controls, tuning history, and backend support for balance actions.
+- Completed WR-001 through WR-004 with a documented core loop, explicit run outcomes, deterministic difficulty ramp, and tutorial funnel telemetry.
+- Completed WR-029 and WR-030 with observability/analytics snapshots, alerting thresholds, funnel dashboards, and retention reporting.
 
 # World-Class UX Program ExecPlan
 

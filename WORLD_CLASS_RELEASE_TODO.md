@@ -16,10 +16,10 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 
 | ID | Status | Track | Requirement | Definition of Done |
 |---|---|---|---|---|
-| WR-001 | todo | Core Loop | Lock v1 core loop and target session length | Single documented loop used in gameplay UI + docs + telemetry funnel names |
-| WR-002 | todo | Core Loop | Explicit mission outcomes (win/loss/partial) | Outcome model wired through gameplay state, UI, and persistence |
-| WR-003 | todo | Difficulty | Difficulty ramp table | Difficulty bands with deterministic tuning config and tests |
-| WR-004 | todo | Onboarding | Full first-session tutorial | Guided, skippable, replayable tutorial with completion telemetry |
+| WR-001 | done | Core Loop | Lock v1 core loop and target session length | Single documented loop used in gameplay UI + docs + telemetry funnel names |
+| WR-002 | done | Core Loop | Explicit mission outcomes (win/loss/partial) | Outcome model wired through gameplay state, UI, and persistence |
+| WR-003 | done | Difficulty | Difficulty ramp table | Difficulty bands with deterministic tuning config and tests |
+| WR-004 | done | Onboarding | Full first-session tutorial | Guided, skippable, replayable tutorial with completion telemetry |
 | WR-005 | todo | Onboarding | Sandbox mode | Separate low-risk mode with no progression penalties |
 | WR-006 | todo | Progression | Persistent XP and milestone system | XP accrual + leveling + rewards + save/load contracts |
 | WR-007 | todo | Progression | Skill tree/loadout balancing | Costs, unlock paths, and slot constraints tuned and validated |
@@ -33,7 +33,7 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 | WR-015 | todo | Multiplayer | Team comms UX | Quick ping/intents for coordinated runs |
 | WR-016 | todo | Social | Guild progression depth | Shared goals, team scoreboards, and seasonal guild rewards |
 | WR-017 | todo | Social | Friends + invites | Friend graph, invite flow, recent teammate UX |
-| WR-018 | in_progress | Safety | Reporting/mute/block tooling | In-app controls with persistence, reason capture, and moderation surface |
+| WR-018 | done | Safety | Reporting/mute/block tooling | In-app controls with persistence, reason capture, and moderation surface |
 | WR-019 | todo | Security | Authoritative anti-cheat hardening | Server trust boundary documented + validation checks enforced |
 | WR-020 | todo | Reliability | Replay/state integrity controls | Replay determinism checks + corruption recovery path |
 | WR-021 | todo | Feel | Game-feel pass | UX motion/audio/feedback pass with meaningful interaction clarity |
@@ -44,9 +44,9 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 | WR-026 | todo | Performance | Low-end performance hardening | Budget targets and no UX degradation at large trace/mission sizes |
 | WR-027 | todo | Resilience | Async/retry/offline UX | Retry states, recovery states, and conflict-safe messaging |
 | WR-028 | todo | QA | CI determinism and flake elimination | Stable CI pipeline with no recurring nondeterministic failures |
-| WR-029 | todo | Observability | Runtime observability stack | Error tracking, latency dashboards, and actionable alerts |
-| WR-030 | todo | Analytics | Product telemetry + funnels | D1/D7/D30 funnels and progression drop-off dashboards |
-| WR-031 | in_progress | LiveOps | Live balancing tooling | Operator-facing tuning controls + audit history |
+| WR-029 | done | Observability | Runtime observability stack | Error tracking, latency dashboards, and actionable alerts |
+| WR-030 | done | Analytics | Product telemetry + funnels | D1/D7/D30 funnels and progression drop-off dashboards |
+| WR-031 | done | LiveOps | Live balancing tooling | Operator-facing tuning controls + audit history |
 | WR-032 | todo | Content Ops | Mission/event authoring tools | Internal content workflow for creating and validating missions |
 | WR-033 | todo | UGC | Scenario sharing/discovery | Share/import/discover with safe defaults and moderation guardrails |
 | WR-034 | todo | Sharing | Replay export polish | High-fidelity share assets and robust replay artifact exports |
@@ -69,9 +69,7 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 
 ### Batch B
 
-- WR-001 through WR-004
-- WR-018
-- WR-029 and WR-030
+- Completed: WR-029 and WR-030
 
 ### Batch C
 
@@ -85,3 +83,6 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 - 2026-02-17: Initialized exhaustive world-class release TODO and moved WR-031/036/038/039 to `in_progress`.
 - 2026-02-17: Completed WR-036, WR-038, and WR-039 with new legal/ops docs and public navigation links.
 - 2026-02-17: Moved WR-018 to `in_progress` after shipping in-app report/mute/block controls and safety state tracking.
+- 2026-02-17: Completed WR-018 and WR-031 with multiplayer-safe safety actions, live balancing controls, and operator tuning history.
+- 2026-02-17: Completed WR-001 through WR-004 by shipping a documented v1 core loop, explicit outcome state, deterministic difficulty ramp bands, and tutorial telemetry funnels.
+- 2026-02-17: Completed WR-029 and WR-030 with backend observability/analytics endpoints, gameplay dashboards, funnel drop-off + D1/D7/D30 retention reporting, and alert thresholds.

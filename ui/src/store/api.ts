@@ -1,6 +1,8 @@
 import type {
   ExtensionDefinition,
   GameplayGuild,
+  GameplayAnalyticsFunnelSummary,
+  GameplayObservabilitySummary,
   GameplayLiveOps,
   GameplayProfile,
   GameplaySession,
@@ -804,6 +806,22 @@ export async function advanceGameplayLiveOpsWeek(): Promise<GameplayLiveOps | nu
   if (FORCE_DEMO) return null;
   const payload = await safePostJson<{ liveops: GameplayLiveOps }>(`${API_BASE}/api/gameplay/liveops/advance-week`, {});
   return payload?.liveops ?? null;
+}
+
+export async function fetchGameplayObservabilitySummary(): Promise<GameplayObservabilitySummary | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safeFetchJson<{ observability: GameplayObservabilitySummary }>(
+    `${API_BASE}/api/gameplay/observability/summary`
+  );
+  return payload?.observability ?? null;
+}
+
+export async function fetchGameplayAnalyticsFunnels(): Promise<GameplayAnalyticsFunnelSummary | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safeFetchJson<{ analytics: GameplayAnalyticsFunnelSummary }>(
+    `${API_BASE}/api/gameplay/analytics/funnels`
+  );
+  return payload?.analytics ?? null;
 }
 
 export function subscribeToGameplaySession(

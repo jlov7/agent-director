@@ -3,6 +3,7 @@ export type PvPAction = 'sabotage' | 'stabilize' | 'scan';
 export type BossAction = 'strike' | 'shield' | 'exploit';
 export type CraftRecipeId = 'stability_patch' | 'precision_lens' | 'overclock_core';
 export type CinematicEventType = 'critical' | 'success' | 'warning' | 'twist';
+export type GameplayOutcomeStatus = 'in_progress' | 'win' | 'loss' | 'partial';
 
 export type RaidObjective = {
   id: string;
@@ -143,10 +144,21 @@ export type LiveOpsChallenge = {
   completed: boolean;
 };
 
+export type LiveOpsTuningEntry = {
+  id: string;
+  changedAt: number;
+  difficultyFactor: number;
+  rewardMultiplier: number;
+  note: string;
+};
+
 export type LiveOpsState = {
   season: string;
   week: number;
   challenge: LiveOpsChallenge;
+  difficultyFactor: number;
+  rewardMultiplier: number;
+  tuningHistory: LiveOpsTuningEntry[];
 };
 
 export type SafetyReport = {
@@ -161,6 +173,25 @@ export type SafetyState = {
   blockedPlayerIds: string[];
   reports: SafetyReport[];
 };
+
+export type OutcomeState = {
+  status: GameplayOutcomeStatus;
+  reason: string;
+  updatedAt: number;
+};
+
+export const DIFFICULTY_RAMP_TABLE: Array<{ minDepth: number; maxDepth: number; difficulty: number }> = [
+  { minDepth: 1, maxDepth: 1, difficulty: 1 },
+  { minDepth: 2, maxDepth: 3, difficulty: 2 },
+  { minDepth: 4, maxDepth: 5, difficulty: 3 },
+  { minDepth: 6, maxDepth: 7, difficulty: 4 },
+  { minDepth: 8, maxDepth: 9, difficulty: 5 },
+  { minDepth: 10, maxDepth: 12, difficulty: 6 },
+  { minDepth: 13, maxDepth: 16, difficulty: 7 },
+  { minDepth: 17, maxDepth: 20, difficulty: 8 },
+  { minDepth: 21, maxDepth: 24, difficulty: 9 },
+  { minDepth: 25, maxDepth: Number.MAX_SAFE_INTEGER, difficulty: 10 },
+];
 
 export type GameplayState = {
   seed: number;
@@ -177,6 +208,7 @@ export type GameplayState = {
   cinematic: CinematicState;
   liveops: LiveOpsState;
   safety: SafetyState;
+  outcome: OutcomeState;
 };
 
 const HAZARD_POOL = [
@@ -218,10 +250,17 @@ function missionFromDepth(seed: number, depth: number, mutators: string[]): Camp
   return {
     id: `mission-${depth}-${(seed + depth) % 997}`,
     title: `Scenario Depth ${depth}`,
-    difficulty: clamp(1 + Math.floor(depth / 2), 1, 10),
+    difficulty: difficultyForDepth(depth),
     hazards: [hazardA, hazardB, ...mutators.slice(-1)],
     rewardCredits: 60 + depth * 15,
   };
+}
+
+export function difficultyForDepth(depth: number): number {
+  const normalized = Math.max(1, Math.floor(depth));
+  return (
+    DIFFICULTY_RAMP_TABLE.find((band) => normalized >= band.minDepth && normalized <= band.maxDepth)?.difficulty ?? 10
+  );
 }
 
 function buildNarrativeNodes(): NarrativeNode[] {
@@ -401,11 +440,19 @@ export function createInitialGameplayState(seedSource: string): GameplayState {
       season: `Season-${2026 + (seed % 2)}`,
       week: 1,
       challenge: challengeForWeek(seed, 1),
+      difficultyFactor: 1,
+      rewardMultiplier: 1,
+      tuningHistory: [],
     },
     safety: {
       mutedPlayerIds: [],
       blockedPlayerIds: [],
       reports: [],
+    },
+    outcome: {
+      status: 'in_progress',
+      reason: 'Run started. Complete missions and stabilize the incident.',
+      updatedAt: Date.now(),
     },
   };
 }
@@ -424,6 +471,7 @@ export function joinRaid(state: GameplayState, member: string, role: RaidRole): 
 }
 
 export function advanceRaidObjective(state: GameplayState, objectiveId: string, delta: number): GameplayState {
+  const currentOutcome = readOutcomeState(state);
   const objectives = state.raid.objectives.map((objective) => {
     if (objective.id !== objectiveId) return objective;
     const progress = clamp(objective.progress + delta, 0, objective.target);
@@ -446,6 +494,14 @@ export function advanceRaidObjective(state: GameplayState, objectiveId: string, 
       ...state.economy,
       credits: state.economy.credits + completionReward,
     },
+    outcome:
+      completed && !state.raid.completed
+        ? {
+            status: 'partial',
+            reason: 'Raid objectives completed. Push campaign and boss tracks to close the run.',
+            updatedAt: Date.now(),
+          }
+        : currentOutcome,
   };
 }
 
@@ -454,6 +510,18 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
   if (success) {
     const depth = state.campaign.depth + 1;
     const withMission = withCampaignMission(state, depth, state.campaign.mutators);
+    const outcome: OutcomeState =
+      depth >= 5
+        ? {
+            status: 'win',
+            reason: 'Campaign depth target reached. Incident run is stabilized.',
+            updatedAt: Date.now(),
+          }
+        : {
+            status: 'partial',
+            reason: `Mission ${current.id} cleared. Advance deeper to secure the run.`,
+            updatedAt: Date.now(),
+          };
     return {
       ...withMission,
       campaign: {
@@ -469,11 +537,24 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
         ...withMission.director,
         lastOutcome: 'success',
       },
+      outcome,
     };
   }
 
   const lives = clamp(state.campaign.lives - 1, 0, 3);
   const withMission = withCampaignMission(state, state.campaign.depth, applyMissionMutator(state.campaign.mutators, 'failure-loop'));
+  const outcome: OutcomeState =
+    lives <= 0
+      ? {
+          status: 'loss',
+          reason: 'No campaign lives remaining. Incident run failed.',
+          updatedAt: Date.now(),
+        }
+      : {
+          status: 'partial',
+          reason: `Mission failed. ${lives} campaign lives remaining.`,
+          updatedAt: Date.now(),
+        };
   return {
     ...withMission,
     campaign: {
@@ -484,6 +565,7 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
       ...withMission.director,
       lastOutcome: 'failure',
     },
+    outcome,
   };
 }
 
@@ -540,6 +622,7 @@ export function equipLoadoutSkill(state: GameplayState, nodeId: string): Gamepla
 }
 
 export function runPvPRound(state: GameplayState, action: PvPAction): GameplayState {
+  const currentOutcome = readOutcomeState(state);
   const next = { ...state.pvp };
   if (action === 'sabotage') {
     next.sabotage = clamp(next.sabotage + 13, 0, 100);
@@ -558,7 +641,21 @@ export function runPvPRound(state: GameplayState, action: PvPAction): GameplaySt
   if (next.stability <= 0) next.winner = 'saboteur';
   else if (next.sabotage <= 0) next.winner = 'operator';
   else if (next.round >= 10) next.winner = next.stability >= next.sabotage ? 'operator' : 'saboteur';
-  return { ...state, pvp: next };
+  const outcome: OutcomeState =
+    next.winner === 'operator'
+      ? {
+          status: 'win',
+          reason: 'Operator side prevailed in the sabotage conflict.',
+          updatedAt: Date.now(),
+        }
+      : next.winner === 'saboteur'
+        ? {
+            status: 'loss',
+            reason: 'Saboteur pressure overwhelmed system stability.',
+            updatedAt: Date.now(),
+          }
+        : currentOutcome;
+  return { ...state, pvp: next, outcome };
 }
 
 export function createTimeFork(state: GameplayState, label: string, playheadMs: number): GameplayState {
@@ -619,6 +716,7 @@ export function mergeForkIntoPrimary(state: GameplayState, forkId: string): Game
 }
 
 export function applyBossAction(state: GameplayState, action: BossAction): GameplayState {
+  const currentOutcome = readOutcomeState(state);
   const damage = action === 'exploit' ? 42 : action === 'strike' ? 24 : 8;
   const hp = clamp(state.boss.hp - damage, 0, state.boss.maxHp);
   const ratio = hp / state.boss.maxHp;
@@ -631,6 +729,14 @@ export function applyBossAction(state: GameplayState, action: BossAction): Gamep
       phase,
       enraged: phase === 3 || hp <= state.boss.maxHp * 0.2,
     },
+    outcome:
+      hp <= 0
+        ? {
+            status: 'win',
+            reason: 'Boss encounter cleared. Run secured.',
+            updatedAt: Date.now(),
+          }
+        : currentOutcome,
   };
 }
 
@@ -747,15 +853,76 @@ export function pushCinematicEvent(
 }
 
 export function advanceLiveOpsWeek(state: GameplayState): GameplayState {
-  const week = state.liveops.week + 1;
-  const challenge = challengeForWeek(state.seed, week);
+  const liveops = readLiveOpsState(state);
+  const week = liveops.week + 1;
+  const challengeSeed = challengeForWeek(state.seed, week);
+  const difficultyFactor = clamp(liveops.difficultyFactor ?? 1, 0.6, 1.6);
+  const rewardMultiplier = clamp(liveops.rewardMultiplier ?? 1, 0.5, 2);
+  const challenge = {
+    ...challengeSeed,
+    goal: Math.max(1, Math.round(challengeSeed.goal * difficultyFactor)),
+    rewardCredits: Math.max(1, Math.round(challengeSeed.rewardCredits * rewardMultiplier)),
+  };
   return {
     ...state,
     liveops: {
-      ...state.liveops,
+      ...liveops,
       week,
       challenge,
     },
+  };
+}
+
+export function applyLiveOpsBalancing(
+  state: GameplayState,
+  inputs: { difficultyFactor: number; rewardMultiplier: number; note: string }
+): GameplayState {
+  const liveops = readLiveOpsState(state);
+  const nextDifficulty = clamp(inputs.difficultyFactor, 0.6, 1.6);
+  const nextReward = clamp(inputs.rewardMultiplier, 0.5, 2);
+  const currentDifficulty = liveops.difficultyFactor || 1;
+  const currentReward = liveops.rewardMultiplier || 1;
+  const note = inputs.note.trim() || 'Operator tuning update';
+  const tunedChallenge: LiveOpsChallenge = {
+    ...liveops.challenge,
+    goal: Math.max(1, Math.round((liveops.challenge.goal / currentDifficulty) * nextDifficulty)),
+    rewardCredits: Math.max(1, Math.round((liveops.challenge.rewardCredits / currentReward) * nextReward)),
+  };
+  const tuningEntry: LiveOpsTuningEntry = {
+    id: `tuning-${liveops.tuningHistory.length + 1}-${state.seed % 1000}`,
+    changedAt: Date.now(),
+    difficultyFactor: nextDifficulty,
+    rewardMultiplier: nextReward,
+    note,
+  };
+  return {
+    ...state,
+    liveops: {
+      ...liveops,
+      challenge: tunedChallenge,
+      difficultyFactor: nextDifficulty,
+      rewardMultiplier: nextReward,
+      tuningHistory: [tuningEntry, ...liveops.tuningHistory].slice(0, 20),
+    },
+  };
+}
+
+function readLiveOpsState(state: GameplayState): LiveOpsState {
+  return {
+    season: state.liveops?.season ?? 'Season-2026',
+    week: state.liveops?.week ?? 1,
+    challenge:
+      state.liveops?.challenge ?? {
+        id: 'fallback-liveops',
+        title: 'Complete one objective',
+        goal: 1,
+        progress: 0,
+        rewardCredits: 100,
+        completed: false,
+      },
+    difficultyFactor: state.liveops?.difficultyFactor ?? 1,
+    rewardMultiplier: state.liveops?.rewardMultiplier ?? 1,
+    tuningHistory: state.liveops?.tuningHistory ?? [],
   };
 }
 
@@ -769,6 +936,16 @@ function readSafetyState(state: GameplayState): SafetyState {
       mutedPlayerIds: [],
       blockedPlayerIds: [],
       reports: [],
+    }
+  );
+}
+
+function readOutcomeState(state: GameplayState): OutcomeState {
+  return (
+    state.outcome ?? {
+      status: 'in_progress',
+      reason: 'Run in progress.',
+      updatedAt: Date.now(),
     }
   );
 }

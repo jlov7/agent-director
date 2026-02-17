@@ -366,6 +366,14 @@ export interface GameplaySession {
     season: string;
     seed: number;
     week: number;
+    tuning_history?: Array<{
+      id: string;
+      changed_at: string;
+      difficultyFactor: number;
+      rewardMultiplier: number;
+      note: string;
+      actor_player_id?: string;
+    }>;
     challenge: {
       id: string;
       title: string;
@@ -380,7 +388,19 @@ export interface GameplaySession {
       actionsApplied: number;
       challengeCompletions: number;
       difficultyFactor: number;
+      rewardMultiplier?: number;
     };
+  };
+  safety?: {
+    muted_player_ids: string[];
+    blocked_player_ids: string[];
+    reports: Array<{
+      id: string;
+      target_player_id: string;
+      reason: string;
+      created_at: string;
+      reporter_player_id?: string;
+    }>;
   };
   telemetry: {
     actions: number;
@@ -415,6 +435,14 @@ export interface GameplayLiveOps {
   season: string;
   seed: number;
   week: number;
+  tuning_history?: Array<{
+    id: string;
+    changed_at: string;
+    difficultyFactor: number;
+    rewardMultiplier: number;
+    note: string;
+    actor_player_id?: string;
+  }>;
   challenge: {
     id: string;
     title: string;
@@ -429,5 +457,48 @@ export interface GameplayLiveOps {
     actionsApplied: number;
     challengeCompletions: number;
     difficultyFactor: number;
+    rewardMultiplier?: number;
+  };
+}
+
+export interface GameplayObservabilitySummary {
+  generated_at: string;
+  metrics: {
+    total_sessions: number;
+    running_sessions: number;
+    avg_latency_ms: number;
+    p95_latency_ms: number;
+    failure_rate_pct: number;
+    challenge_completion_rate_pct: number;
+  };
+  alerts: Array<{
+    id: string;
+    severity: 'high' | 'medium' | 'low';
+    message: string;
+    metric: string;
+    threshold: number;
+    value: number;
+  }>;
+}
+
+export interface GameplayAnalyticsFunnelSummary {
+  generated_at: string;
+  funnels: {
+    session_start: number;
+    first_objective_progress: number;
+    first_mission_outcome: number;
+    run_outcome: number;
+    win_outcome: number;
+  };
+  dropoff: {
+    objective_dropoff: number;
+    outcome_dropoff: number;
+    resolution_dropoff: number;
+  };
+  retention: {
+    cohort_size: number;
+    d1_pct: number;
+    d7_pct: number;
+    d30_pct: number;
   };
 }

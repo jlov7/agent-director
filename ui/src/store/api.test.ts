@@ -35,6 +35,8 @@ import {
   getGameplaySession,
   joinGameplaySession,
   applyGameplayAction,
+  fetchGameplayObservabilitySummary,
+  fetchGameplayAnalyticsFunnels,
   fetchGameplayLiveOps,
   advanceGameplayLiveOpsWeek,
   subscribeToGameplaySession,
@@ -981,6 +983,61 @@ describe('API Layer', () => {
       const next = await advanceGameplayLiveOpsWeek();
       expect(current?.week).toBe(1);
       expect(next?.week).toBe(2);
+    });
+
+    it('loads gameplay observability summary', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          observability: {
+            generated_at: '2026-02-17T00:00:00Z',
+            metrics: {
+              total_sessions: 4,
+              running_sessions: 1,
+              avg_latency_ms: 980,
+              p95_latency_ms: 1400,
+              failure_rate_pct: 4.2,
+              challenge_completion_rate_pct: 42,
+            },
+            alerts: [],
+          },
+        }),
+      });
+      const summary = await fetchGameplayObservabilitySummary();
+      expect(summary?.metrics.total_sessions).toBe(4);
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/gameplay/observability/summary'));
+    });
+
+    it('loads gameplay funnel analytics summary', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          analytics: {
+            generated_at: '2026-02-17T00:00:00Z',
+            funnels: {
+              session_start: 4,
+              first_objective_progress: 3,
+              first_mission_outcome: 2,
+              run_outcome: 1,
+              win_outcome: 1,
+            },
+            dropoff: {
+              objective_dropoff: 1,
+              outcome_dropoff: 1,
+              resolution_dropoff: 1,
+            },
+            retention: {
+              cohort_size: 3,
+              d1_pct: 66.67,
+              d7_pct: 33.33,
+              d30_pct: 0,
+            },
+          },
+        }),
+      });
+      const summary = await fetchGameplayAnalyticsFunnels();
+      expect(summary?.funnels.session_start).toBe(4);
+      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/gameplay/analytics/funnels'));
     });
   });
 

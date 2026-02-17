@@ -14,6 +14,7 @@ describe('GameplayMode', () => {
     render(<Harness />);
     expect(screen.getByText('Gameplay Command Center')).toBeInTheDocument();
     expect(screen.getByLabelText('Gameplay completion')).toBeInTheDocument();
+    expect(screen.getByText(/Core Loop \+ Outcomes/i)).toBeInTheDocument();
   });
 
   it('adds a raid member and advances campaign', () => {
@@ -30,5 +31,25 @@ describe('GameplayMode', () => {
     render(<Harness />);
     fireEvent.click(screen.getByRole('button', { name: 'Next week' }));
     expect(screen.getByText(/Week 2/i)).toBeInTheDocument();
+  });
+
+  it('applies liveops balancing and creates a tuning entry', () => {
+    render(<Harness />);
+    fireEvent.change(screen.getByLabelText('LiveOps difficulty factor'), { target: { value: '1.4' } });
+    fireEvent.change(screen.getByLabelText('LiveOps reward multiplier'), { target: { value: '1.6' } });
+    fireEvent.change(screen.getByLabelText('LiveOps tuning note'), { target: { value: 'Ops hotfix' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply balancing' }));
+    expect(screen.getByText(/Ops hotfix/i)).toBeInTheDocument();
+    expect(screen.getByText(/Difficulty x1\.40/i)).toBeInTheDocument();
+  });
+
+  it('tracks safety moderation actions', () => {
+    render(<Harness />);
+    fireEvent.change(screen.getByLabelText('Safety player id'), { target: { value: 'griefer-9' } });
+    fireEvent.change(screen.getByLabelText('Safety reason'), { target: { value: 'Abuse in chat' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Mute player' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Report player' }));
+    expect(screen.getByText(/Muted 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Abuse in chat/i)).toBeInTheDocument();
   });
 });

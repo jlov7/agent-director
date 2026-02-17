@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import math
 import random
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from queue import Queue
 from threading import Lock
@@ -20,11 +21,24 @@ def _clamp(value: int, minimum: int, maximum: int) -> int:
     return min(maximum, max(minimum, value))
 
 
+def _clamp_float(value: float, minimum: float, maximum: float) -> float:
+    return min(maximum, max(minimum, value))
+
+
 def _hash_seed(source: str) -> int:
     digest = 0
     for char in source:
         digest = (digest * 31 + ord(char)) % 100_000
     return digest
+
+
+def _parse_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 HAZARDS = [
@@ -119,6 +133,9 @@ class GameplayStore:
         loaded.setdefault("profiles", {})
         loaded.setdefault("guilds", {})
         loaded.setdefault("liveops", self._default_liveops(seed=2026, week=1))
+        self._normalize_liveops(loaded["liveops"])
+        for session in loaded["sessions"].values():
+            self._normalize_session(session, loaded["liveops"])
         return loaded
 
     def _save(self) -> None:
@@ -135,14 +152,44 @@ class GameplayStore:
             "seed": seed,
             "week": week,
             "challenge": challenge,
+            "tuning_history": [],
             "telemetry": {
                 "sessionsStarted": 0,
                 "sessionsCompleted": 0,
                 "actionsApplied": 0,
                 "challengeCompletions": 0,
                 "difficultyFactor": 1.0,
+                "rewardMultiplier": 1.0,
             },
         }
+
+    def _normalize_liveops(self, liveops: Dict[str, Any]) -> None:
+        default = self._default_liveops(seed=int(liveops.get("seed", 2026) or 2026), week=int(liveops.get("week", 1) or 1))
+        liveops.setdefault("season", default["season"])
+        liveops.setdefault("seed", default["seed"])
+        liveops.setdefault("week", default["week"])
+        liveops.setdefault("challenge", deepcopy(default["challenge"]))
+        liveops.setdefault("tuning_history", [])
+        telemetry = liveops.setdefault("telemetry", {})
+        telemetry.setdefault("sessionsStarted", 0)
+        telemetry.setdefault("sessionsCompleted", 0)
+        telemetry.setdefault("actionsApplied", 0)
+        telemetry.setdefault("challengeCompletions", 0)
+        telemetry.setdefault("difficultyFactor", 1.0)
+        telemetry.setdefault("rewardMultiplier", 1.0)
+
+    def _normalize_session(self, session: Dict[str, Any], fallback_liveops: Dict[str, Any] | None = None) -> None:
+        default_liveops = fallback_liveops or self._default_liveops(seed=int(session.get("seed", 2026) or 2026), week=1)
+        liveops = session.setdefault("liveops", deepcopy(default_liveops))
+        self._normalize_liveops(liveops)
+        session.setdefault(
+            "safety",
+            {
+                "muted_player_ids": [],
+                "blocked_player_ids": [],
+                "reports": [],
+            },
+        )
 
     def _mission(self, seed: int, depth: int, modifiers: list[str]) -> Dict[str, Any]:
         hazard_a = HAZARDS[(seed + depth) % len(HAZARDS)]
@@ -182,6 +229,7 @@ class GameplayStore:
 
     def _serialize_session(self, session: Dict[str, Any]) -> Dict[str, Any]:
         payload = deepcopy(session)
+        self._normalize_session(payload, self._state["liveops"])
         payload["economy"]["ledger_count"] = len(payload["economy"].get("ledger", []))
         return payload
 
@@ -312,6 +360,11 @@ class GameplayStore:
                     "camera_state": "wide",
                 },
                 "liveops": deepcopy(self._state["liveops"]),
+                "safety": {
+                    "muted_player_ids": [],
+                    "blocked_player_ids": [],
+                    "reports": [],
+                },
                 "telemetry": {
                     "actions": 0,
                     "successes": 0,
@@ -411,6 +464,7 @@ class GameplayStore:
             session = self._state["sessions"].get(session_id)
             if session is None:
                 raise FileNotFoundError(f"Gameplay session not found: {session_id}")
+            self._normalize_session(session, self._state["liveops"])
             if expected_version is not None and expected_version != session["version"]:
                 raise ConflictError("Session version mismatch")
             players = {entry["player_id"]: entry for entry in session["players"]}
@@ -704,13 +758,72 @@ class GameplayStore:
             elif action_type == "liveops.progress":
                 delta = _clamp(int(payload.get("delta") or 1), 0, 20)
                 challenge = session["liveops"]["challenge"]
+                was_completed = bool(challenge["completed"])
                 challenge["progress"] = _clamp(challenge["progress"] + delta, 0, challenge["goal"])
                 challenge["completed"] = challenge["progress"] >= challenge["goal"]
-                if challenge["completed"]:
+                if challenge["completed"] and not was_completed:
                     session["economy"]["tokens"] += challenge["reward"]
                     session["liveops"]["telemetry"]["challengeCompletions"] += 1
+            elif action_type == "liveops.balance":
+                liveops = session["liveops"]
+                telemetry = liveops["telemetry"]
+                current_difficulty = float(telemetry.get("difficultyFactor") or 1.0)
+                current_reward = float(telemetry.get("rewardMultiplier") or 1.0)
+                next_difficulty = _clamp_float(float(payload.get("difficulty_factor") or current_difficulty), 0.6, 1.6)
+                next_reward = _clamp_float(float(payload.get("reward_multiplier") or current_reward), 0.5, 2.0)
+                note = str(payload.get("note") or "").strip() or "Operator tuning update"
+                challenge = liveops["challenge"]
+                base_goal = challenge["goal"] / (current_difficulty or 1.0)
+                base_reward = challenge["reward"] / (current_reward or 1.0)
+                challenge["goal"] = max(1, int(round(base_goal * next_difficulty)))
+                challenge["reward"] = max(1, int(round(base_reward * next_reward)))
+                challenge["progress"] = _clamp(challenge["progress"], 0, challenge["goal"])
+                challenge["completed"] = challenge["progress"] >= challenge["goal"]
+                telemetry["difficultyFactor"] = round(next_difficulty, 2)
+                telemetry["rewardMultiplier"] = round(next_reward, 2)
+                tuning_entry = {
+                    "id": f"tuning-{uuid4().hex[:8]}",
+                    "changed_at": _utc_now(),
+                    "difficultyFactor": telemetry["difficultyFactor"],
+                    "rewardMultiplier": telemetry["rewardMultiplier"],
+                    "note": note,
+                    "actor_player_id": player_id,
+                }
+                liveops["tuning_history"] = [tuning_entry, *liveops.get("tuning_history", [])][:20]
             elif action_type == "liveops.advance_week":
                 self._advance_liveops_week_locked(session["liveops"])
+            elif action_type == "safety.mute":
+                target_player_id = str(payload.get("target_player_id") or "").strip().lower()
+                if not target_player_id:
+                    raise ValueError("target_player_id is required")
+                muted = session["safety"]["muted_player_ids"]
+                if target_player_id not in muted:
+                    muted.append(target_player_id)
+            elif action_type == "safety.block":
+                target_player_id = str(payload.get("target_player_id") or "").strip().lower()
+                if not target_player_id:
+                    raise ValueError("target_player_id is required")
+                blocked = session["safety"]["blocked_player_ids"]
+                muted = session["safety"]["muted_player_ids"]
+                if target_player_id not in blocked:
+                    blocked.append(target_player_id)
+                if target_player_id not in muted:
+                    muted.append(target_player_id)
+            elif action_type == "safety.report":
+                target_player_id = str(payload.get("target_player_id") or "").strip().lower()
+                reason = str(payload.get("reason") or "").strip()
+                if not target_player_id:
+                    raise ValueError("target_player_id is required")
+                if not reason:
+                    raise ValueError("reason is required")
+                report = {
+                    "id": f"report-{uuid4().hex[:8]}",
+                    "target_player_id": target_player_id,
+                    "reason": reason,
+                    "created_at": _utc_now(),
+                    "reporter_player_id": player_id,
+                }
+                session["safety"]["reports"] = [report, *session["safety"]["reports"]][:100]
             else:
                 raise ValueError(f"Unknown action type: {action_type}")
 
@@ -727,16 +840,20 @@ class GameplayStore:
         return public
 
     def _advance_liveops_week_locked(self, liveops: Dict[str, Any]) -> None:
+        self._normalize_liveops(liveops)
         telemetry = liveops["telemetry"]
         sessions_started = max(1, int(telemetry.get("sessionsStarted", 0)))
         completions = int(telemetry.get("challengeCompletions", 0))
         completion_rate = completions / sessions_started
         telemetry["difficultyFactor"] = round(_clamp(int((1.0 + (0.5 - completion_rate)) * 100), 60, 140) / 100, 2)
+        reward_multiplier = _clamp_float(float(telemetry.get("rewardMultiplier") or 1.0), 0.5, 2.0)
+        telemetry["rewardMultiplier"] = round(reward_multiplier, 2)
         liveops["week"] = int(liveops["week"]) + 1
         challenge = deepcopy(
             LIVEOPS_CATALOG[(int(liveops["seed"]) + int(liveops["week"])) % len(LIVEOPS_CATALOG)]
         )
         challenge["goal"] = max(1, int(round(challenge["goal"] * telemetry["difficultyFactor"])))
+        challenge["reward"] = max(1, int(round(challenge["reward"] * telemetry["rewardMultiplier"])))
         challenge["progress"] = 0
         challenge["completed"] = False
         liveops["challenge"] = challenge
@@ -750,6 +867,153 @@ class GameplayStore:
             self._advance_liveops_week_locked(self._state["liveops"])
             self._save()
             return deepcopy(self._state["liveops"])
+
+    def observability_snapshot(self) -> Dict[str, Any]:
+        with self._lock:
+            sessions = list(self._state["sessions"].values())
+            latencies = sorted(
+                int(session.get("telemetry", {}).get("avg_latency_ms") or 0)
+                for session in sessions
+                if int(session.get("telemetry", {}).get("avg_latency_ms") or 0) > 0
+            )
+            p95_latency = 0
+            if latencies:
+                p95_index = max(0, math.ceil(len(latencies) * 0.95) - 1)
+                p95_latency = latencies[p95_index]
+            actions = sum(int(session.get("telemetry", {}).get("actions") or 0) for session in sessions)
+            failures = sum(int(session.get("telemetry", {}).get("failures") or 0) for session in sessions)
+            failure_rate = round((failures / max(1, actions)) * 100, 2)
+            running_sessions = sum(1 for session in sessions if session.get("status") == "running")
+            liveops = deepcopy(self._state["liveops"])
+            self._normalize_liveops(liveops)
+            sessions_started = max(1, int(liveops["telemetry"].get("sessionsStarted") or 0))
+            completions = int(liveops["telemetry"].get("challengeCompletions") or 0)
+            challenge_completion_rate = round((completions / sessions_started) * 100, 2)
+
+            alerts: list[Dict[str, Any]] = []
+            if failure_rate >= 8:
+                alerts.append(
+                    {
+                        "id": "alert-failure-rate",
+                        "severity": "high",
+                        "message": "Failure rate exceeded threshold.",
+                        "metric": "failure_rate_pct",
+                        "threshold": 8,
+                        "value": failure_rate,
+                    }
+                )
+            if p95_latency >= 1500:
+                alerts.append(
+                    {
+                        "id": "alert-p95-latency",
+                        "severity": "medium",
+                        "message": "P95 latency is above target.",
+                        "metric": "p95_latency_ms",
+                        "threshold": 1500,
+                        "value": p95_latency,
+                    }
+                )
+            if challenge_completion_rate < 20 and sessions_started >= 5:
+                alerts.append(
+                    {
+                        "id": "alert-challenge-completion",
+                        "severity": "medium",
+                        "message": "LiveOps challenge completion rate is below expected range.",
+                        "metric": "challenge_completion_rate_pct",
+                        "threshold": 20,
+                        "value": challenge_completion_rate,
+                    }
+                )
+
+            return {
+                "generated_at": _utc_now(),
+                "metrics": {
+                    "total_sessions": len(sessions),
+                    "running_sessions": running_sessions,
+                    "avg_latency_ms": round(sum(latencies) / len(latencies), 2) if latencies else 0,
+                    "p95_latency_ms": p95_latency,
+                    "failure_rate_pct": failure_rate,
+                    "challenge_completion_rate_pct": challenge_completion_rate,
+                },
+                "alerts": alerts,
+            }
+
+    def analytics_funnel_snapshot(self) -> Dict[str, Any]:
+        with self._lock:
+            sessions = list(self._state["sessions"].values())
+            session_start = len(sessions)
+            first_objective = sum(
+                1
+                for session in sessions
+                if any(int(item.get("progress") or 0) > 0 for item in session.get("raid", {}).get("objectives", []))
+            )
+            first_outcome = sum(
+                1
+                for session in sessions
+                if int(session.get("telemetry", {}).get("successes") or 0)
+                + int(session.get("telemetry", {}).get("failures") or 0)
+                > 0
+                or bool(session.get("pvp", {}).get("winner"))
+            )
+            run_outcome = sum(
+                1
+                for session in sessions
+                if session.get("status") == "completed" or int(session.get("campaign", {}).get("depth") or 1) >= 5
+            )
+            win_outcome = sum(
+                1
+                for session in sessions
+                if int(session.get("campaign", {}).get("depth") or 1) >= 5
+                or session.get("pvp", {}).get("winner") == "operator"
+            )
+
+            player_sessions: Dict[str, list[datetime]] = {}
+            for session in sessions:
+                created_at = _parse_timestamp(str(session.get("created_at") or ""))
+                if created_at is None:
+                    continue
+                for player in session.get("players", []):
+                    player_id = str(player.get("player_id") or "").strip()
+                    if not player_id:
+                        continue
+                    player_sessions.setdefault(player_id, []).append(created_at)
+
+            retention_counts = {"d1": 0, "d7": 0, "d30": 0}
+            for timestamps in player_sessions.values():
+                sorted_times = sorted(timestamps)
+                first_seen = sorted_times[0]
+                for key, days in (("d1", 1), ("d7", 7), ("d30", 30)):
+                    if any(stamp >= first_seen + timedelta(days=days) for stamp in sorted_times[1:]):
+                        retention_counts[key] += 1
+
+            cohort_size = max(1, len(player_sessions))
+            retention_pct = {
+                "d1": round((retention_counts["d1"] / cohort_size) * 100, 2),
+                "d7": round((retention_counts["d7"] / cohort_size) * 100, 2),
+                "d30": round((retention_counts["d30"] / cohort_size) * 100, 2),
+            }
+
+            return {
+                "generated_at": _utc_now(),
+                "funnels": {
+                    "session_start": session_start,
+                    "first_objective_progress": first_objective,
+                    "first_mission_outcome": first_outcome,
+                    "run_outcome": run_outcome,
+                    "win_outcome": win_outcome,
+                },
+                "dropoff": {
+                    "objective_dropoff": max(0, session_start - first_objective),
+                    "outcome_dropoff": max(0, first_objective - first_outcome),
+                    "resolution_dropoff": max(0, first_outcome - run_outcome),
+                },
+                "retention": {
+                    "cohort_size": len(player_sessions),
+                    "d1_pct": retention_pct["d1"],
+                    "d7_pct": retention_pct["d7"],
+                    "d30_pct": retention_pct["d30"],
+                },
+            }
 
     def get_profile(self, player_id: str) -> Dict[str, Any]:
         with self._lock:
