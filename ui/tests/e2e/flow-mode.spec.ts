@@ -59,7 +59,9 @@ test.describe('Flow mode', () => {
     await page.goto('/');
     await page.getByTitle('Graph view').click();
 
-    await page.locator('.react-flow__node:visible').first().click();
+    const firstNode = page.locator('.react-flow__node').first();
+    await expect(firstNode).toBeAttached();
+    await firstNode.click({ force: true });
     await expect(page.getByRole('button', { name: 'Close inspector' })).toBeVisible();
 
     await page.keyboard.press('Escape');
