@@ -63,6 +63,10 @@ export type SkillNode = {
   label: string;
   cost: number;
   requires: string[];
+  minLevel: number;
+  requiredMilestones: string[];
+  tier: 1 | 2 | 3;
+  loadoutSlot: 'core' | 'utility' | 'power';
   unlocked: boolean;
 };
 
@@ -72,7 +76,17 @@ export type SkillTreeState = {
   loadout: {
     capacity: number;
     equipped: string[];
+    slotCaps: {
+      core: number;
+      utility: number;
+      power: number;
+    };
   };
+};
+
+export type SkillRuleCheck = {
+  allowed: boolean;
+  reason: string;
 };
 
 export type PvPState = {
@@ -404,12 +418,82 @@ export function createInitialGameplayState(seedSource: string): GameplayState {
     skills: {
       points: 6,
       nodes: [
-        { id: 'skill-focus', label: 'Focus Matrix', cost: 2, requires: [], unlocked: false },
-        { id: 'skill-resilience', label: 'Resilience Mesh', cost: 2, requires: [], unlocked: false },
-        { id: 'skill-surge', label: 'Surge Compiler', cost: 3, requires: ['skill-focus'], unlocked: false },
-        { id: 'skill-echo', label: 'Echo Anticipator', cost: 3, requires: ['skill-resilience'], unlocked: false },
+        {
+          id: 'skill-focus',
+          label: 'Focus Matrix',
+          cost: 1,
+          requires: [],
+          minLevel: 1,
+          requiredMilestones: [],
+          tier: 1,
+          loadoutSlot: 'core',
+          unlocked: false,
+        },
+        {
+          id: 'skill-resilience',
+          label: 'Resilience Mesh',
+          cost: 1,
+          requires: [],
+          minLevel: 1,
+          requiredMilestones: [],
+          tier: 1,
+          loadoutSlot: 'utility',
+          unlocked: false,
+        },
+        {
+          id: 'skill-surge',
+          label: 'Surge Compiler',
+          cost: 2,
+          requires: ['skill-focus'],
+          minLevel: 2,
+          requiredMilestones: [],
+          tier: 2,
+          loadoutSlot: 'power',
+          unlocked: false,
+        },
+        {
+          id: 'skill-echo',
+          label: 'Echo Anticipator',
+          cost: 2,
+          requires: ['skill-resilience'],
+          minLevel: 2,
+          requiredMilestones: [],
+          tier: 2,
+          loadoutSlot: 'utility',
+          unlocked: false,
+        },
+        {
+          id: 'skill-ward',
+          label: 'Ward Lattice',
+          cost: 2,
+          requires: ['skill-resilience'],
+          minLevel: 3,
+          requiredMilestones: ['milestone-level-3'],
+          tier: 3,
+          loadoutSlot: 'power',
+          unlocked: false,
+        },
+        {
+          id: 'skill-overclock',
+          label: 'Overclock Nexus',
+          cost: 3,
+          requires: ['skill-surge', 'skill-echo'],
+          minLevel: 4,
+          requiredMilestones: ['milestone-level-3'],
+          tier: 3,
+          loadoutSlot: 'power',
+          unlocked: false,
+        },
       ],
-      loadout: { capacity: 3, equipped: [] },
+      loadout: {
+        capacity: 3,
+        equipped: [],
+        slotCaps: {
+          core: 1,
+          utility: 1,
+          power: 1,
+        },
+      },
     },
     pvp: {
       round: 0,
@@ -637,10 +721,9 @@ export function applyNarrativeChoice(state: GameplayState, choiceId: string): Ga
 
 export function unlockSkillNode(state: GameplayState, nodeId: string): GameplayState {
   const node = state.skills.nodes.find((item) => item.id === nodeId);
-  if (!node || node.unlocked) return state;
-  const unlocked = new Set(state.skills.nodes.filter((item) => item.unlocked).map((item) => item.id));
-  const prerequisitesMet = node.requires.every((id) => unlocked.has(id));
-  if (!prerequisitesMet || state.skills.points < node.cost) return state;
+  if (!node) return state;
+  const check = evaluateSkillUnlock(state, nodeId);
+  if (!check.allowed) return state;
 
   return {
     ...state,
@@ -653,10 +736,8 @@ export function unlockSkillNode(state: GameplayState, nodeId: string): GameplayS
 }
 
 export function equipLoadoutSkill(state: GameplayState, nodeId: string): GameplayState {
-  const node = state.skills.nodes.find((item) => item.id === nodeId);
-  if (!node?.unlocked) return state;
-  if (state.skills.loadout.equipped.includes(nodeId)) return state;
-  if (state.skills.loadout.equipped.length >= state.skills.loadout.capacity) return state;
+  const check = evaluateSkillEquip(state, nodeId);
+  if (!check.allowed) return state;
   return {
     ...state,
     skills: {
@@ -667,6 +748,48 @@ export function equipLoadoutSkill(state: GameplayState, nodeId: string): Gamepla
       },
     },
   };
+}
+
+export function evaluateSkillUnlock(state: GameplayState, nodeId: string): SkillRuleCheck {
+  const node = state.skills.nodes.find((item) => item.id === nodeId);
+  if (!node) return { allowed: false, reason: 'Unknown skill node.' };
+  if (node.unlocked) return { allowed: false, reason: 'Skill already unlocked.' };
+  const unlocked = new Set(state.skills.nodes.filter((item) => item.unlocked).map((item) => item.id));
+  const missingPrerequisites = node.requires.filter((id) => !unlocked.has(id));
+  if (missingPrerequisites.length > 0) {
+    return { allowed: false, reason: `Requires: ${missingPrerequisites.join(', ')}` };
+  }
+  const progression = readProgressionState(state);
+  if (progression.level < node.minLevel) {
+    return { allowed: false, reason: `Requires level ${node.minLevel}` };
+  }
+  const missingMilestones = node.requiredMilestones.filter((milestone) => !progression.milestones.includes(milestone));
+  if (missingMilestones.length > 0) {
+    return { allowed: false, reason: `Requires milestone ${missingMilestones[0]}` };
+  }
+  if (state.skills.points < node.cost) {
+    return { allowed: false, reason: `Need ${node.cost} points` };
+  }
+  return { allowed: true, reason: 'Unlock available' };
+}
+
+export function evaluateSkillEquip(state: GameplayState, nodeId: string): SkillRuleCheck {
+  const node = state.skills.nodes.find((item) => item.id === nodeId);
+  if (!node) return { allowed: false, reason: 'Unknown skill node.' };
+  if (!node.unlocked) return { allowed: false, reason: 'Unlock required before equip.' };
+  if (state.skills.loadout.equipped.includes(nodeId)) return { allowed: false, reason: 'Already equipped.' };
+  if (state.skills.loadout.equipped.length >= state.skills.loadout.capacity) {
+    return { allowed: false, reason: 'Loadout capacity reached.' };
+  }
+  const slotCap = state.skills.loadout.slotCaps[node.loadoutSlot];
+  const equippedInSlot = state.skills.loadout.equipped.reduce((count, equippedId) => {
+    const equippedNode = state.skills.nodes.find((item) => item.id === equippedId);
+    return equippedNode?.loadoutSlot === node.loadoutSlot ? count + 1 : count;
+  }, 0);
+  if (equippedInSlot >= slotCap) {
+    return { allowed: false, reason: `${node.loadoutSlot} slot limit reached.` };
+  }
+  return { allowed: true, reason: 'Equip available' };
 }
 
 export function runPvPRound(state: GameplayState, action: PvPAction): GameplayState {

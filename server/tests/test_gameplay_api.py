@@ -226,6 +226,51 @@ class TestGameplayApi(unittest.TestCase):
         self.assertIn("griefer-2", session["safety"]["blocked_player_ids"])
         self.assertEqual(session["safety"]["reports"][0]["target_player_id"], "griefer-2")
 
+    def test_skill_tree_unlock_paths_and_slot_constraints(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/sessions",
+            {"trace_id": "trace-1", "host_player_id": "host", "name": "Skill Constraints"},
+        )
+        self.assertEqual(status, 201)
+        session_id = data["session"]["id"]
+        version = data["session"]["version"]
+
+        def apply(action_type: str, payload: dict, expected_status: int = 200) -> dict:
+            nonlocal version
+            action_status, action_data = self._request(
+                "POST",
+                f"/api/gameplay/sessions/{session_id}/action",
+                {
+                    "player_id": "host",
+                    "type": action_type,
+                    "payload": payload,
+                    "expected_version": version,
+                },
+            )
+            self.assertEqual(action_status, expected_status, action_data.get("error", action_type))
+            if action_status == 200:
+                version = action_data["session"]["version"]
+            return action_data
+
+        apply("skills.unlock", {"player_id": "host", "skill_id": "skill-focus"})
+        blocked = apply("skills.unlock", {"player_id": "host", "skill_id": "skill-surge"}, expected_status=400)
+        self.assertIn("Requires level", blocked.get("error", ""))
+
+        for _ in range(2):
+            apply("campaign.resolve_mission", {"success": True})
+
+        apply("skills.unlock", {"player_id": "host", "skill_id": "skill-surge"})
+        apply("skills.unlock", {"player_id": "host", "skill_id": "skill-resilience"})
+
+        for _ in range(3):
+            apply("campaign.resolve_mission", {"success": True})
+
+        apply("skills.unlock", {"player_id": "host", "skill_id": "skill-ward"})
+        apply("skills.equip", {"player_id": "host", "skill_id": "skill-surge"})
+        slot_blocked = apply("skills.equip", {"player_id": "host", "skill_id": "skill-ward"}, expected_status=400)
+        self.assertIn("slot limit", slot_blocked.get("error", ""))
+
     def test_guild_and_liveops_endpoints(self) -> None:
         status, data = self._request(
             "POST",

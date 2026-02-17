@@ -59,4 +59,14 @@ describe('GameplayMode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enable sandbox' }));
     expect(screen.getByText(/Sandbox ON/i)).toBeInTheDocument();
   });
+
+  it('shows skill unlock gating feedback', () => {
+    render(<Harness />);
+    expect(screen.getByText(/Requires: skill-focus/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock Focus Matrix' }));
+    expect(screen.getByText(/Requires level 2/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Mission success' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mission success' }));
+    expect(screen.getByRole('button', { name: 'Unlock Surge Compiler' })).not.toBeDisabled();
+  });
 });

@@ -283,6 +283,7 @@ function mapGameplaySessionToState(
       loadout: {
         capacity: profile?.loadout_capacity ?? fallback.skills.loadout.capacity,
         equipped: profile?.loadout ?? [],
+        slotCaps: fallback.skills.loadout.slotCaps,
       },
     },
     pvp: {

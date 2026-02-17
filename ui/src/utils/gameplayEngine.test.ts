@@ -61,6 +61,47 @@ describe('gameplayEngine', () => {
     expect(state.skills.loadout.equipped).toContain(node?.id);
   });
 
+  it('enforces skill unlock level and milestone gates', () => {
+    let state = createInitialGameplayState('trace-1');
+    state = unlockSkillNode(state, 'skill-focus');
+    state = unlockSkillNode(state, 'skill-surge');
+    expect(state.skills.nodes.find((item) => item.id === 'skill-surge')?.unlocked).toBe(false);
+
+    for (let index = 0; index < 5; index += 1) {
+      state = completeCampaignMission(state, true);
+    }
+    state = unlockSkillNode(state, 'skill-resilience');
+    state = unlockSkillNode(state, 'skill-ward');
+    expect(state.progression.level).toBeGreaterThanOrEqual(3);
+    expect(state.progression.milestones).toContain('milestone-level-3');
+    expect(state.skills.nodes.find((item) => item.id === 'skill-ward')?.unlocked).toBe(true);
+  });
+
+  it('enforces per-slot loadout constraints', () => {
+    let state = createInitialGameplayState('trace-1');
+    state = {
+      ...state,
+      progression: {
+        ...state.progression,
+        level: 4,
+        milestones: ['milestone-level-3'],
+      },
+      skills: {
+        ...state.skills,
+        points: 10,
+        nodes: state.skills.nodes.map((node) =>
+          ['skill-focus', 'skill-resilience', 'skill-surge', 'skill-ward'].includes(node.id)
+            ? { ...node, unlocked: true }
+            : node
+        ),
+      },
+    };
+    state = equipLoadoutSkill(state, 'skill-surge');
+    state = equipLoadoutSkill(state, 'skill-ward');
+    expect(state.skills.loadout.equipped).toContain('skill-surge');
+    expect(state.skills.loadout.equipped).not.toContain('skill-ward');
+  });
+
   it('runs asymmetric pvp rounds', () => {
     let state = createInitialGameplayState('trace-1');
     state = runPvPRound(state, 'sabotage');

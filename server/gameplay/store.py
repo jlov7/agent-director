@@ -58,11 +58,57 @@ ROLE_ABILITIES: Dict[str, Dict[str, int]] = {
 }
 
 SKILL_TREE: Dict[str, Dict[str, Any]] = {
-    "skill-focus": {"cost": 1, "requires": [], "modifier": {"raidBoost": 6}},
-    "skill-resilience": {"cost": 1, "requires": [], "modifier": {"stabilityBoost": 6}},
-    "skill-surge": {"cost": 2, "requires": ["skill-focus"], "modifier": {"bossDamageBoost": 10}},
-    "skill-echo": {"cost": 2, "requires": ["skill-resilience"], "modifier": {"forkEfficiency": 1}},
+    "skill-focus": {
+        "cost": 1,
+        "requires": [],
+        "min_level": 1,
+        "milestones": [],
+        "slot": "core",
+        "modifier": {"raidBoost": 6},
+    },
+    "skill-resilience": {
+        "cost": 1,
+        "requires": [],
+        "min_level": 1,
+        "milestones": [],
+        "slot": "utility",
+        "modifier": {"stabilityBoost": 6},
+    },
+    "skill-surge": {
+        "cost": 2,
+        "requires": ["skill-focus"],
+        "min_level": 2,
+        "milestones": [],
+        "slot": "power",
+        "modifier": {"bossDamageBoost": 10},
+    },
+    "skill-echo": {
+        "cost": 2,
+        "requires": ["skill-resilience"],
+        "min_level": 2,
+        "milestones": [],
+        "slot": "utility",
+        "modifier": {"forkEfficiency": 1},
+    },
+    "skill-ward": {
+        "cost": 2,
+        "requires": ["skill-resilience"],
+        "min_level": 3,
+        "milestones": ["milestone-level-3"],
+        "slot": "power",
+        "modifier": {"stabilityBoost": 12},
+    },
+    "skill-overclock": {
+        "cost": 3,
+        "requires": ["skill-surge", "skill-echo"],
+        "min_level": 4,
+        "milestones": ["milestone-level-3"],
+        "slot": "power",
+        "modifier": {"raidBoost": 8, "bossDamageBoost": 14},
+    },
 }
+
+LOADOUT_SLOT_CAPS = {"core": 1, "utility": 1, "power": 1}
 
 RECIPES: Dict[str, Dict[str, int]] = {
     "stability_patch": {"tokens": 20, "materials": 10, "stability_gain": 8},
@@ -437,6 +483,13 @@ class GameplayStore:
         if skill_id in profile["unlocked_skills"]:
             return
         descriptor = SKILL_TREE[skill_id]
+        required_level = int(descriptor.get("min_level", 1))
+        if int(profile["level"]) < required_level:
+            raise ValueError(f"Requires level {required_level}")
+        milestones = profile.get("milestones", [])
+        for milestone in descriptor.get("milestones", []):
+            if milestone not in milestones:
+                raise ValueError(f"Missing required milestone: {milestone}")
         for required in descriptor["requires"]:
             if required not in profile["unlocked_skills"]:
                 raise ValueError(f"Missing prerequisite skill: {required}")
@@ -465,8 +518,20 @@ class GameplayStore:
             raise ValueError("Skill must be unlocked before equip")
         if skill_id in profile["loadout"]:
             return
+        descriptor = SKILL_TREE.get(skill_id)
+        if descriptor is None:
+            raise ValueError(f"Unknown skill_id: {skill_id}")
         if len(profile["loadout"]) >= profile["loadout_capacity"]:
             raise ValueError("Loadout capacity reached")
+        slot = str(descriptor.get("slot", "utility"))
+        slot_limit = int(LOADOUT_SLOT_CAPS.get(slot, profile["loadout_capacity"]))
+        equipped_in_slot = 0
+        for equipped_skill_id in profile["loadout"]:
+            equipped_slot = str(SKILL_TREE.get(equipped_skill_id, {}).get("slot", "utility"))
+            if equipped_slot == slot:
+                equipped_in_slot += 1
+        if equipped_in_slot >= slot_limit:
+            raise ValueError(f"Loadout slot limit reached for {slot}")
         profile["loadout"].append(skill_id)
 
     def apply_action(
@@ -585,15 +650,15 @@ class GameplayStore:
             elif action_type == "skills.unlock":
                 target = str(payload.get("player_id") or player_id)
                 skill_id = str(payload.get("skill_id") or "")
-                profile = self._ensure_profile(target)
+                profile = self._session_profile(session, target)
                 self._mutate_profile_skill_unlock(profile, skill_id)
-                session["profiles"][target] = deepcopy(profile)
+                self._state["profiles"][target] = deepcopy(profile)
             elif action_type == "skills.equip":
                 target = str(payload.get("player_id") or player_id)
                 skill_id = str(payload.get("skill_id") or "")
-                profile = self._ensure_profile(target)
+                profile = self._session_profile(session, target)
                 self._mutate_profile_skill_equip(profile, skill_id)
-                session["profiles"][target] = deepcopy(profile)
+                self._state["profiles"][target] = deepcopy(profile)
             elif action_type == "pvp.act":
                 action = str(payload.get("action") or "")
                 pvp = session["pvp"]
@@ -863,6 +928,7 @@ class GameplayStore:
 
             session["version"] += 1
             session["updated_at"] = _utc_now()
+            self._state["profiles"][player_id] = deepcopy(actor_profile)
             self._save()
             public = self._serialize_session(session)
 

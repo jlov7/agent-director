@@ -11,6 +11,8 @@ import {
   craftUpgrade,
   createTimeFork,
   equipLoadoutSkill,
+  evaluateSkillEquip,
+  evaluateSkillUnlock,
   generateAdaptiveDirectorUpdate,
   joinRaid,
   mergeForkIntoPrimary,
@@ -356,37 +358,61 @@ export default function GameplayMode({
             Level {progression.level} • XP {progression.xp}/{progression.nextLevelXp} • Milestones{' '}
             {progression.milestones.length}
           </p>
-          <p>Points {state.skills.points} • Equipped {state.skills.loadout.equipped.length}/{state.skills.loadout.capacity}</p>
+          <p>
+            Points {state.skills.points} • Equipped {state.skills.loadout.equipped.length}/{state.skills.loadout.capacity} •
+            Slots C/U/P {state.skills.loadout.slotCaps.core}/{state.skills.loadout.slotCaps.utility}/
+            {state.skills.loadout.slotCaps.power}
+          </p>
           <div className="gameplay-list">
             {state.skills.nodes.map((node) => (
               <div key={node.id} className="gameplay-node">
-                <span>{node.label} ({node.cost})</span>
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={() =>
-                    applyAction(
-                      'skills.unlock',
-                      { player_id: playerId ?? 'director', skill_id: node.id },
-                      (prev) => unlockSkillNode(prev, node.id)
-                    )
-                  }
-                >
-                  {node.unlocked ? 'Unlocked' : 'Unlock'}
-                </button>
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={() =>
-                    applyAction(
-                      'skills.equip',
-                      { player_id: playerId ?? 'director', skill_id: node.id },
-                      (prev) => equipLoadoutSkill(prev, node.id)
-                    )
-                  }
-                >
-                  Equip
-                </button>
+                <span>
+                  {node.label} ({node.cost}) • T{node.tier} • {node.loadoutSlot} • L{node.minLevel}
+                </span>
+                {node.requires.length > 0 ? <small>Requires {node.requires.join(', ')}</small> : <small>Starter node</small>}
+                {node.requiredMilestones.length > 0 ? (
+                  <small>Milestones: {node.requiredMilestones.join(', ')}</small>
+                ) : null}
+                {(() => {
+                  const unlockRule = evaluateSkillUnlock(state, node.id);
+                  const equipRule = evaluateSkillEquip(state, node.id);
+                  return (
+                    <>
+                      {!node.unlocked && !unlockRule.allowed ? <small>{unlockRule.reason}</small> : null}
+                      {node.unlocked && !equipRule.allowed ? <small>{equipRule.reason}</small> : null}
+                      <button
+                        className="ghost-button"
+                        type="button"
+                        aria-label={`Unlock ${node.label}`}
+                        disabled={!node.unlocked && !unlockRule.allowed}
+                        onClick={() =>
+                          applyAction(
+                            'skills.unlock',
+                            { player_id: playerId ?? 'director', skill_id: node.id },
+                            (prev) => unlockSkillNode(prev, node.id)
+                          )
+                        }
+                      >
+                        {node.unlocked ? 'Unlocked' : 'Unlock'}
+                      </button>
+                      <button
+                        className="ghost-button"
+                        type="button"
+                        aria-label={`Equip ${node.label}`}
+                        disabled={!equipRule.allowed}
+                        onClick={() =>
+                          applyAction(
+                            'skills.equip',
+                            { player_id: playerId ?? 'director', skill_id: node.id },
+                            (prev) => equipLoadoutSkill(prev, node.id)
+                          )
+                        }
+                      >
+                        Equip
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             ))}
           </div>
