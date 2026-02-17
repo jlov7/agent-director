@@ -15,8 +15,7 @@ import IntroOverlay from './components/common/IntroOverlay';
 import HeroRibbon from './components/common/HeroRibbon';
 import QuickActions from './components/common/QuickActions';
 import StoryModeBanner from './components/common/StoryModeBanner';
-import Matrix, { type MatrixScenarioDraft } from './components/Matrix';
-import GameplayMode from './components/GameplayMode';
+import type { MatrixScenarioDraft } from './components/Matrix';
 import MorphOrchestrator from './components/Morph/MorphOrchestrator';
 import { useTrace } from './hooks/useTrace';
 import type {
@@ -126,6 +125,8 @@ type StoryBeat = {
 const FlowMode = lazy(() => import('./components/FlowMode'));
 const Compare = lazy(() => import('./components/Compare'));
 const Inspector = lazy(() => import('./components/Inspector'));
+const Matrix = lazy(() => import('./components/Matrix'));
+const GameplayMode = lazy(() => import('./components/GameplayMode'));
 
 function makeScenarioId() {
   return `scenario-${Math.random().toString(36).slice(2, 9)}`;
