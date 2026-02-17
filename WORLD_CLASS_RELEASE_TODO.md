@@ -20,8 +20,8 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 | WR-002 | done | Core Loop | Explicit mission outcomes (win/loss/partial) | Outcome model wired through gameplay state, UI, and persistence |
 | WR-003 | done | Difficulty | Difficulty ramp table | Difficulty bands with deterministic tuning config and tests |
 | WR-004 | done | Onboarding | Full first-session tutorial | Guided, skippable, replayable tutorial with completion telemetry |
-| WR-005 | todo | Onboarding | Sandbox mode | Separate low-risk mode with no progression penalties |
-| WR-006 | todo | Progression | Persistent XP and milestone system | XP accrual + leveling + rewards + save/load contracts |
+| WR-005 | done | Onboarding | Sandbox mode | Separate low-risk mode with no progression penalties |
+| WR-006 | done | Progression | Persistent XP and milestone system | XP accrual + leveling + rewards + save/load contracts |
 | WR-007 | todo | Progression | Skill tree/loadout balancing | Costs, unlock paths, and slot constraints tuned and validated |
 | WR-008 | todo | Economy | Economy balance pass | Stable source/sink loop with anti-inflation safeguards |
 | WR-009 | todo | Rewards | Reward cadence | Daily/session/streak/mastery rewards with UX surfaces |
@@ -73,7 +73,7 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 
 ### Batch C
 
-- WR-005 through WR-017
+- WR-007 through WR-017
 - WR-019 through WR-028
 - WR-032 through WR-035
 - WR-037 and WR-040
@@ -86,3 +86,5 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 - 2026-02-17: Completed WR-018 and WR-031 with multiplayer-safe safety actions, live balancing controls, and operator tuning history.
 - 2026-02-17: Completed WR-001 through WR-004 by shipping a documented v1 core loop, explicit outcome state, deterministic difficulty ramp bands, and tutorial telemetry funnels.
 - 2026-02-17: Completed WR-029 and WR-030 with backend observability/analytics endpoints, gameplay dashboards, funnel drop-off + D1/D7/D30 retention reporting, and alert thresholds.
+- 2026-02-17: Completed WR-005 by shipping sandbox mode toggle and no-penalty campaign failure behavior for safe practice runs.
+- 2026-02-17: Completed WR-006 with persistent profile XP/level progression, milestone unlocks, and frontend/backend save-load mapping.

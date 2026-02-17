@@ -180,6 +180,17 @@ export type OutcomeState = {
   updatedAt: number;
 };
 
+export type SandboxState = {
+  enabled: boolean;
+};
+
+export type ProgressionState = {
+  xp: number;
+  level: number;
+  nextLevelXp: number;
+  milestones: string[];
+};
+
 export const DIFFICULTY_RAMP_TABLE: Array<{ minDepth: number; maxDepth: number; difficulty: number }> = [
   { minDepth: 1, maxDepth: 1, difficulty: 1 },
   { minDepth: 2, maxDepth: 3, difficulty: 2 },
@@ -209,6 +220,8 @@ export type GameplayState = {
   liveops: LiveOpsState;
   safety: SafetyState;
   outcome: OutcomeState;
+  sandbox: SandboxState;
+  progression: ProgressionState;
 };
 
 const HAZARD_POOL = [
@@ -454,6 +467,31 @@ export function createInitialGameplayState(seedSource: string): GameplayState {
       reason: 'Run started. Complete missions and stabilize the incident.',
       updatedAt: Date.now(),
     },
+    sandbox: {
+      enabled: false,
+    },
+    progression: {
+      xp: 0,
+      level: 1,
+      nextLevelXp: 200,
+      milestones: [],
+    },
+  };
+}
+
+export function setSandboxMode(state: GameplayState, enabled: boolean): GameplayState {
+  return {
+    ...state,
+    sandbox: {
+      enabled,
+    },
+    outcome: enabled
+      ? {
+          status: 'in_progress',
+          reason: 'Sandbox mode enabled. Penalties are disabled for safe practice runs.',
+          updatedAt: Date.now(),
+        }
+      : state.outcome,
   };
 }
 
@@ -483,7 +521,7 @@ export function advanceRaidObjective(state: GameplayState, objectiveId: string, 
   });
   const completed = objectives.every((objective) => objective.completed);
   const completionReward = completed && !state.raid.completed ? 180 : 0;
-  return {
+  const nextState: GameplayState = {
     ...state,
     raid: {
       ...state.raid,
@@ -503,9 +541,11 @@ export function advanceRaidObjective(state: GameplayState, objectiveId: string, 
           }
         : currentOutcome,
   };
+  return completed && !state.raid.completed ? grantProgressionXp(nextState, 60) : nextState;
 }
 
 export function completeCampaignMission(state: GameplayState, success: boolean): GameplayState {
+  const sandbox = readSandboxState(state);
   const current = state.campaign.currentMission;
   if (success) {
     const depth = state.campaign.depth + 1;
@@ -522,7 +562,7 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
             reason: `Mission ${current.id} cleared. Advance deeper to secure the run.`,
             updatedAt: Date.now(),
           };
-    return {
+    const nextState: GameplayState = {
       ...withMission,
       campaign: {
         ...withMission.campaign,
@@ -539,12 +579,19 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
       },
       outcome,
     };
+    return grantProgressionXp(nextState, 120);
   }
 
-  const lives = clamp(state.campaign.lives - 1, 0, 3);
+  const lives = sandbox.enabled ? state.campaign.lives : clamp(state.campaign.lives - 1, 0, 3);
   const withMission = withCampaignMission(state, state.campaign.depth, applyMissionMutator(state.campaign.mutators, 'failure-loop'));
   const outcome: OutcomeState =
-    lives <= 0
+    sandbox.enabled
+      ? {
+          status: 'partial',
+          reason: 'Sandbox mode active. Failure recorded with no life penalty.',
+          updatedAt: Date.now(),
+        }
+      : lives <= 0
       ? {
           status: 'loss',
           reason: 'No campaign lives remaining. Incident run failed.',
@@ -555,7 +602,7 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
           reason: `Mission failed. ${lives} campaign lives remaining.`,
           updatedAt: Date.now(),
         };
-  return {
+  const nextState: GameplayState = {
     ...withMission,
     campaign: {
       ...withMission.campaign,
@@ -567,6 +614,7 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
     },
     outcome,
   };
+  return grantProgressionXp(nextState, 40);
 }
 
 export function applyNarrativeChoice(state: GameplayState, choiceId: string): GameplayState {
@@ -655,7 +703,8 @@ export function runPvPRound(state: GameplayState, action: PvPAction): GameplaySt
             updatedAt: Date.now(),
           }
         : currentOutcome;
-  return { ...state, pvp: next, outcome };
+  const nextState: GameplayState = { ...state, pvp: next, outcome };
+  return grantProgressionXp(nextState, next.winner ? 72 : 12);
 }
 
 export function createTimeFork(state: GameplayState, label: string, playheadMs: number): GameplayState {
@@ -666,7 +715,7 @@ export function createTimeFork(state: GameplayState, label: string, playheadMs: 
     playheadMs: clamp(playheadMs, 0, 3_600_000),
     history: [clamp(playheadMs, 0, 3_600_000)],
   };
-  return {
+  const nextState: GameplayState = {
     ...state,
     time: {
       ...state.time,
@@ -674,6 +723,7 @@ export function createTimeFork(state: GameplayState, label: string, playheadMs: 
       forks: [...state.time.forks, fork],
     },
   };
+  return nextState;
 }
 
 export function rewindActiveFork(state: GameplayState, amountMs: number): GameplayState {
@@ -721,7 +771,7 @@ export function applyBossAction(state: GameplayState, action: BossAction): Gamep
   const hp = clamp(state.boss.hp - damage, 0, state.boss.maxHp);
   const ratio = hp / state.boss.maxHp;
   const phase: 1 | 2 | 3 = ratio <= 0.33 ? 3 : ratio <= 0.66 ? 2 : 1;
-  return {
+  const nextState: GameplayState = {
     ...state,
     boss: {
       ...state.boss,
@@ -738,6 +788,7 @@ export function applyBossAction(state: GameplayState, action: BossAction): Gamep
           }
         : currentOutcome,
   };
+  return grantProgressionXp(nextState, hp <= 0 ? 180 : 10);
 }
 
 export function generateAdaptiveDirectorUpdate(
@@ -812,12 +863,12 @@ export function craftUpgrade(state: GameplayState, recipeId: CraftRecipeId): Gam
       },
     };
   }
-  return nextState;
+  return grantProgressionXp(nextState, 10);
 }
 
 export function advanceGuildOperation(state: GameplayState, impact: number): GameplayState {
   const normalizedImpact = Math.round(impact);
-  return {
+  const nextState: GameplayState = {
     ...state,
     guild: {
       ...state.guild,
@@ -829,6 +880,7 @@ export function advanceGuildOperation(state: GameplayState, impact: number): Gam
       credits: state.economy.credits + Math.max(0, normalizedImpact * 3),
     },
   };
+  return grantProgressionXp(nextState, Math.max(0, normalizedImpact * 6));
 }
 
 export function pushCinematicEvent(
@@ -948,6 +1000,56 @@ function readOutcomeState(state: GameplayState): OutcomeState {
       updatedAt: Date.now(),
     }
   );
+}
+
+function readSandboxState(state: GameplayState): SandboxState {
+  return state.sandbox ?? { enabled: false };
+}
+
+function readProgressionState(state: GameplayState): ProgressionState {
+  return (
+    state.progression ?? {
+      xp: 0,
+      level: 1,
+      nextLevelXp: 200,
+      milestones: [],
+    }
+  );
+}
+
+function grantProgressionXp(state: GameplayState, amount: number): GameplayState {
+  if (amount <= 0) return state;
+  const progression = readProgressionState(state);
+  let xp = progression.xp + amount;
+  let level = progression.level;
+  let nextLevelXp = progression.nextLevelXp;
+  let skillPointGain = 0;
+  while (xp >= nextLevelXp) {
+    xp -= nextLevelXp;
+    level += 1;
+    skillPointGain += 1;
+    nextLevelXp = level * 200;
+  }
+  const milestones = [...progression.milestones];
+  [3, 5, 10].forEach((milestoneLevel) => {
+    const milestoneId = `milestone-level-${milestoneLevel}`;
+    if (level >= milestoneLevel && !milestones.includes(milestoneId)) {
+      milestones.push(milestoneId);
+    }
+  });
+  return {
+    ...state,
+    progression: {
+      xp,
+      level,
+      nextLevelXp,
+      milestones,
+    },
+    skills: {
+      ...state.skills,
+      points: state.skills.points + skillPointGain,
+    },
+  };
 }
 
 export function reportPlayer(state: GameplayState, targetPlayerId: string, reason: string): GameplayState {

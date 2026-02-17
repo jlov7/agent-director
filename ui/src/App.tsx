@@ -390,6 +390,13 @@ function mapGameplaySessionToState(
               reason: 'Run in progress.',
               updatedAt: Date.now(),
             },
+    sandbox: { enabled: session.sandbox?.enabled ?? fallback.sandbox?.enabled ?? false },
+    progression: {
+      xp: profile?.xp ?? fallback.progression?.xp ?? 0,
+      level: profile?.level ?? fallback.progression?.level ?? 1,
+      nextLevelXp: (profile?.level ?? fallback.progression?.level ?? 1) * 200,
+      milestones: profile?.milestones ?? fallback.progression?.milestones ?? [],
+    },
   };
 }
 

@@ -48,6 +48,8 @@ Batch A update:
 - Completed WR-031 with operator live-balancing controls, tuning history, and backend support for balance actions.
 - Completed WR-001 through WR-004 with a documented core loop, explicit run outcomes, deterministic difficulty ramp, and tutorial funnel telemetry.
 - Completed WR-029 and WR-030 with observability/analytics snapshots, alerting thresholds, funnel dashboards, and retention reporting.
+- Completed WR-005 with sandbox toggle UX and no-penalty failure handling in gameplay progression.
+- Completed WR-006 with persistent XP progression, level-up rewards, milestone unlock contracts, and backend save/load support.
 
 # World-Class UX Program ExecPlan
 

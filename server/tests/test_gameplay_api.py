@@ -163,8 +163,10 @@ class TestGameplayApi(unittest.TestCase):
         self.assertEqual(guild_status, 201)
 
         actions = [
+            ("session.toggle_sandbox", {"enabled": True}),
             ("raid.objective_progress", {"objective_id": "obj-root-cause", "delta": 30}),
             ("campaign.resolve_mission", {"success": True}),
+            ("campaign.resolve_mission", {"success": False}),
             ("narrative.choose", {"choice_id": "alpha-risk"}),
             ("skills.unlock", {"player_id": "host", "skill_id": "skill-focus"}),
             ("skills.equip", {"player_id": "host", "skill_id": "skill-focus"}),
@@ -205,9 +207,12 @@ class TestGameplayApi(unittest.TestCase):
         session = data["session"]
 
         self.assertGreater(session["campaign"]["depth"], 1)
+        self.assertEqual(session["campaign"]["lives"], 3)
         self.assertGreater(len(session["narrative"]["history"]), 0)
         self.assertIn("skill-focus", session["profiles"]["host"]["unlocked_skills"])
         self.assertIn("skill-focus", session["profiles"]["host"]["loadout"])
+        self.assertGreater(session["profiles"]["host"]["xp"], 0)
+        self.assertGreaterEqual(session["profiles"]["host"]["level"], 1)
         self.assertGreater(session["pvp"]["round"], 0)
         self.assertGreaterEqual(len(session["time"]["forks"]), 2)
         self.assertLess(session["boss"]["hp"], session["boss"]["max_hp"])

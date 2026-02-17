@@ -17,6 +17,7 @@ import {
   mutePlayer,
   pushCinematicEvent,
   reportPlayer,
+  setSandboxMode,
   rewindActiveFork,
   runPvPRound,
   unlockSkillNode,
@@ -121,6 +122,8 @@ export default function GameplayMode({
     return { done, total: tracks.length, pct: Math.round((done / tracks.length) * 100) };
   }, [state]);
   const safety = state.safety ?? { mutedPlayerIds: [], blockedPlayerIds: [], reports: [] };
+  const sandbox = state.sandbox ?? { enabled: false };
+  const progression = state.progression ?? { xp: 0, level: 1, nextLevelXp: 200, milestones: [] };
   const coreLoopPhase = useMemo(() => {
     if (state.outcome.status === 'win' || state.outcome.status === 'loss') return 4;
     const executionSignals =
@@ -189,8 +192,26 @@ export default function GameplayMode({
       <div className="gameplay-grid">
         <article className="gameplay-card">
           <h3>0) Core Loop + Outcomes</h3>
-          <p>Phase {coreLoopPhase}/4 • Outcome {state.outcome.status.replace('_', ' ')}</p>
+          <p>
+            Phase {coreLoopPhase}/4 • Outcome {state.outcome.status.replace('_', ' ')} • Sandbox{' '}
+            {sandbox.enabled ? 'ON' : 'OFF'}
+          </p>
           <p>{state.outcome.reason}</p>
+          <div className="gameplay-inline">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() =>
+                applyAction(
+                  'session.toggle_sandbox',
+                  { enabled: !sandbox.enabled },
+                  (prev) => setSandboxMode(prev, !sandbox.enabled)
+                )
+              }
+            >
+              {sandbox.enabled ? 'Disable sandbox' : 'Enable sandbox'}
+            </button>
+          </div>
           <div className="gameplay-list">
             <div className="gameplay-node">
               <span>{coreLoopPhase >= 1 ? 'x' : 'o'} Brief: inspect run and set objective</span>
@@ -331,6 +352,10 @@ export default function GameplayMode({
 
         <article className="gameplay-card">
           <h3>4) Skill Tree + Loadout</h3>
+          <p>
+            Level {progression.level} • XP {progression.xp}/{progression.nextLevelXp} • Milestones{' '}
+            {progression.milestones.length}
+          </p>
           <p>Points {state.skills.points} • Equipped {state.skills.loadout.equipped.length}/{state.skills.loadout.capacity}</p>
           <div className="gameplay-list">
             {state.skills.nodes.map((node) => (

@@ -266,6 +266,7 @@ export interface GameplayProfile {
   xp: number;
   level: number;
   skill_points: number;
+  milestones?: string[];
   unlocked_skills: string[];
   loadout: string[];
   loadout_capacity: number;
@@ -401,6 +402,9 @@ export interface GameplaySession {
       created_at: string;
       reporter_player_id?: string;
     }>;
+  };
+  sandbox?: {
+    enabled: boolean;
   };
   telemetry: {
     actions: number;

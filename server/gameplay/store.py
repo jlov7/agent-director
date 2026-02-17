@@ -182,6 +182,7 @@ class GameplayStore:
         default_liveops = fallback_liveops or self._default_liveops(seed=int(session.get("seed", 2026) or 2026), week=1)
         liveops = session.setdefault("liveops", deepcopy(default_liveops))
         self._normalize_liveops(liveops)
+        session.setdefault("sandbox", {"enabled": False})
         session.setdefault(
             "safety",
             {
@@ -206,12 +207,14 @@ class GameplayStore:
     def _ensure_profile(self, player_id: str) -> Dict[str, Any]:
         profile = self._state["profiles"].get(player_id)
         if profile is not None:
+            profile.setdefault("milestones", [])
             return profile
         profile = {
             "player_id": player_id,
             "xp": 0,
             "level": 1,
             "skill_points": 4,
+            "milestones": [],
             "unlocked_skills": [],
             "loadout": [],
             "loadout_capacity": 3,
@@ -360,6 +363,7 @@ class GameplayStore:
                     "camera_state": "wide",
                 },
                 "liveops": deepcopy(self._state["liveops"]),
+                "sandbox": {"enabled": False},
                 "safety": {
                     "muted_player_ids": [],
                     "blocked_player_ids": [],
@@ -442,6 +446,20 @@ class GameplayStore:
         profile["unlocked_skills"].append(skill_id)
         profile["modifiers"][skill_id] = descriptor["modifier"]
 
+    def _grant_profile_xp(self, profile: Dict[str, Any], amount: int) -> None:
+        if amount <= 0:
+            return
+        profile["xp"] = int(profile.get("xp", 0)) + amount
+        profile.setdefault("milestones", [])
+        while profile["xp"] >= int(profile["level"]) * 200:
+            profile["xp"] -= int(profile["level"]) * 200
+            profile["level"] += 1
+            profile["skill_points"] += 1
+        for milestone_level in (3, 5, 10):
+            milestone_id = f"milestone-level-{milestone_level}"
+            if profile["level"] >= milestone_level and milestone_id not in profile["milestones"]:
+                profile["milestones"].append(milestone_id)
+
     def _mutate_profile_skill_equip(self, profile: Dict[str, Any], skill_id: str) -> None:
         if skill_id not in profile["unlocked_skills"]:
             raise ValueError("Skill must be unlocked before equip")
@@ -470,11 +488,15 @@ class GameplayStore:
             players = {entry["player_id"]: entry for entry in session["players"]}
             if player_id not in players:
                 raise ValueError("player_id is not part of the session")
+            actor_profile = self._session_profile(session, player_id)
 
             session["telemetry"]["actions"] += 1
             session["liveops"]["telemetry"]["actionsApplied"] += 1
 
-            if action_type == "raid.objective_progress":
+            if action_type == "session.toggle_sandbox":
+                session.setdefault("sandbox", {"enabled": False})
+                session["sandbox"]["enabled"] = bool(payload.get("enabled", False))
+            elif action_type == "raid.objective_progress":
                 objective_id = str(payload.get("objective_id") or "")
                 delta = int(payload.get("delta") or 0)
                 objectives = session["raid"]["objectives"]
@@ -491,6 +513,7 @@ class GameplayStore:
                 if session["raid"]["completed"]:
                     session["economy"]["tokens"] += 140
                     session["liveops"]["telemetry"]["sessionsCompleted"] += 1
+                    self._grant_profile_xp(actor_profile, 60)
             elif action_type == "raid.use_ability":
                 ability = str(payload.get("ability") or "")
                 player = players[player_id]
@@ -529,10 +552,13 @@ class GameplayStore:
                     if campaign["depth"] % 2 == 0:
                         campaign["unlocked_modifiers"].append(f"modifier-depth-{campaign['depth']}")
                     session["telemetry"]["successes"] += 1
+                    self._grant_profile_xp(actor_profile, 120)
                 else:
-                    campaign["lives"] = _clamp(campaign["lives"] - 1, 0, 3)
+                    sandbox_enabled = bool(session.get("sandbox", {}).get("enabled", False))
+                    campaign["lives"] = campaign["lives"] if sandbox_enabled else _clamp(campaign["lives"] - 1, 0, 3)
                     session["telemetry"]["failures"] += 1
-                    if campaign["lives"] == 0:
+                    self._grant_profile_xp(actor_profile, 40)
+                    if campaign["lives"] == 0 and not sandbox_enabled:
                         campaign["permadeath"] = True
                         campaign["depth"] = 1
                         campaign["lives"] = 3
@@ -596,6 +622,9 @@ class GameplayStore:
                         if pvp["operator_stability"] >= pvp["sabotage_pressure"]
                         else "saboteur"
                     )
+                self._grant_profile_xp(actor_profile, 12)
+                if pvp["winner"] == "operator":
+                    self._grant_profile_xp(actor_profile, 72)
             elif action_type == "time.create_fork":
                 label = str(payload.get("label") or "").strip() or f"fork-{len(session['time']['forks']) + 1}"
                 playhead_ms = _clamp(int(payload.get("playhead_ms") or 0), 0, 3_600_000)
@@ -657,6 +686,9 @@ class GameplayStore:
                     "counter-focus" if action == "exploit" else "aoe-pressure" if action == "strike" else "shield-break"
                 )
                 session["telemetry"]["boss_damage_total"] += damage
+                self._grant_profile_xp(actor_profile, 10)
+                if boss["hp"] <= 0:
+                    self._grant_profile_xp(actor_profile, 180)
             elif action_type == "director.evaluate":
                 failures = int(payload.get("failures") or 0)
                 retries = int(payload.get("retries") or 0)
@@ -722,6 +754,7 @@ class GameplayStore:
                 session["guild"]["operations_score"] += impact
                 if impact > 0:
                     session["guild"]["events_completed"] += 1
+                    self._grant_profile_xp(actor_profile, impact * 6)
                 guild_id = session["guild"]["guild_id"]
                 if guild_id:
                     guild = self._state["guilds"].get(guild_id)
@@ -764,6 +797,7 @@ class GameplayStore:
                 if challenge["completed"] and not was_completed:
                     session["economy"]["tokens"] += challenge["reward"]
                     session["liveops"]["telemetry"]["challengeCompletions"] += 1
+                    self._grant_profile_xp(actor_profile, 80)
             elif action_type == "liveops.balance":
                 liveops = session["liveops"]
                 telemetry = liveops["telemetry"]

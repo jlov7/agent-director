@@ -15,6 +15,7 @@ describe('GameplayMode', () => {
     expect(screen.getByText('Gameplay Command Center')).toBeInTheDocument();
     expect(screen.getByLabelText('Gameplay completion')).toBeInTheDocument();
     expect(screen.getByText(/Core Loop \+ Outcomes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Level 1/i)).toBeInTheDocument();
   });
 
   it('adds a raid member and advances campaign', () => {
@@ -51,5 +52,11 @@ describe('GameplayMode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Report player' }));
     expect(screen.getByText(/Muted 1/i)).toBeInTheDocument();
     expect(screen.getByText(/Abuse in chat/i)).toBeInTheDocument();
+  });
+
+  it('toggles sandbox mode from core loop card', () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: 'Enable sandbox' }));
+    expect(screen.getByText(/Sandbox ON/i)).toBeInTheDocument();
   });
 });

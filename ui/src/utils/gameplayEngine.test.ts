@@ -21,6 +21,7 @@ import {
   reportPlayer,
   rewindActiveFork,
   runPvPRound,
+  setSandboxMode,
   unlockSkillNode,
 } from './gameplayEngine';
 
@@ -40,6 +41,7 @@ describe('gameplayEngine', () => {
     expect(state.campaign.depth).toBe(initialDepth + 1);
     expect(state.economy.credits).toBeGreaterThan(0);
     expect(state.outcome.status).toBe('partial');
+    expect(state.progression.xp).toBeGreaterThan(0);
   });
 
   it('applies branching narrative choices', () => {
@@ -150,5 +152,25 @@ describe('gameplayEngine', () => {
       state = completeCampaignMission(state, true);
     }
     expect(state.outcome.status).toBe('win');
+  });
+
+  it('prevents life penalties when sandbox mode is enabled', () => {
+    let state = createInitialGameplayState('trace-1');
+    state = setSandboxMode(state, true);
+    const livesBefore = state.campaign.lives;
+    state = completeCampaignMission(state, false);
+    expect(state.campaign.lives).toBe(livesBefore);
+    expect(state.outcome.reason).toMatch(/no life penalty/i);
+  });
+
+  it('levels up and awards skill points from progression xp', () => {
+    let state = createInitialGameplayState('trace-1');
+    const initialLevel = state.progression.level;
+    const initialPoints = state.skills.points;
+    for (let index = 0; index < 3; index += 1) {
+      state = completeCampaignMission(state, true);
+    }
+    expect(state.progression.level).toBeGreaterThanOrEqual(initialLevel + 1);
+    expect(state.skills.points).toBeGreaterThan(initialPoints);
   });
 });
