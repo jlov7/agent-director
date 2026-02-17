@@ -2,6 +2,12 @@
 
 Below is the complete, prioritized list of "perfecting" work. Each item is framed as a checkable task. We can tackle them in batches instead of one‑by‑one.
 
+## Pre-Release World-Class Launch Program (Active)
+- [x] Master tracker: `WORLD_CLASS_RELEASE_TODO.md`
+- [ ] Batch A: WR-031, WR-036, WR-038, WR-039
+- [ ] Batch B: WR-001, WR-002, WR-003, WR-004, WR-018, WR-029, WR-030
+- [ ] Batch C: WR-005..WR-017, WR-019..WR-028, WR-032..WR-035, WR-037, WR-040
+
 ## P0 — Must‑Have Excellence (UX + Correctness + Scale)
 - [x] UX audit pass across Cinema / Flow / Compare / Inspector (spacing, hierarchy, zero dead‑zones)
 - [x] Accessibility baseline: focus order, ARIA labels, keyboard traps, contrast check

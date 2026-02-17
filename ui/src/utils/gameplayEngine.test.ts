@@ -5,6 +5,7 @@ import {
   advanceRaidObjective,
   applyBossAction,
   applyNarrativeChoice,
+  blockPlayer,
   completeCampaignMission,
   craftUpgrade,
   createInitialGameplayState,
@@ -13,7 +14,9 @@ import {
   generateAdaptiveDirectorUpdate,
   joinRaid,
   mergeForkIntoPrimary,
+  mutePlayer,
   pushCinematicEvent,
+  reportPlayer,
   rewindActiveFork,
   runPvPRound,
   unlockSkillNode,
@@ -106,5 +109,15 @@ describe('gameplayEngine', () => {
     const next = advanceLiveOpsWeek(state);
     expect(next.liveops.week).toBe(state.liveops.week + 1);
     expect(next.liveops.challenge.id).not.toBe(state.liveops.challenge.id);
+  });
+
+  it('tracks player safety moderation actions', () => {
+    let state = createInitialGameplayState('trace-1');
+    state = mutePlayer(state, 'griefer-1');
+    state = blockPlayer(state, 'griefer-2');
+    state = reportPlayer(state, 'griefer-2', 'Repeated sabotage and abuse');
+    expect(state.safety.mutedPlayerIds).toContain('griefer-1');
+    expect(state.safety.blockedPlayerIds).toContain('griefer-2');
+    expect(state.safety.reports[0]?.targetPlayerId).toBe('griefer-2');
   });
 });

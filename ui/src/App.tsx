@@ -343,6 +343,7 @@ function mapGameplaySessionToState(
         completed: session.liveops.challenge.completed,
       },
     },
+    safety: fallback.safety,
   };
 }
 

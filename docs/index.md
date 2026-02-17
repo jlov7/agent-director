@@ -17,6 +17,13 @@ Welcome to the Agent Director documentation hub.
 - `hosting.md` — live demo hosting options
 - `ux-audit-2026-02-14.md` — deep multi-persona UX audit findings, fixes, and verification evidence
 
+## Release Ops + Trust
+- `ops/release-safety.md` — canary + rollback release runbook
+- `ops/live-balancing-runbook.md` — live difficulty/economy balancing workflow
+- `ops/support-operations.md` — support triage, severity model, and response flow
+- `legal/terms.md` — draft terms of use
+- `legal/privacy.md` — draft privacy notice
+
 ## Project hygiene
 - `../CONTRIBUTING.md` — dev flow + tests
 - `../SECURITY.md` — responsible disclosure

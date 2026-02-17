@@ -200,6 +200,13 @@ See `TESTING.md` for details.
 - `docs/executive-summary.pdf` — one-page summary
 - `docs/demo-script.md` — 90s live demo script
 
+## Trust + Release Ops
+- `docs/legal/terms.md` — draft terms of use
+- `docs/legal/privacy.md` — draft privacy notice
+- `docs/ops/support-operations.md` — support intake, triage, and response model
+- `docs/ops/live-balancing-runbook.md` — weekly gameplay balancing workflow
+- `docs/ops/release-safety.md` — canary + rollback runbook
+
 ## Gameplay Systems (v2)
 
 The Gameplay Command Center now supports backend-authoritative multiplayer and progression systems:

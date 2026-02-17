@@ -1,36 +1,33 @@
 ## Current Task
 
-Implement the Overnight Frontend UX Transformation Sprint to full completion with exhaustive tracking and verification evidence.
+Execute the world-class pre-release launch program from `WORLD_CLASS_RELEASE_TODO.md` to full completion with exhaustive tracking and continuous implementation.
 
 ## Status
 
-Completed
+In Progress
 
 ## Plan
 
-1. [x] Create/update sprint tracking artifacts (`TASKS.md`, `.codex/PLANS.md`, `.codex/SCRATCHPAD.md`, plan doc)
-2. [x] Implement mission pulse + motion controls in header and app shell wiring
-3. [x] Implement adaptive intro launch paths and startup behavior
-4. [x] Implement journey priority queue and action wiring
-5. [x] Implement command palette recents/pins/macros
-6. [x] Implement director brief tabs + action completion UX
-7. [x] Implement handoff digest action and clipboard status
-8. [x] Implement mobile quick rail + responsive polish
-9. [x] Update component tests for new UX features
-10. [x] Run verification gates and close tracking artifacts
+1. [x] Initialize master exhaustive tracker (`WORLD_CLASS_RELEASE_TODO.md`) and sync `TASKS.md`
+2. [ ] Complete Batch A docs/features (WR-031, WR-036, WR-038, WR-039, WR-018) — WR-036/038/039 done, WR-018 in progress
+3. [ ] Implement Batch B release-critical gameplay and telemetry foundations
+4. [ ] Implement Batch C remaining world-class systems and polish
+5. [ ] Run full verification gates and finalize release evidence
 
 ## Decisions Made
 
-- Keep this sprint frontend-only to maximize speed and minimize release risk.
-- Implement ten concrete UX tracks with test evidence in the same session.
-- Preserve existing onboarding/help/gameplay flows while adding new guidance layers.
+- Use a single source-of-truth tracker with fixed IDs (`WR-001..WR-040`) to prevent scope loss.
+- Execute in batches with explicit definition-of-done criteria per item.
+- Deliver legal/support/release-op artifacts first so launch risk and trust gaps are closed early.
 
 ## Open Questions
 
-- None currently blocking.
+- None blocking Batch A implementation.
 
 ## Verification Gates
 
-- `pnpm -C ui typecheck` (pass)
-- `pnpm -C ui test` (pass)
-- `make verify` (pass)
+- `pnpm -C ui typecheck`
+- `pnpm -C ui test`
+- `make verify`
+- `make doctor`
+- `make scorecard`

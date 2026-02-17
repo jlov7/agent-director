@@ -5,6 +5,7 @@ import {
   advanceRaidObjective,
   applyBossAction,
   applyNarrativeChoice,
+  blockPlayer,
   completeCampaignMission,
   craftUpgrade,
   createTimeFork,
@@ -12,7 +13,9 @@ import {
   generateAdaptiveDirectorUpdate,
   joinRaid,
   mergeForkIntoPrimary,
+  mutePlayer,
   pushCinematicEvent,
+  reportPlayer,
   rewindActiveFork,
   runPvPRound,
   unlockSkillNode,
@@ -70,6 +73,8 @@ export default function GameplayMode({
   const [guildNameInput, setGuildNameInput] = useState('Night Ops Guild');
   const [guildEventTitle, setGuildEventTitle] = useState('Weekly Raid Drill');
   const [guildEventAt, setGuildEventAt] = useState('2026-02-16T20:00:00Z');
+  const [safetyTargetPlayer, setSafetyTargetPlayer] = useState('');
+  const [safetyReason, setSafetyReason] = useState('Abusive behavior');
   const multiplayerActive = Boolean(session?.id && onDispatchAction);
 
   const applyAction = (
@@ -107,6 +112,7 @@ export default function GameplayMode({
     const done = tracks.filter(Boolean).length;
     return { done, total: tracks.length, pct: Math.round((done / tracks.length) * 100) };
   }, [state]);
+  const safety = state.safety ?? { mutedPlayerIds: [], blockedPlayerIds: [], reports: [] };
 
   return (
     <section className="gameplay-mode">
@@ -650,6 +656,63 @@ export default function GameplayMode({
               Progress challenge
             </button>
           </div>
+        </article>
+
+        <article className="gameplay-card">
+          <h3>13) Safety and Moderation</h3>
+          <p>
+            Muted {safety.mutedPlayerIds.length} • Blocked {safety.blockedPlayerIds.length} • Reports{' '}
+            {safety.reports.length}
+          </p>
+          <div className="gameplay-inline">
+            <input
+              className="search-input"
+              value={safetyTargetPlayer}
+              onChange={(event) => setSafetyTargetPlayer(event.target.value)}
+              placeholder="Player id"
+              aria-label="Safety player id"
+            />
+            <input
+              className="search-input"
+              value={safetyReason}
+              onChange={(event) => setSafetyReason(event.target.value)}
+              placeholder="Reason"
+              aria-label="Safety reason"
+            />
+          </div>
+          <div className="gameplay-inline">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => onUpdate((prev) => mutePlayer(prev, safetyTargetPlayer))}
+            >
+              Mute player
+            </button>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => onUpdate((prev) => blockPlayer(prev, safetyTargetPlayer))}
+            >
+              Block player
+            </button>
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => onUpdate((prev) => reportPlayer(prev, safetyTargetPlayer, safetyReason))}
+            >
+              Report player
+            </button>
+          </div>
+          {safety.reports.length > 0 ? (
+            <div className="gameplay-list">
+              {safety.reports.slice(0, 3).map((report) => (
+                <div key={report.id} className="gameplay-node">
+                  <span>{report.targetPlayerId}</span>
+                  <span>{report.reason}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </article>
       </div>
     </section>

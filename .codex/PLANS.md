@@ -1,3 +1,51 @@
+# Pre-Release World-Class Launch ExecPlan
+
+## Purpose / Big Picture
+
+Ship Agent Director at a true public-launch quality bar: durable gameplay, operational safety, compliance readiness, and retention-grade user journeys.
+
+## Scope
+
+- In scope: all items in `WORLD_CLASS_RELEASE_TODO.md` (`WR-001..WR-040`).
+- Out of scope: unrelated refactors and speculative architecture rewrites that do not advance a tracked WR item.
+
+## Progress
+
+- [x] Initialize exhaustive tracker and task IDs (`WORLD_CLASS_RELEASE_TODO.md`)
+- [x] Sync launcher section in `TASKS.md`
+- [ ] Batch A (WR-031, WR-036, WR-038, WR-039, WR-018)
+- [ ] Batch B (WR-001, WR-002, WR-003, WR-004, WR-018, WR-029, WR-030)
+- [ ] Batch C (remaining WR items)
+- [ ] Final verification and release evidence refresh
+
+## Surprises & Discoveries
+
+- Existing codebase already includes substantial gameplay/liveops primitives; several WR items are hardening/polish work rather than greenfield builds.
+
+## Decision Log
+
+- Use WR IDs with explicit definitions-of-done to avoid losing scope under rapid iteration.
+- Implement in small verification-backed batches while preserving `main` branch stability.
+
+## Validation Plan
+
+- Per-batch targeted checks plus full gates before completion claims:
+  - `pnpm -C ui typecheck`
+  - `pnpm -C ui test`
+  - `make verify`
+  - `make doctor`
+  - `make scorecard`
+
+## Outcomes & Retrospective
+
+In progress.
+
+Batch A update:
+- Completed WR-036 (terms/privacy docs and doc navigation wiring).
+- Completed WR-038 (release safety canary/rollback runbook).
+- Completed WR-039 (support operations runbook and user-facing help section).
+- Advanced WR-018 with in-app safety controls (report/mute/block) in Gameplay Mode.
+
 # World-Class UX Program ExecPlan
 
 ## Purpose / Big Picture

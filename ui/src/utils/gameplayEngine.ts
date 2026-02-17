@@ -149,6 +149,19 @@ export type LiveOpsState = {
   challenge: LiveOpsChallenge;
 };
 
+export type SafetyReport = {
+  id: string;
+  targetPlayerId: string;
+  reason: string;
+  createdAt: number;
+};
+
+export type SafetyState = {
+  mutedPlayerIds: string[];
+  blockedPlayerIds: string[];
+  reports: SafetyReport[];
+};
+
 export type GameplayState = {
   seed: number;
   raid: RaidState;
@@ -163,6 +176,7 @@ export type GameplayState = {
   guild: GuildState;
   cinematic: CinematicState;
   liveops: LiveOpsState;
+  safety: SafetyState;
 };
 
 const HAZARD_POOL = [
@@ -387,6 +401,11 @@ export function createInitialGameplayState(seedSource: string): GameplayState {
       season: `Season-${2026 + (seed % 2)}`,
       week: 1,
       challenge: challengeForWeek(seed, 1),
+    },
+    safety: {
+      mutedPlayerIds: [],
+      blockedPlayerIds: [],
+      reports: [],
     },
   };
 }
@@ -736,6 +755,69 @@ export function advanceLiveOpsWeek(state: GameplayState): GameplayState {
       ...state.liveops,
       week,
       challenge,
+    },
+  };
+}
+
+function normalizePlayerId(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function readSafetyState(state: GameplayState): SafetyState {
+  return (
+    state.safety ?? {
+      mutedPlayerIds: [],
+      blockedPlayerIds: [],
+      reports: [],
+    }
+  );
+}
+
+export function reportPlayer(state: GameplayState, targetPlayerId: string, reason: string): GameplayState {
+  const playerId = normalizePlayerId(targetPlayerId);
+  const message = reason.trim();
+  if (!playerId || !message) return state;
+  const safety = readSafetyState(state);
+  const report: SafetyReport = {
+    id: `report-${safety.reports.length + 1}-${state.seed % 1000}`,
+    targetPlayerId: playerId,
+    reason: message,
+    createdAt: Date.now(),
+  };
+  return {
+    ...state,
+    safety: {
+      ...safety,
+      reports: [report, ...safety.reports].slice(0, 40),
+    },
+  };
+}
+
+export function mutePlayer(state: GameplayState, targetPlayerId: string): GameplayState {
+  const playerId = normalizePlayerId(targetPlayerId);
+  const safety = readSafetyState(state);
+  if (!playerId || safety.mutedPlayerIds.includes(playerId)) return state;
+  return {
+    ...state,
+    safety: {
+      ...safety,
+      mutedPlayerIds: [...safety.mutedPlayerIds, playerId],
+    },
+  };
+}
+
+export function blockPlayer(state: GameplayState, targetPlayerId: string): GameplayState {
+  const playerId = normalizePlayerId(targetPlayerId);
+  const safety = readSafetyState(state);
+  if (!playerId || safety.blockedPlayerIds.includes(playerId)) return state;
+  return {
+    ...state,
+    safety: {
+      ...safety,
+      blockedPlayerIds: [...safety.blockedPlayerIds, playerId],
+      mutedPlayerIds: safety.mutedPlayerIds.includes(playerId)
+        ? safety.mutedPlayerIds
+        : [...safety.mutedPlayerIds, playerId],
     },
   };
 }
