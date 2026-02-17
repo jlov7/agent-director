@@ -50,7 +50,8 @@ for (const viewport of viewports) {
       await preparePage(page);
       await page.goto('/');
       await page.getByTitle('Graph view').click();
-      await expect(page.locator('.flow-node').first()).toBeVisible();
+      // CI can resolve offscreen/hidden virtualized nodes first; use the canvas visibility as the stable readiness signal.
+      await expect(page.locator('.flow-canvas')).toBeVisible();
       await page.evaluate(() => window.scrollTo(0, 0));
       await maybePercySnapshot(page, `ux-${viewport.name}-flow`, { widths: [viewport.size.width] });
       await expect(page.locator('.app')).toHaveScreenshot(`ux-${viewport.name}-flow.png`, screenshotOptions);
