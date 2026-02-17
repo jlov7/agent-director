@@ -259,6 +259,8 @@ export interface GameplayMission {
   hazards: string[];
   reward_tokens: number;
   reward_materials: number;
+  mission_seed?: number;
+  blueprint?: string;
 }
 
 export interface GameplayProfile {

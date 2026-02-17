@@ -240,6 +240,15 @@ class GameplayStore:
         boss = session.setdefault("boss", {})
         boss.setdefault("phase_mechanic", "Phase 1: Shield lattice destabilization")
         boss.setdefault("vulnerability", "exploit")
+        campaign = session.get("campaign", {})
+        current_mission = campaign.get("current_mission")
+        if isinstance(current_mission, dict):
+            mission_seed = int(current_mission.get("mission_seed") or _hash_seed(f"{session.get('seed', 0)}:{campaign.get('depth', 1)}"))
+            current_mission.setdefault("mission_seed", mission_seed)
+            current_mission.setdefault(
+                "blueprint",
+                f"seed={mission_seed};depth={campaign.get('depth', 1)};mutators=legacy",
+            )
         session.setdefault(
             "safety",
             {
@@ -289,15 +298,19 @@ class GameplayStore:
         economy.setdefault("inflation_index", 1.0)
 
     def _mission(self, seed: int, depth: int, modifiers: list[str]) -> Dict[str, Any]:
-        hazard_a = HAZARDS[(seed + depth) % len(HAZARDS)]
-        hazard_b = HAZARDS[(seed + depth + 2) % len(HAZARDS)]
+        mission_seed = _hash_seed(f"{seed}:{depth}:{'|'.join(modifiers)}")
+        hazard_a = HAZARDS[mission_seed % len(HAZARDS)]
+        hazard_b = HAZARDS[(mission_seed // 7) % len(HAZARDS)]
+        normalized_modifiers = sorted(modifiers)[-2:]
         return {
             "id": f"mission-{depth}-{(seed + depth) % 997}",
             "title": f"Scenario Depth {depth}",
             "difficulty": _clamp(1 + depth // 2, 1, 10),
-            "hazards": [hazard_a, hazard_b] + modifiers[-2:],
+            "hazards": list(dict.fromkeys([hazard_a, hazard_b] + normalized_modifiers[-1:])),
             "reward_tokens": 60 + depth * 15,
             "reward_materials": 10 + depth * 4,
+            "mission_seed": mission_seed,
+            "blueprint": f"seed={mission_seed};depth={depth};mutators={','.join(normalized_modifiers) or 'none'}",
         }
 
     def _ensure_profile(self, player_id: str) -> Dict[str, Any]:

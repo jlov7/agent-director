@@ -264,6 +264,14 @@ function mapGameplaySessionToState(
         difficulty: session.campaign.current_mission.difficulty,
         hazards: session.campaign.current_mission.hazards,
         rewardCredits: session.campaign.current_mission.reward_tokens,
+        missionSeed:
+          session.campaign.current_mission.mission_seed ??
+          fallback.campaign.currentMission.missionSeed ??
+          session.seed,
+        blueprint:
+          session.campaign.current_mission.blueprint ??
+          fallback.campaign.currentMission.blueprint ??
+          `seed=${session.seed};depth=${session.campaign.depth}`,
       },
       completedMissionIds: session.campaign.completed_missions,
       mutators: [...session.campaign.modifiers, ...session.campaign.unlocked_modifiers],

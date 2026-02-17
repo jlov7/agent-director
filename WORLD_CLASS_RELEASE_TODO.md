@@ -26,7 +26,7 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 | WR-008 | done | Economy | Economy balance pass | Stable source/sink loop with anti-inflation safeguards |
 | WR-009 | done | Rewards | Reward cadence | Daily/session/streak/mastery rewards with UX surfaces |
 | WR-010 | done | Encounters | Boss encounter depth | Multi-phase boss logic + visible phase mechanics + tests |
-| WR-011 | todo | Content | Procedural mission generation | Seeded generation with reproducibility and replay consistency |
+| WR-011 | done | Content | Procedural mission generation | Seeded generation with reproducibility and replay consistency |
 | WR-012 | todo | Content | Daily/weekly challenges | Rotating challenge system with schedule + claim flow |
 | WR-013 | todo | Content | Seasonal framework | Season cadence, rewards, reset behavior, and migration rules |
 | WR-014 | todo | Multiplayer | Co-op lifecycle hardening | Create/join/reconnect/leave flows stable across failures |
@@ -92,3 +92,4 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 - 2026-02-17: Completed WR-008 with adaptive reward scaling, anti-inflation sinks, weekly upkeep drains, and economy validation across UI/backend contracts.
 - 2026-02-17: Completed WR-009 with daily/session/streak/mastery claim flows, backend validation rules, and in-app reward cadence surfaces.
 - 2026-02-17: Completed WR-010 with phase-aware boss damage tuning, visible vulnerability mechanics, and expanded encounter regression coverage.
+- 2026-02-17: Completed WR-011 with deterministic seeded mission metadata, replay-stable campaign blueprints, backward-compatible mission normalization, and regression tests across UI/backend contracts.

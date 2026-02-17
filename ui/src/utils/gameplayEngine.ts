@@ -26,6 +26,8 @@ export type CampaignMission = {
   difficulty: number;
   hazards: string[];
   rewardCredits: number;
+  missionSeed: number;
+  blueprint: string;
 };
 
 export type CampaignState = {
@@ -300,16 +302,26 @@ function hashSeed(source: string) {
   return hash;
 }
 
-function missionFromDepth(seed: number, depth: number, mutators: string[]): CampaignMission {
-  const hazardA = HAZARD_POOL[(seed + depth) % HAZARD_POOL.length] as string;
-  const hazardB = HAZARD_POOL[(seed + depth + 2) % HAZARD_POOL.length] as string;
+export function generateSeededMission(seed: number, depth: number, mutators: string[]): CampaignMission {
+  const missionSeed = hashSeed(`${seed}:${depth}:${mutators.join('|')}`);
+  const hazardA = HAZARD_POOL[missionSeed % HAZARD_POOL.length] as string;
+  const hazardB = HAZARD_POOL[Math.floor(missionSeed / 7) % HAZARD_POOL.length] as string;
+  const uniqueHazards = Array.from(new Set([hazardA, hazardB]));
+  const normalizedMutators = [...mutators].sort().slice(-2);
+  const blueprint = `seed=${missionSeed};depth=${depth};mutators=${normalizedMutators.join(',') || 'none'}`;
   return {
     id: `mission-${depth}-${(seed + depth) % 997}`,
     title: `Scenario Depth ${depth}`,
     difficulty: difficultyForDepth(depth),
-    hazards: [hazardA, hazardB, ...mutators.slice(-1)],
+    hazards: [...uniqueHazards, ...normalizedMutators.slice(-1)],
     rewardCredits: 60 + depth * 15,
+    missionSeed,
+    blueprint,
   };
+}
+
+function missionFromDepth(seed: number, depth: number, mutators: string[]): CampaignMission {
+  return generateSeededMission(seed, depth, mutators);
 }
 
 export function difficultyForDepth(depth: number): number {

@@ -304,6 +304,8 @@ export default function GameplayMode({
           <h3>2) Roguelike Scenario Campaign</h3>
           <p>Depth {state.campaign.depth} • Lives {state.campaign.lives}</p>
           <p>{state.campaign.currentMission.title} (difficulty {state.campaign.currentMission.difficulty})</p>
+          <p>Mission seed {state.campaign.currentMission.missionSeed} • Hazards {state.campaign.currentMission.hazards.join(', ')}</p>
+          <p>{state.campaign.currentMission.blueprint}</p>
           <p>Difficulty ramp bands: D1-1, D2-3, D4-5, D6-7, D8-9, D10+.</p>
           <div className="gameplay-inline">
             <button

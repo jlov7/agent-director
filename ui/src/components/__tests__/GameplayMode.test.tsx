@@ -84,4 +84,10 @@ describe('GameplayMode', () => {
     expect(screen.getByText(/Phase 1: Shield lattice destabilization/i)).toBeInTheDocument();
     expect(screen.getByText(/Current vulnerability: exploit/i)).toBeInTheDocument();
   });
+
+  it('shows deterministic mission seed metadata in campaign card', () => {
+    render(<Harness />);
+    expect(screen.getByText(/Mission seed/i)).toBeInTheDocument();
+    expect(screen.getByText(/seed=.*depth=1/i)).toBeInTheDocument();
+  });
 });

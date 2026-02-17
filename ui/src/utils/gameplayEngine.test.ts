@@ -14,6 +14,7 @@ import {
   createTimeFork,
   difficultyForDepth,
   equipLoadoutSkill,
+  generateSeededMission,
   generateAdaptiveDirectorUpdate,
   joinRaid,
   mergeForkIntoPrimary,
@@ -115,6 +116,12 @@ describe('gameplayEngine', () => {
     expect(difficultyForDepth(3)).toBe(2);
     expect(difficultyForDepth(6)).toBe(4);
     expect(difficultyForDepth(25)).toBe(10);
+  });
+
+  it('generates deterministic seeded missions for identical inputs', () => {
+    const missionA = generateSeededMission(2026, 4, ['baseline', 'stability-first']);
+    const missionB = generateSeededMission(2026, 4, ['baseline', 'stability-first']);
+    expect(missionA).toEqual(missionB);
   });
 
   it('supports time fork create, rewind, and merge', () => {

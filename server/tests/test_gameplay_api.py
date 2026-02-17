@@ -209,6 +209,8 @@ class TestGameplayApi(unittest.TestCase):
 
         self.assertGreater(session["campaign"]["depth"], 1)
         self.assertEqual(session["campaign"]["lives"], 3)
+        self.assertIn("mission_seed", session["campaign"]["current_mission"])
+        self.assertIn("blueprint", session["campaign"]["current_mission"])
         self.assertGreater(len(session["narrative"]["history"]), 0)
         self.assertIn("skill-focus", session["profiles"]["host"]["unlocked_skills"])
         self.assertIn("skill-focus", session["profiles"]["host"]["loadout"])
@@ -388,6 +390,23 @@ class TestGameplayApi(unittest.TestCase):
         self.assertGreaterEqual(phase, 2)
         self.assertIn("phase_mechanic", action_data["session"]["boss"])
         self.assertIn("vulnerability", action_data["session"]["boss"])
+
+    def test_campaign_mission_generation_is_seeded_and_reproducible(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/sessions",
+            {"trace_id": "trace-1", "host_player_id": "host", "name": "Mission Seed"},
+        )
+        self.assertEqual(status, 201)
+        session_id = data["session"]["id"]
+        first = data["session"]["campaign"]["current_mission"]
+
+        status, data = self._request("GET", f"/api/gameplay/sessions/{session_id}")
+        self.assertEqual(status, 200)
+        second = data["session"]["campaign"]["current_mission"]
+        self.assertEqual(first["mission_seed"], second["mission_seed"])
+        self.assertEqual(first["blueprint"], second["blueprint"])
+        self.assertIn("depth=1", first["blueprint"])
 
     def test_guild_and_liveops_endpoints(self) -> None:
         status, data = self._request(
