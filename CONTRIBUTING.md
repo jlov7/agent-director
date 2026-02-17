@@ -1,31 +1,56 @@
 # Contributing
 
-Thanks for helping make Agent Director better.
+Thanks for helping improve Agent Director.
 
-## Setup
+## Project principles
+
+- Keep changes focused and reviewable.
+- Preserve redaction-first defaults and safe-export behavior.
+- Avoid breaking trace, replay, and API compatibility without explicit migration notes.
+
+## Local setup
+
 ```bash
 pnpm -C ui install
-python3 -m venv .venv
-source .venv/bin/activate
+```
+
+Run the API:
+
+```bash
+python3 server/main.py
+```
+
+Run the UI:
+
+```bash
+pnpm -C ui dev
 ```
 
 ## Development flow
-1. Create a branch from `main`.
-2. Make focused changes with tests.
-3. Run `make verify` (or `make verify-strict` for mutation checks).
-4. Open a PR with clear description and screenshots for UI changes.
 
-## Style
-- Prefer clear naming and small, composable functions.
-- Keep payloads redacted by default.
-- Avoid breaking trace compatibility.
+1. Branch from `main`.
+2. Implement changes with tests.
+3. Run verification:
+   - `make verify`
+   - `make verify-strict` for stricter gates when needed
+4. Update docs/screenshots if behavior or UX changed.
+5. Open a PR with:
+   - clear summary
+   - risk notes
+   - verification evidence
+   - screenshots for visible UI changes
 
-## UI updates
-- Update Playwright snapshots when needed:
-  ```bash
-  pnpm -C ui exec playwright test --update-snapshots
-  ```
+## UI snapshot updates
 
-## Tests
-- `make verify` (full suite)
-- `make verify-strict` (mutation testing)
+If UI visuals changed intentionally:
+
+```bash
+pnpm -C ui exec playwright test --update-snapshots
+```
+
+## Quality gate commands
+
+- `make verify`
+- `make verify-strict`
+- `make doctor`
+- `make scorecard`

@@ -31,7 +31,7 @@ Playwright will generate an HTML report in `ui/playwright-report` with traces an
 - UI unit tests (Vitest)
 - UI E2E tests (Playwright)
 - Accessibility scan (Axe via Playwright)
-- Responsive snapshot suite (tablet + mobile)
+- Responsive snapshot suite (tablet coverage plus dedicated deep mobile probes)
 - Mutation checks (strict mode)
 
 ## Playwright setup
@@ -42,6 +42,10 @@ pnpm -C ui exec playwright install chromium
 ```
 
 Playwright runs with `VITE_FORCE_DEMO=1` to keep UI snapshots deterministic.
+
+## CI behavior note
+
+The GitHub `verify` workflow runs Playwright in a constrained single-worker CI environment. Prefer stable container-level readiness checks in tests over assertions on individual virtualized nodes.
 
 ## Lighthouse CI
 Run local Lighthouse budgets (uses Playwright’s Chromium binary):

@@ -36,12 +36,15 @@ Deploys the Vite UI as a static site with demo data baked in.
    - Production: `vercel deploy --prod -y`
 4. Inspect deployment logs:
    - `vercel inspect agent-director.vercel.app --logs`
+5. Confirm latest project deployments:
+   - `vercel ls agent-director`
 
 ### Vercel quality checks
 
 - Keep `VITE_FORCE_DEMO=1` in Preview and Production for a deterministic public demo.
 - Keep `VITE_HIDE_BUILD_DATE=1` in Preview and Production for stable visuals/screenshots.
 - `vercel.json` enforces security headers on all responses and immutable cache headers for `/assets/*`.
+- Production alias should resolve to `https://agent-director.vercel.app`.
 
 ## Render (full stack)
 Host the Python API and static UI separately.

@@ -18,6 +18,17 @@
 
 Agent Director is a cinematic, chat-native trace debugger for AI agents. It turns agent runs into an interactive film strip and semantic graph, with replay + diff for “what-if” experimentation.
 
+## Who this is for
+- Engineers debugging multi-step agent runs and tool-call chains
+- Teams running replay and counterfactual analysis before production changes
+- Demo/pilot users who need a deterministic, explainable trace UX
+
+## Start here
+- New to the repo: read `docs/getting-started.md`
+- Need endpoint details: read `docs/api-reference.md`
+- Need architecture context: read `docs/architecture.md`
+- Need release/ops detail: read `docs/index.md`
+
 ## Highlights
 - Timestamp-accurate playback with overlap lanes (no summed-duration artifacts)
 - Flow mode with Structure / Sequence / I/O binding layers + morph transitions
@@ -35,7 +46,7 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 - Director briefing hero with the 3‑act flow and instant Tour / Story entry points
 - CI + strict verification gates with mutation testing
 
-## Quick demo (90 seconds)
+## Product walkthrough (90 seconds)
 1. Start the guided tour (from the intro overlay or Guide button), or hit Story mode to auto-run.
 2. Pause at any point and take over manually.
 3. Load the latest run and hit Play to show timeline playback.
@@ -84,7 +95,12 @@ flowchart LR
 - **Safe sharing:** redaction-by-default with explicit reveal and safe export.
 - **Scenario governance:** presets, validation, and redacted exports for matrix runs.
 
-## Quickstart
+## Quickstart (5 minutes)
+
+Prerequisites:
+- Python `3.12+`
+- Node.js `20+`
+- `pnpm`
 
 ### Server (HTTP API for the UI)
 ```bash
@@ -115,6 +131,16 @@ python3 -m server.mcp_server
 
 Set `AGENT_DIRECTOR_MCP_TRANSPORT` to `stdio` if your host requires stdio.
 Set `AGENT_DIRECTOR_UI_URL` to the UI entrypoint that the host should load (defaults to `http://127.0.0.1:5173`).
+
+## API quick reference
+
+See `docs/api-reference.md` for the full endpoint list and response semantics.
+
+Common paths:
+- `/api/traces/*` (trace read/query/replay/comment)
+- `/api/replay-jobs/*` (matrix replay batches)
+- `/api/gameplay/*` (sessions/profiles/social/guild/liveops)
+- `/api/stream/*` (SSE streams)
 
 ## Environment variables
 
@@ -181,15 +207,17 @@ make verify-ux
 
 | Category | Tests | Coverage |
 |----------|-------|----------|
-| Unit (Vitest) | 301 | Components, hooks, API, utilities, gameplay systems |
+| Unit (Vitest) | 300+ | Components, hooks, API, utilities, gameplay systems |
 | E2E (Playwright) | 45 | Onboarding, keyboard, inspector, gameplay, flow, matrix |
 | Visual | 7+ | Cinema, Flow, Compare, Matrix state snapshots |
 | Accessibility | 1 | Axe violations scan |
 
 See `TESTING.md` for details.
 
-## Docs (story + diagrams)
+## Documentation
 - `docs/index.md` — documentation hub
+- `docs/getting-started.md` — install/run/verify quick path
+- `docs/api-reference.md` — HTTP + SSE endpoint reference
 - `docs/story.md` — product narrative + positioning
 - `docs/architecture.md` — system design + diagrams
 - `docs/ux.md` — interaction model + magic moments
@@ -241,9 +269,9 @@ curl -X POST http://127.0.0.1:8787/api/gameplay/sessions \
 curl http://127.0.0.1:8787/api/gameplay/liveops/current
 ```
 
-## Overnight UX Transformation (2026-02-16)
+## Recent UX upgrades
 
-The latest frontend sprint adds:
+Recent upgrades include:
 
 - Mission pulse header (run health score, mission completion snapshot, mode hotkeys).
 - Motion profiles (`cinematic`, `balanced`, `minimal`) with persisted preference.
@@ -274,6 +302,7 @@ python3 scripts/content_authoring.py validate-liveops ./challenge.json
 ### Vercel
 - The repository includes `vercel.json` with explicit install/build/output settings for `ui`.
 - Required Vercel env vars for deterministic public demo: `VITE_FORCE_DEMO=1`, `VITE_HIDE_BUILD_DATE=1`.
+- Production URL: https://agent-director.vercel.app
 - Recommended deploy flow:
   - `vercel deploy -y` (preview)
   - `vercel deploy --prod -y` (production)
@@ -285,7 +314,5 @@ python3 scripts/content_authoring.py validate-liveops ./challenge.json
 - Push to `main` to trigger deployment.
 
 ---
-
-If you want the logo swapped for a vector mark or full brand kit, say the word.
 
 <sub>Agent Director is a personal R&D / passion project by Jason Lovell. It is independent work and is not sponsored by, endorsed by, or affiliated with Jason’s employer.</sub>

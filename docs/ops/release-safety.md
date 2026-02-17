@@ -37,7 +37,7 @@ Rollback immediately if any of the following occurs:
 ### Vercel
 
 ```bash
-vercel ls
+vercel ls agent-director
 vercel rollback <deployment-url-or-id>
 vercel inspect <deployment-url-or-id> --logs
 ```
