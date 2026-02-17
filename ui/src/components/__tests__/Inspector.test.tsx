@@ -55,7 +55,7 @@ describe('Inspector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetchStepDetails.mockImplementation(() => new Promise(() => {}));
-    mockFetchComments.mockResolvedValue([]);
+    mockFetchComments.mockImplementation(() => new Promise(() => {}));
     mockCreateComment.mockResolvedValue(null);
   });
 
