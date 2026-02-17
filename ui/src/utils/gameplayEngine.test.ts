@@ -145,6 +145,35 @@ describe('gameplayEngine', () => {
     expect(state.economy.crafted).toContain('stability_patch');
   });
 
+  it('applies anti-inflation reward scaling and sink controls', () => {
+    let state = createInitialGameplayState('trace-1');
+    state = {
+      ...state,
+      economy: {
+        ...state.economy,
+        credits: 900,
+        inflationIndex: 2.813,
+      },
+    };
+    const before = state.economy.credits;
+    state = completeCampaignMission(state, true);
+    expect(state.economy.credits).toBeLessThan(before + 75);
+    expect(state.economy.inflationIndex).toBeGreaterThan(0);
+  });
+
+  it('applies weekly upkeep sink during liveops rotation', () => {
+    const state = {
+      ...createInitialGameplayState('trace-1'),
+      economy: {
+        ...createInitialGameplayState('trace-1').economy,
+        credits: 700,
+        inflationIndex: 2.188,
+      },
+    };
+    const next = advanceLiveOpsWeek(state);
+    expect(next.economy.credits).toBeLessThan(state.economy.credits);
+  });
+
   it('updates guild operations score', () => {
     const state = createInitialGameplayState('trace-1');
     const next = advanceGuildOperation(state, 8);

@@ -116,6 +116,14 @@ RECIPES: Dict[str, Dict[str, int]] = {
     "overclock_core": {"tokens": 42, "materials": 20, "boss_damage": 18},
 }
 
+ECONOMY_POLICY_DEFAULT = {
+    "target_reserve": 320,
+    "sink_threshold": 540,
+    "sink_rate": 0.22,
+    "reward_floor": 0.45,
+    "reward_ceiling": 1.12,
+}
+
 LIVEOPS_CATALOG = [
     {"id": "challenge-raid", "title": "Complete 3 raid objectives", "goal": 3, "reward": 120},
     {"id": "challenge-boss", "title": "Defeat a boss phase", "goal": 1, "reward": 180},
@@ -237,6 +245,28 @@ class GameplayStore:
                 "reports": [],
             },
         )
+        economy = session.setdefault(
+            "economy",
+            {
+                "tokens": 0,
+                "materials": 0,
+                "crafted": [],
+                "ledger": [],
+                "policy": deepcopy(ECONOMY_POLICY_DEFAULT),
+                "inflation_index": 1.0,
+            },
+        )
+        self._normalize_economy(economy)
+
+    def _normalize_economy(self, economy: Dict[str, Any]) -> None:
+        economy.setdefault("tokens", 0)
+        economy.setdefault("materials", 0)
+        economy.setdefault("crafted", [])
+        economy.setdefault("ledger", [])
+        policy = economy.setdefault("policy", {})
+        for key, value in ECONOMY_POLICY_DEFAULT.items():
+            policy.setdefault(key, value)
+        economy.setdefault("inflation_index", 1.0)
 
     def _mission(self, seed: int, depth: int, modifiers: list[str]) -> Dict[str, Any]:
         hazard_a = HAZARDS[(seed + depth) % len(HAZARDS)]
@@ -281,6 +311,133 @@ class GameplayStore:
         self._normalize_session(payload, self._state["liveops"])
         payload["economy"]["ledger_count"] = len(payload["economy"].get("ledger", []))
         return payload
+
+    def _refresh_economy_index(self, economy: Dict[str, Any]) -> None:
+        self._normalize_economy(economy)
+        target = max(1, int(economy["policy"].get("target_reserve", 1)))
+        economy["inflation_index"] = round(float(economy.get("tokens", 0)) / float(target), 3)
+
+    def _append_economy_ledger(self, economy: Dict[str, Any], entry: Dict[str, Any]) -> None:
+        self._normalize_economy(economy)
+        economy["ledger"].append(entry)
+        economy["ledger"] = economy["ledger"][-200:]
+
+    def _apply_anti_inflation_sink(self, session: Dict[str, Any], trigger: str) -> int:
+        economy = session["economy"]
+        self._normalize_economy(economy)
+        policy = economy["policy"]
+        threshold = int(policy.get("sink_threshold", ECONOMY_POLICY_DEFAULT["sink_threshold"]))
+        tokens = int(economy.get("tokens", 0))
+        if tokens <= threshold:
+            self._refresh_economy_index(economy)
+            return 0
+        overflow = tokens - threshold
+        sink_rate = float(policy.get("sink_rate", ECONOMY_POLICY_DEFAULT["sink_rate"]))
+        sink_amount = max(1, int(round(overflow * sink_rate)))
+        economy["tokens"] = max(0, tokens - sink_amount)
+        self._append_economy_ledger(
+            economy,
+            {
+                "id": uuid4().hex[:8],
+                "type": "sink",
+                "reason": f"anti_inflation:{trigger}",
+                "tokens": -sink_amount,
+                "materials": 0,
+                "at": _utc_now(),
+            },
+        )
+        self._refresh_economy_index(economy)
+        return sink_amount
+
+    def _apply_token_reward(
+        self, session: Dict[str, Any], base_tokens: int, reason: str, metadata: Dict[str, Any] | None = None
+    ) -> int:
+        if base_tokens <= 0:
+            return 0
+        economy = session["economy"]
+        self._normalize_economy(economy)
+        policy = economy["policy"]
+        target = max(1, int(policy.get("target_reserve", ECONOMY_POLICY_DEFAULT["target_reserve"])))
+        tokens = int(economy.get("tokens", 0))
+        floor = float(policy.get("reward_floor", ECONOMY_POLICY_DEFAULT["reward_floor"]))
+        ceiling = float(policy.get("reward_ceiling", ECONOMY_POLICY_DEFAULT["reward_ceiling"]))
+        if tokens <= target:
+            lift = min(0.12, ((target - tokens) / target) * 0.12)
+            multiplier = min(ceiling, 1.0 + lift)
+        else:
+            pressure = (tokens - target) / target
+            multiplier = max(floor, 1.0 - pressure * 0.35)
+        awarded = max(1, int(round(base_tokens * multiplier)))
+        economy["tokens"] = tokens + awarded
+        ledger_entry = {
+            "id": uuid4().hex[:8],
+            "type": "reward",
+            "reason": reason,
+            "base_tokens": int(base_tokens),
+            "tokens": awarded,
+            "materials": 0,
+            "multiplier": round(multiplier, 3),
+            "at": _utc_now(),
+        }
+        if metadata:
+            ledger_entry["meta"] = metadata
+        self._append_economy_ledger(economy, ledger_entry)
+        self._apply_anti_inflation_sink(session, trigger=reason)
+        self._refresh_economy_index(economy)
+        return awarded
+
+    def _spend_resources(
+        self,
+        session: Dict[str, Any],
+        *,
+        tokens: int,
+        materials: int,
+        reason: str,
+        metadata: Dict[str, Any] | None = None,
+    ) -> None:
+        economy = session["economy"]
+        self._normalize_economy(economy)
+        if tokens > 0:
+            economy["tokens"] = max(0, int(economy["tokens"]) - tokens)
+        if materials > 0:
+            economy["materials"] = max(0, int(economy["materials"]) - materials)
+        ledger_entry = {
+            "id": uuid4().hex[:8],
+            "type": "spend",
+            "reason": reason,
+            "tokens": -int(tokens),
+            "materials": -int(materials),
+            "at": _utc_now(),
+        }
+        if metadata:
+            ledger_entry["meta"] = metadata
+        self._append_economy_ledger(economy, ledger_entry)
+        self._refresh_economy_index(economy)
+
+    def _apply_weekly_upkeep_sink(self, session: Dict[str, Any]) -> int:
+        economy = session["economy"]
+        self._normalize_economy(economy)
+        policy = economy["policy"]
+        target = int(policy.get("target_reserve", ECONOMY_POLICY_DEFAULT["target_reserve"]))
+        tokens = int(economy.get("tokens", 0))
+        if tokens <= target:
+            self._refresh_economy_index(economy)
+            return 0
+        upkeep = max(6, int(round((tokens - target) * 0.08)))
+        economy["tokens"] = max(0, tokens - upkeep)
+        self._append_economy_ledger(
+            economy,
+            {
+                "id": uuid4().hex[:8],
+                "type": "sink",
+                "reason": "weekly_upkeep",
+                "tokens": -upkeep,
+                "materials": 0,
+                "at": _utc_now(),
+            },
+        )
+        self._refresh_economy_index(economy)
+        return upkeep
 
     def _publish(self, session_id: str, event_type: str, payload: Dict[str, Any]) -> None:
         event = {"type": event_type, "publishedAt": _utc_now(), **payload}
@@ -398,6 +555,8 @@ class GameplayStore:
                     "materials": 100,
                     "crafted": [],
                     "ledger": [],
+                    "policy": deepcopy(ECONOMY_POLICY_DEFAULT),
+                    "inflation_index": 0.5,
                 },
                 "guild": {
                     "guild_id": None,
@@ -576,7 +735,12 @@ class GameplayStore:
                     raise ValueError("objective_id not found")
                 session["raid"]["completed"] = all(item["completed"] for item in objectives)
                 if session["raid"]["completed"]:
-                    session["economy"]["tokens"] += 140
+                    self._apply_token_reward(
+                        session,
+                        140,
+                        "raid_completion",
+                        {"objective_id": objective_id},
+                    )
                     session["liveops"]["telemetry"]["sessionsCompleted"] += 1
                     self._grant_profile_xp(actor_profile, 60)
             elif action_type == "raid.use_ability":
@@ -612,7 +776,12 @@ class GameplayStore:
                 if success:
                     campaign["depth"] += 1
                     campaign["completed_missions"].append(mission["id"])
-                    session["economy"]["tokens"] += mission["reward_tokens"]
+                    self._apply_token_reward(
+                        session,
+                        int(mission["reward_tokens"]),
+                        "campaign_success",
+                        {"mission_id": mission["id"], "depth": campaign["depth"]},
+                    )
                     session["economy"]["materials"] += mission["reward_materials"]
                     if campaign["depth"] % 2 == 0:
                         campaign["unlocked_modifiers"].append(f"modifier-depth-{campaign['depth']}")
@@ -789,19 +958,15 @@ class GameplayStore:
                 economy = session["economy"]
                 if economy["tokens"] < recipe["tokens"] or economy["materials"] < recipe["materials"]:
                     raise ValueError("Insufficient resources")
-                economy["tokens"] -= recipe["tokens"]
-                economy["materials"] -= recipe["materials"]
+                self._spend_resources(
+                    session,
+                    tokens=recipe["tokens"],
+                    materials=recipe["materials"],
+                    reason="craft",
+                    metadata={"recipe_id": recipe_id},
+                )
                 if recipe_id not in economy["crafted"]:
                     economy["crafted"].append(recipe_id)
-                ledger_entry = {
-                    "id": uuid4().hex[:8],
-                    "type": "craft",
-                    "recipe_id": recipe_id,
-                    "tokens": -recipe["tokens"],
-                    "materials": -recipe["materials"],
-                    "at": _utc_now(),
-                }
-                economy["ledger"].append(ledger_entry)
                 if recipe_id == "stability_patch":
                     session["pvp"]["operator_stability"] = _clamp(
                         session["pvp"]["operator_stability"] + recipe["stability_gain"], 0, 100
@@ -819,6 +984,7 @@ class GameplayStore:
                 session["guild"]["operations_score"] += impact
                 if impact > 0:
                     session["guild"]["events_completed"] += 1
+                    self._apply_token_reward(session, impact * 3, "guild_op", {"impact": impact})
                     self._grant_profile_xp(actor_profile, impact * 6)
                 guild_id = session["guild"]["guild_id"]
                 if guild_id:
@@ -860,7 +1026,12 @@ class GameplayStore:
                 challenge["progress"] = _clamp(challenge["progress"] + delta, 0, challenge["goal"])
                 challenge["completed"] = challenge["progress"] >= challenge["goal"]
                 if challenge["completed"] and not was_completed:
-                    session["economy"]["tokens"] += challenge["reward"]
+                    self._apply_token_reward(
+                        session,
+                        int(challenge["reward"]),
+                        "liveops_challenge",
+                        {"challenge_id": challenge["id"]},
+                    )
                     session["liveops"]["telemetry"]["challengeCompletions"] += 1
                     self._grant_profile_xp(actor_profile, 80)
             elif action_type == "liveops.balance":
@@ -891,6 +1062,7 @@ class GameplayStore:
                 liveops["tuning_history"] = [tuning_entry, *liveops.get("tuning_history", [])][:20]
             elif action_type == "liveops.advance_week":
                 self._advance_liveops_week_locked(session["liveops"])
+                self._apply_weekly_upkeep_sink(session)
             elif action_type == "safety.mute":
                 target_player_id = str(payload.get("target_player_id") or "").strip().lower()
                 if not target_player_id:

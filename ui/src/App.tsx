@@ -319,6 +319,15 @@ function mapGameplaySessionToState(
       credits: session.economy.tokens,
       materials: session.economy.materials,
       crafted: session.economy.crafted,
+      reserveTarget: session.economy.policy?.target_reserve ?? fallback.economy.reserveTarget ?? 320,
+      inflationIndex:
+        session.economy.inflation_index ??
+        Number(
+          (
+            session.economy.tokens /
+            (session.economy.policy?.target_reserve ?? fallback.economy.reserveTarget ?? 320)
+          ).toFixed(3)
+        ),
     },
     guild: {
       name: session.guild.guild_id ?? 'Trace Guild',

@@ -17,6 +17,7 @@ import {
   joinRaid,
   mergeForkIntoPrimary,
   mutePlayer,
+  progressLiveOpsChallenge,
   pushCinematicEvent,
   reportPlayer,
   setSandboxMode,
@@ -47,10 +48,6 @@ type GameplayModeProps = {
   observability?: GameplayObservabilitySummary | null;
   analytics?: GameplayAnalyticsFunnelSummary | null;
 };
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
 
 export default function GameplayMode({
   state,
@@ -547,6 +544,10 @@ export default function GameplayMode({
         <article className="gameplay-card">
           <h3>9) Mission Economy + Crafting</h3>
           <p>Credits {state.economy.credits} • Materials {state.economy.materials}</p>
+          <p>
+            Reserve target {state.economy.reserveTarget} • Inflation index {state.economy.inflationIndex.toFixed(2)} (
+            {state.economy.inflationIndex > 1.7 ? 'hot' : state.economy.inflationIndex > 1.2 ? 'elevated' : 'stable'})
+          </p>
           <div className="gameplay-inline">
             <button
               className="ghost-button"
@@ -738,17 +739,7 @@ export default function GameplayMode({
                 applyAction(
                   'liveops.progress',
                   { delta: 1 },
-                  (prev) => ({
-                    ...prev,
-                    liveops: {
-                      ...prev.liveops,
-                      challenge: {
-                        ...prev.liveops.challenge,
-                        progress: clamp(prev.liveops.challenge.progress + 1, 0, prev.liveops.challenge.goal),
-                        completed: prev.liveops.challenge.progress + 1 >= prev.liveops.challenge.goal,
-                      },
-                    },
-                  })
+                  (prev) => progressLiveOpsChallenge(prev, 1)
                 )
               }
             >

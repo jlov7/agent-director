@@ -346,6 +346,14 @@ export interface GameplaySession {
     crafted: string[];
     ledger: Array<Record<string, unknown>>;
     ledger_count: number;
+    inflation_index?: number;
+    policy?: {
+      target_reserve?: number;
+      sink_threshold?: number;
+      sink_rate?: number;
+      reward_floor?: number;
+      reward_ceiling?: number;
+    };
   };
   guild: {
     guild_id: string | null;

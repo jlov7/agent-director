@@ -128,6 +128,8 @@ export type EconomyState = {
   credits: number;
   materials: number;
   crafted: string[];
+  inflationIndex: number;
+  reserveTarget: number;
 };
 
 export type GuildState = {
@@ -523,6 +525,8 @@ export function createInitialGameplayState(seedSource: string): GameplayState {
       credits: 140,
       materials: 90,
       crafted: [],
+      inflationIndex: 0.438,
+      reserveTarget: 320,
     },
     guild: {
       name: 'Trace Guild',
@@ -612,10 +616,6 @@ export function advanceRaidObjective(state: GameplayState, objectiveId: string, 
       objectives,
       completed,
     },
-    economy: {
-      ...state.economy,
-      credits: state.economy.credits + completionReward,
-    },
     outcome:
       completed && !state.raid.completed
         ? {
@@ -625,7 +625,8 @@ export function advanceRaidObjective(state: GameplayState, objectiveId: string, 
           }
         : currentOutcome,
   };
-  return completed && !state.raid.completed ? grantProgressionXp(nextState, 60) : nextState;
+  if (!completed || state.raid.completed) return nextState;
+  return grantProgressionXp(applyCreditReward(nextState, completionReward), 60);
 }
 
 export function completeCampaignMission(state: GameplayState, success: boolean): GameplayState {
@@ -654,7 +655,6 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
       },
       economy: {
         ...withMission.economy,
-        credits: withMission.economy.credits + current.rewardCredits,
         materials: withMission.economy.materials + 14,
       },
       director: {
@@ -663,7 +663,7 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
       },
       outcome,
     };
-    return grantProgressionXp(nextState, 120);
+    return grantProgressionXp(applyCreditReward(nextState, current.rewardCredits), 120);
   }
 
   const lives = sandbox.enabled ? state.campaign.lives : clamp(state.campaign.lives - 1, 0, 3);
@@ -945,13 +945,16 @@ export function craftUpgrade(state: GameplayState, recipeId: CraftRecipeId): Gam
   if (!recipe) return state;
   if (state.economy.credits < recipe.credits || state.economy.materials < recipe.materials) return state;
   const crafted = state.economy.crafted.includes(recipeId) ? state.economy.crafted : [...state.economy.crafted, recipeId];
+  const reserveTarget = state.economy.reserveTarget || 320;
+  const nextCredits = state.economy.credits - recipe.credits;
   let nextState: GameplayState = {
     ...state,
     economy: {
       ...state.economy,
-      credits: state.economy.credits - recipe.credits,
+      credits: nextCredits,
       materials: state.economy.materials - recipe.materials,
       crafted,
+      inflationIndex: Number((nextCredits / reserveTarget).toFixed(3)),
     },
   };
   if (recipeId === 'stability_patch') {
@@ -998,12 +1001,9 @@ export function advanceGuildOperation(state: GameplayState, impact: number): Gam
       operationsScore: state.guild.operationsScore + normalizedImpact,
       eventsCompleted: state.guild.eventsCompleted + (normalizedImpact > 0 ? 1 : 0),
     },
-    economy: {
-      ...state.economy,
-      credits: state.economy.credits + Math.max(0, normalizedImpact * 3),
-    },
   };
-  return grantProgressionXp(nextState, Math.max(0, normalizedImpact * 6));
+  const withReward = normalizedImpact > 0 ? applyCreditReward(nextState, normalizedImpact * 3) : nextState;
+  return grantProgressionXp(withReward, Math.max(0, normalizedImpact * 6));
 }
 
 export function pushCinematicEvent(
@@ -1038,7 +1038,7 @@ export function advanceLiveOpsWeek(state: GameplayState): GameplayState {
     goal: Math.max(1, Math.round(challengeSeed.goal * difficultyFactor)),
     rewardCredits: Math.max(1, Math.round(challengeSeed.rewardCredits * rewardMultiplier)),
   };
-  return {
+  const nextState: GameplayState = {
     ...state,
     liveops: {
       ...liveops,
@@ -1046,6 +1046,28 @@ export function advanceLiveOpsWeek(state: GameplayState): GameplayState {
       challenge,
     },
   };
+  return applyWeeklyEconomySink(nextState);
+}
+
+export function progressLiveOpsChallenge(state: GameplayState, delta: number): GameplayState {
+  const liveops = readLiveOpsState(state);
+  const challenge = liveops.challenge;
+  const normalizedDelta = clamp(delta, 0, 20);
+  const progress = clamp(challenge.progress + normalizedDelta, 0, challenge.goal);
+  const completed = progress >= challenge.goal;
+  const nextState: GameplayState = {
+    ...state,
+    liveops: {
+      ...liveops,
+      challenge: {
+        ...challenge,
+        progress,
+        completed,
+      },
+    },
+  };
+  if (!completed || challenge.completed) return nextState;
+  return grantProgressionXp(applyCreditReward(nextState, challenge.rewardCredits), 80);
 }
 
 export function applyLiveOpsBalancing(
@@ -1078,6 +1100,56 @@ export function applyLiveOpsBalancing(
       difficultyFactor: nextDifficulty,
       rewardMultiplier: nextReward,
       tuningHistory: [tuningEntry, ...liveops.tuningHistory].slice(0, 20),
+    },
+  };
+}
+
+function applyCreditReward(state: GameplayState, baseCredits: number): GameplayState {
+  if (baseCredits <= 0) return state;
+  const reserveTarget = state.economy.reserveTarget || 320;
+  const credits = state.economy.credits;
+  let multiplier = 1;
+  if (credits <= reserveTarget) {
+    const lift = Math.min(0.12, ((reserveTarget - credits) / reserveTarget) * 0.12);
+    multiplier = Math.min(1.12, 1 + lift);
+  } else {
+    const pressure = (credits - reserveTarget) / reserveTarget;
+    multiplier = Math.max(0.45, 1 - pressure * 0.35);
+  }
+  const awarded = Math.max(1, Math.round(baseCredits * multiplier));
+  const sinkThreshold = Math.round(reserveTarget * 1.7);
+  const preSinkCredits = credits + awarded;
+  const sink = preSinkCredits > sinkThreshold ? Math.max(1, Math.round((preSinkCredits - sinkThreshold) * 0.22)) : 0;
+  const nextCredits = preSinkCredits - sink;
+  return {
+    ...state,
+    economy: {
+      ...state.economy,
+      credits: nextCredits,
+      inflationIndex: Number((nextCredits / reserveTarget).toFixed(3)),
+    },
+  };
+}
+
+function applyWeeklyEconomySink(state: GameplayState): GameplayState {
+  const reserveTarget = state.economy.reserveTarget || 320;
+  if (state.economy.credits <= reserveTarget) {
+    return {
+      ...state,
+      economy: {
+        ...state.economy,
+        inflationIndex: Number((state.economy.credits / reserveTarget).toFixed(3)),
+      },
+    };
+  }
+  const upkeep = Math.max(6, Math.round((state.economy.credits - reserveTarget) * 0.08));
+  const nextCredits = Math.max(0, state.economy.credits - upkeep);
+  return {
+    ...state,
+    economy: {
+      ...state.economy,
+      credits: nextCredits,
+      inflationIndex: Number((nextCredits / reserveTarget).toFixed(3)),
     },
   };
 }

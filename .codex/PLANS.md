@@ -51,6 +51,7 @@ Batch A update:
 - Completed WR-005 with sandbox toggle UX and no-penalty failure handling in gameplay progression.
 - Completed WR-006 with persistent XP progression, level-up rewards, milestone unlock contracts, and backend save/load support.
 - Completed WR-007 with tuned skill unlock paths, per-slot loadout constraints, and validated frontend/backend progression rules.
+- Completed WR-008 with anti-inflation economy controls, source/sink balancing, and week-over-week upkeep safeguards.
 
 # World-Class UX Program ExecPlan
 

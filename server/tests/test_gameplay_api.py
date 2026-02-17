@@ -271,6 +271,39 @@ class TestGameplayApi(unittest.TestCase):
         slot_blocked = apply("skills.equip", {"player_id": "host", "skill_id": "skill-ward"}, expected_status=400)
         self.assertIn("slot limit", slot_blocked.get("error", ""))
 
+    def test_economy_rewards_apply_anti_inflation_controls(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/sessions",
+            {"trace_id": "trace-1", "host_player_id": "host", "name": "Economy Balance"},
+        )
+        self.assertEqual(status, 201)
+        session_id = data["session"]["id"]
+        version = data["session"]["version"]
+
+        for _ in range(14):
+            action_status, action_data = self._request(
+                "POST",
+                f"/api/gameplay/sessions/{session_id}/action",
+                {
+                    "player_id": "host",
+                    "type": "campaign.resolve_mission",
+                    "payload": {"success": True},
+                    "expected_version": version,
+                },
+            )
+            self.assertEqual(action_status, 200)
+            version = action_data["session"]["version"]
+
+        status, data = self._request("GET", f"/api/gameplay/sessions/{session_id}")
+        self.assertEqual(status, 200)
+        session = data["session"]
+        ledger = session["economy"]["ledger"]
+        self.assertTrue(any(entry.get("type") == "reward" for entry in ledger))
+        self.assertTrue(any(entry.get("type") == "sink" for entry in ledger))
+        self.assertLess(session["economy"]["tokens"], 1200)
+        self.assertLess(session["economy"]["inflation_index"], 4.0)
+
     def test_guild_and_liveops_endpoints(self) -> None:
         status, data = self._request(
             "POST",
