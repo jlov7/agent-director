@@ -193,12 +193,13 @@ def check_bundle_budget() -> dict:
 
 
 def check_ci_status() -> dict:
-    command = "gh pr view --json number,state,url,statusCheckRollup"
-    started = time.time()
     env = os.environ.copy()
     env.pop("NO_COLOR", None)
-    proc = subprocess.run(
-        command,
+
+    pr_command = "gh pr view --json number,state,url,statusCheckRollup"
+    started = time.time()
+    pr_proc = subprocess.run(
+        pr_command,
         cwd=ROOT,
         shell=True,
         capture_output=True,
@@ -207,56 +208,128 @@ def check_ci_status() -> dict:
         env=env,
     )
     duration = round(time.time() - started, 3)
-    if proc.returncode != 0:
+    if pr_proc.returncode == 0:
+        payload = json.loads(pr_proc.stdout)
+        failures = []
+        pending = []
+        for entry in payload.get("statusCheckRollup", []):
+            kind = entry.get("__typename")
+            if kind == "CheckRun":
+                name = entry.get("name", "unknown-check")
+                status = entry.get("status")
+                conclusion = entry.get("conclusion")
+                if status != "COMPLETED":
+                    pending.append(name)
+                elif conclusion != "SUCCESS":
+                    failures.append(f"{name}:{conclusion}")
+            elif kind == "StatusContext":
+                name = entry.get("context", "unknown-context")
+                state = entry.get("state")
+                if state == "PENDING":
+                    pending.append(name)
+                elif state != "SUCCESS":
+                    failures.append(f"{name}:{state}")
+
+        status = "pass" if not failures and not pending and payload.get("state") == "OPEN" else "fail"
         return {
             "id": "ci_status",
             "type": "command",
-            "command": command,
-            "returncode": proc.returncode,
-            "status": "fail",
+            "command": pr_command,
+            "returncode": pr_proc.returncode,
+            "status": status,
             "duration_s": duration,
-            "stdout_tail": tail(proc.stdout),
-            "stderr_tail": tail(proc.stderr),
-            "details": {"error": "Unable to read PR status via gh CLI."},
+            "stdout_tail": tail(pr_proc.stdout),
+            "stderr_tail": tail(pr_proc.stderr),
+            "details": {
+                "mode": "pr",
+                "pr_number": payload.get("number"),
+                "pr_state": payload.get("state"),
+                "pr_url": payload.get("url"),
+                "pending_checks": pending,
+                "failed_checks": failures,
+            },
         }
 
-    payload = json.loads(proc.stdout)
-    failures = []
-    pending = []
-    for entry in payload.get("statusCheckRollup", []):
-        kind = entry.get("__typename")
-        if kind == "CheckRun":
-            name = entry.get("name", "unknown-check")
-            status = entry.get("status")
-            conclusion = entry.get("conclusion")
-            if status != "COMPLETED":
-                pending.append(name)
-            elif conclusion != "SUCCESS":
-                failures.append(f"{name}:{conclusion}")
-        elif kind == "StatusContext":
-            name = entry.get("context", "unknown-context")
-            state = entry.get("state")
-            if state == "PENDING":
-                pending.append(name)
-            elif state != "SUCCESS":
-                failures.append(f"{name}:{state}")
+    # Fallback: detached-head or merged-main workflows with no active PR context.
+    run_command = (
+        "gh run list --limit 20 "
+        "--json databaseId,displayTitle,headBranch,status,conclusion,url,workflowName"
+    )
+    run_started = time.time()
+    run_proc = subprocess.run(
+        run_command,
+        cwd=ROOT,
+        shell=True,
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+    run_duration = round(time.time() - run_started, 3)
+    total_duration = round(duration + run_duration, 3)
 
-    status = "pass" if not failures and not pending and payload.get("state") == "OPEN" else "fail"
+    if run_proc.returncode != 0:
+        return {
+            "id": "ci_status",
+            "type": "command",
+            "command": f"{pr_command} || {run_command}",
+            "returncode": run_proc.returncode,
+            "status": "fail",
+            "duration_s": total_duration,
+            "stdout_tail": tail(run_proc.stdout),
+            "stderr_tail": tail(run_proc.stderr),
+            "details": {
+                "mode": "fallback_failed",
+                "error": "Unable to read PR or workflow status via gh CLI.",
+                "pr_error": tail(pr_proc.stderr),
+            },
+        }
+
+    runs = json.loads(run_proc.stdout)
+    main_verify_runs = [
+        run
+        for run in runs
+        if run.get("headBranch") == "main" and run.get("workflowName") == "verify"
+    ]
+    latest = main_verify_runs[0] if main_verify_runs else None
+    if not latest:
+        return {
+            "id": "ci_status",
+            "type": "command",
+            "command": f"{pr_command} || {run_command}",
+            "returncode": 1,
+            "status": "fail",
+            "duration_s": total_duration,
+            "stdout_tail": tail(run_proc.stdout),
+            "stderr_tail": tail(pr_proc.stderr),
+            "details": {
+                "mode": "fallback_main_verify_missing",
+                "error": "No recent main/verify workflow runs found.",
+            },
+        }
+
+    pending = latest.get("status") != "completed"
+    failed = latest.get("status") == "completed" and latest.get("conclusion") != "success"
+    status = "pass" if (not pending and latest.get("conclusion") == "success") else "fail"
     return {
         "id": "ci_status",
         "type": "command",
-        "command": command,
-        "returncode": proc.returncode,
+        "command": f"{pr_command} || {run_command}",
+        "returncode": 0,
         "status": status,
-        "duration_s": duration,
-        "stdout_tail": tail(proc.stdout),
-        "stderr_tail": tail(proc.stderr),
+        "duration_s": total_duration,
+        "stdout_tail": tail(run_proc.stdout),
+        "stderr_tail": tail(pr_proc.stderr),
         "details": {
-            "pr_number": payload.get("number"),
-            "pr_state": payload.get("state"),
-            "pr_url": payload.get("url"),
-            "pending_checks": pending,
-            "failed_checks": failures,
+            "mode": "main_workflow_fallback",
+            "pr_error": tail(pr_proc.stderr),
+            "workflow_run_id": latest.get("databaseId"),
+            "workflow_name": latest.get("workflowName"),
+            "workflow_status": latest.get("status"),
+            "workflow_conclusion": latest.get("conclusion"),
+            "workflow_url": latest.get("url"),
+            "pending_checks": [latest.get("workflowName")] if pending else [],
+            "failed_checks": [latest.get("workflowName")] if failed else [],
         },
     }
 

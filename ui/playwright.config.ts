@@ -6,8 +6,9 @@ export default defineConfig({
   snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}{ext}',
   expect: {
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.02,
-      maxDiffPixels: 20000,
+      // Keep visual checks strict while tolerating minor macOS/Linux raster differences in CI.
+      maxDiffPixelRatio: 0.03,
+      maxDiffPixels: 35000,
     },
   },
   use: {
