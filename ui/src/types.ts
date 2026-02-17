@@ -244,6 +244,14 @@ export interface GameplaySessionPlayer {
   presence: 'active' | 'idle';
 }
 
+export interface GameplayTeamPing {
+  id: string;
+  from_player_id: string;
+  intent: 'focus' | 'assist' | 'defend' | 'rotate';
+  target_objective_id?: string | null;
+  created_at: string;
+}
+
 export interface GameplayObjective {
   id: string;
   label: string;
@@ -418,6 +426,9 @@ export interface GameplaySession {
       rewardMultiplier?: number;
     };
   };
+  team_comms?: {
+    pings: GameplayTeamPing[];
+  };
   safety?: {
     muted_player_ids: string[];
     blocked_player_ids: string[];
@@ -439,6 +450,28 @@ export interface GameplaySession {
     avg_latency_ms: number;
     boss_damage_total: number;
   };
+}
+
+export interface GameplaySocialGraph {
+  player_id: string;
+  friends: string[];
+  incoming_invites: Array<{
+    id: string;
+    from_player_id: string;
+    to_player_id: string;
+    status: 'pending' | 'accepted';
+    created_at: string;
+    responded_at?: string;
+  }>;
+  outgoing_invites: Array<{
+    id: string;
+    from_player_id: string;
+    to_player_id: string;
+    status: 'pending' | 'accepted';
+    created_at: string;
+    responded_at?: string;
+  }>;
+  recent_teammates: string[];
 }
 
 export interface GameplayGuild {

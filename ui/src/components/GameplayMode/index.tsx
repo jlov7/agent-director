@@ -22,14 +22,23 @@ import {
   progressLiveOpsChallenge,
   pushCinematicEvent,
   reportPlayer,
+  sendTeamPing,
   setSandboxMode,
   rewindActiveFork,
   runPvPRound,
   unlockSkillNode,
   type GameplayState,
   type RaidRole,
+  type TeamPingIntent,
 } from '../../utils/gameplayEngine';
-import type { GameplayAnalyticsFunnelSummary, GameplayGuild, GameplayObservabilitySummary, GameplaySession } from '../../types';
+import type {
+  GameplayAnalyticsFunnelSummary,
+  GameplayGuild,
+  GameplayObservabilitySummary,
+  GameplaySession,
+  GameplaySocialGraph,
+} from '../../types';
+import { gameplayLabel, type GameplayLocale } from '../../utils/gameplayI18n';
 
 type GameplayModeProps = {
   state: GameplayState;
@@ -47,6 +56,18 @@ type GameplayModeProps = {
   onJoinGuild?: (guildId: string, playerId: string) => void;
   onScheduleGuildEvent?: (guildId: string, title: string, scheduledAt: string) => void;
   onCompleteGuildEvent?: (guildId: string, eventId: string, impact: number) => void;
+  onReconnectSession?: () => void;
+  social?: GameplaySocialGraph | null;
+  onInviteFriend?: (toPlayerId: string) => void;
+  onAcceptFriendInvite?: (inviteId: string) => void;
+  locale?: GameplayLocale;
+  onLocaleChange?: (locale: GameplayLocale) => void;
+  gamepadEnabled?: boolean;
+  onToggleGamepad?: (enabled: boolean) => void;
+  gamepadPreset?: 'standard' | 'lefty';
+  onGamepadPresetChange?: (preset: 'standard' | 'lefty') => void;
+  isOnline?: boolean;
+  onRetryConnectivity?: () => void;
   observability?: GameplayObservabilitySummary | null;
   analytics?: GameplayAnalyticsFunnelSummary | null;
 };
@@ -67,6 +88,18 @@ export default function GameplayMode({
   onJoinGuild,
   onScheduleGuildEvent,
   onCompleteGuildEvent,
+  onReconnectSession,
+  social,
+  onInviteFriend,
+  onAcceptFriendInvite,
+  locale = 'en',
+  onLocaleChange,
+  gamepadEnabled = true,
+  onToggleGamepad,
+  gamepadPreset = 'standard',
+  onGamepadPresetChange,
+  isOnline = true,
+  onRetryConnectivity,
   observability,
   analytics,
 }: GameplayModeProps) {
@@ -85,7 +118,18 @@ export default function GameplayMode({
   const [liveopsDifficultyFactor, setLiveopsDifficultyFactor] = useState('1');
   const [liveopsRewardMultiplier, setLiveopsRewardMultiplier] = useState('1');
   const [liveopsTuningNote, setLiveopsTuningNote] = useState('Weekly balance update');
+  const [pingIntent, setPingIntent] = useState<TeamPingIntent>('focus');
+  const [pingObjectiveId, setPingObjectiveId] = useState('obj-root-cause');
+  const [friendPlayerId, setFriendPlayerId] = useState('');
+  const [localSocial, setLocalSocial] = useState<GameplaySocialGraph>(() => ({
+    player_id: (playerId ?? 'director').toLowerCase(),
+    friends: [],
+    incoming_invites: [],
+    outgoing_invites: [],
+    recent_teammates: [],
+  }));
   const multiplayerActive = Boolean(session?.id && onDispatchAction);
+  const effectiveSocial = social ?? localSocial;
 
   const applyAction = (
     actionType: string,
@@ -123,6 +167,7 @@ export default function GameplayMode({
     return { done, total: tracks.length, pct: Math.round((done / tracks.length) * 100) };
   }, [state]);
   const safety = state.safety ?? { mutedPlayerIds: [], blockedPlayerIds: [], reports: [] };
+  const teamComms = state.teamComms ?? { pings: [] };
   const sandbox = state.sandbox ?? { enabled: false };
   const progression = state.progression ?? { xp: 0, level: 1, nextLevelXp: 200, milestones: [] };
   const rewards = state.rewards ?? {
@@ -183,6 +228,11 @@ export default function GameplayMode({
             {session?.id ? (
               <button className="ghost-button" type="button" onClick={() => onLeaveSession?.()}>
                 Leave session
+              </button>
+            ) : null}
+            {session?.id ? (
+              <button className="ghost-button" type="button" onClick={() => onReconnectSession?.()}>
+                Reconnect
               </button>
             ) : null}
           </div>
@@ -298,6 +348,44 @@ export default function GameplayMode({
               </div>
             ))}
           </div>
+          <div className="gameplay-inline">
+            <select aria-label="Ping intent" value={pingIntent} onChange={(event) => setPingIntent(event.target.value as TeamPingIntent)}>
+              <option value="focus">Focus</option>
+              <option value="assist">Assist</option>
+              <option value="defend">Defend</option>
+              <option value="rotate">Rotate</option>
+            </select>
+            <input
+              className="search-input"
+              value={pingObjectiveId}
+              onChange={(event) => setPingObjectiveId(event.target.value)}
+              placeholder="obj-root-cause"
+              aria-label="Ping objective id"
+            />
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() =>
+                applyAction(
+                  'comms.ping',
+                  { intent: pingIntent, target_objective_id: pingObjectiveId },
+                  (prev) => sendTeamPing(prev, pingIntent, pingObjectiveId, playerId ?? 'director')
+                )
+              }
+            >
+              Send ping
+            </button>
+          </div>
+          {teamComms.pings.length > 0 ? (
+            <div className="gameplay-list">
+              {teamComms.pings.slice(0, 3).map((ping) => (
+                <div key={ping.id} className="gameplay-node">
+                  <span>{ping.intent}</span>
+                  <span>{ping.targetObjectiveId ?? 'team-wide'}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </article>
 
         <article className="gameplay-card">
@@ -1008,6 +1096,130 @@ export default function GameplayMode({
               ))}
             </div>
           ) : null}
+        </article>
+
+        <article className="gameplay-card">
+          <h3>15) Friends + Invites</h3>
+          <p>
+            Friends {effectiveSocial.friends.length} • Incoming {effectiveSocial.incoming_invites.length} • Outgoing{' '}
+            {effectiveSocial.outgoing_invites.length}
+          </p>
+          <p>
+            Recent teammates:{' '}
+            {effectiveSocial.recent_teammates.length ? effectiveSocial.recent_teammates.slice(0, 4).join(', ') : 'none yet'}
+          </p>
+          <div className="gameplay-inline">
+            <input
+              className="search-input"
+              value={friendPlayerId}
+              onChange={(event) => setFriendPlayerId(event.target.value)}
+              placeholder="Player id"
+              aria-label="Friend player id"
+            />
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => {
+                const targetPlayerId = friendPlayerId.trim().toLowerCase();
+                if (!targetPlayerId) return;
+                if (onInviteFriend) {
+                  onInviteFriend(targetPlayerId);
+                  setFriendPlayerId('');
+                  return;
+                }
+                setLocalSocial((previous) => {
+                  const duplicate =
+                    previous.friends.includes(targetPlayerId) ||
+                    previous.outgoing_invites.some((invite) => invite.to_player_id === targetPlayerId);
+                  if (duplicate) return previous;
+                  const invite = {
+                    id: `invite-local-${previous.outgoing_invites.length + 1}`,
+                    from_player_id: previous.player_id,
+                    to_player_id: targetPlayerId,
+                    status: 'pending' as const,
+                    created_at: new Date().toISOString(),
+                  };
+                  return {
+                    ...previous,
+                    outgoing_invites: [invite, ...previous.outgoing_invites].slice(0, 10),
+                  };
+                });
+                setFriendPlayerId('');
+              }}
+            >
+              Invite friend
+            </button>
+          </div>
+          {effectiveSocial.incoming_invites.length > 0 ? (
+            <div className="gameplay-list">
+              {effectiveSocial.incoming_invites.slice(0, 3).map((invite) => (
+                <div key={invite.id} className="gameplay-node">
+                  <span>{invite.from_player_id}</span>
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() => {
+                      if (onAcceptFriendInvite) {
+                        onAcceptFriendInvite(invite.id);
+                        return;
+                      }
+                      setLocalSocial((previous) => ({
+                        ...previous,
+                        incoming_invites: previous.incoming_invites.filter((entry) => entry.id !== invite.id),
+                        friends: previous.friends.includes(invite.from_player_id)
+                          ? previous.friends
+                          : [...previous.friends, invite.from_player_id],
+                      }));
+                    }}
+                  >
+                    Accept
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </article>
+
+        <article className="gameplay-card">
+          <h3>{gameplayLabel(locale, 'input_resilience_title')}</h3>
+          <p>{isOnline ? gameplayLabel(locale, 'connectivity_online') : gameplayLabel(locale, 'connectivity_offline')}</p>
+          <p>{gameplayLabel(locale, 'controller_hint')}</p>
+          <div className="gameplay-inline">
+            <label>
+              {gameplayLabel(locale, 'locale_label')}
+              <select
+                aria-label="Gameplay locale"
+                value={locale}
+                onChange={(event) => onLocaleChange?.(event.target.value as GameplayLocale)}
+              >
+                <option value="en">English</option>
+                <option value="es">Espanol</option>
+              </select>
+            </label>
+            <label>
+              {gameplayLabel(locale, 'gamepad_preset_label')}
+              <select
+                aria-label="Gamepad preset"
+                value={gamepadPreset}
+                onChange={(event) => onGamepadPresetChange?.(event.target.value as 'standard' | 'lefty')}
+              >
+                <option value="standard">Standard</option>
+                <option value="lefty">Lefty</option>
+              </select>
+            </label>
+          </div>
+          <div className="gameplay-inline">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => onToggleGamepad?.(!gamepadEnabled)}
+            >
+              {gamepadEnabled ? gameplayLabel(locale, 'toggle_gamepad_on') : gameplayLabel(locale, 'toggle_gamepad_off')}
+            </button>
+            <button className="ghost-button" type="button" onClick={() => onRetryConnectivity?.()}>
+              {gameplayLabel(locale, 'retry_sync')}
+            </button>
+          </div>
         </article>
       </div>
     </section>

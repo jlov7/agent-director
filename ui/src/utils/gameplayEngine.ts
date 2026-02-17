@@ -218,6 +218,20 @@ export type SafetyState = {
   reports: SafetyReport[];
 };
 
+export type TeamPingIntent = 'focus' | 'assist' | 'defend' | 'rotate';
+
+export type TeamPing = {
+  id: string;
+  fromPlayerId: string;
+  intent: TeamPingIntent;
+  targetObjectiveId: string | null;
+  createdAt: number;
+};
+
+export type TeamCommsState = {
+  pings: TeamPing[];
+};
+
 export type OutcomeState = {
   status: GameplayOutcomeStatus;
   reason: string;
@@ -263,6 +277,7 @@ export type GameplayState = {
   guild: GuildState;
   cinematic: CinematicState;
   liveops: LiveOpsState;
+  teamComms: TeamCommsState;
   safety: SafetyState;
   outcome: OutcomeState;
   sandbox: SandboxState;
@@ -593,6 +608,9 @@ export function createInitialGameplayState(seedSource: string): GameplayState {
       difficultyFactor: 1,
       rewardMultiplier: 1,
       tuningHistory: [],
+    },
+    teamComms: {
+      pings: [],
     },
     safety: {
       mutedPlayerIds: [],
@@ -1351,6 +1369,14 @@ function readRewardsState(state: GameplayState): RewardsState {
   );
 }
 
+function readTeamCommsState(state: GameplayState): TeamCommsState {
+  return (
+    state.teamComms ?? {
+      pings: [],
+    }
+  );
+}
+
 function normalizePlayerId(value: string) {
   return value.trim().toLowerCase();
 }
@@ -1363,6 +1389,32 @@ function readSafetyState(state: GameplayState): SafetyState {
       reports: [],
     }
   );
+}
+
+export function sendTeamPing(
+  state: GameplayState,
+  intent: TeamPingIntent,
+  targetObjectiveId: string | null,
+  fromPlayerId: string = 'director'
+): GameplayState {
+  const normalizedIntent = intent;
+  const objectiveId = (targetObjectiveId ?? '').trim();
+  const hasObjective = objectiveId.length > 0;
+  if (hasObjective && !state.raid.objectives.some((objective) => objective.id === objectiveId)) return state;
+  const teamComms = readTeamCommsState(state);
+  const ping: TeamPing = {
+    id: `ping-${teamComms.pings.length + 1}-${state.seed % 1000}`,
+    fromPlayerId: normalizePlayerId(fromPlayerId) || 'director',
+    intent: normalizedIntent,
+    targetObjectiveId: hasObjective ? objectiveId : null,
+    createdAt: Date.now(),
+  };
+  return {
+    ...state,
+    teamComms: {
+      pings: [ping, ...teamComms.pings].slice(0, 50),
+    },
+  };
 }
 
 function readOutcomeState(state: GameplayState): OutcomeState {

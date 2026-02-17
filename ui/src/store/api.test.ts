@@ -34,7 +34,11 @@ import {
   createGameplaySession,
   getGameplaySession,
   joinGameplaySession,
+  reconnectGameplaySession,
   applyGameplayAction,
+  fetchGameplaySocialGraph,
+  inviteGameplayFriend,
+  acceptGameplayFriendInvite,
   fetchGameplayObservabilitySummary,
   fetchGameplayAnalyticsFunnels,
   fetchGameplayLiveOps,
@@ -952,6 +956,19 @@ describe('API Layer', () => {
       expect(joined?.version).toBe(2);
     });
 
+    it('reconnects a gameplay session participant', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ session: { id: 'session-1', version: 3, players: [{ player_id: 'alice' }] } }),
+      });
+      const session = await reconnectGameplaySession({ sessionId: 'session-1', playerId: 'alice' });
+      expect(session?.version).toBe(3);
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/gameplay/sessions/session-1/reconnect'),
+        expect.objectContaining({ method: 'POST' })
+      );
+    });
+
     it('reports conflict on gameplay action version mismatch', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
@@ -1038,6 +1055,63 @@ describe('API Layer', () => {
       const summary = await fetchGameplayAnalyticsFunnels();
       expect(summary?.funnels.session_start).toBe(4);
       expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/gameplay/analytics/funnels'));
+    });
+
+    it('loads social graph and processes invite flow', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            social: {
+              player_id: 'alice',
+              friends: [],
+              incoming_invites: [],
+              outgoing_invites: [],
+              recent_teammates: ['ally'],
+            },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            invite: { id: 'invite-1' },
+            social: {
+              player_id: 'alice',
+              friends: [],
+              incoming_invites: [],
+              outgoing_invites: [
+                {
+                  id: 'invite-1',
+                  from_player_id: 'alice',
+                  to_player_id: 'ally',
+                  status: 'pending',
+                  created_at: '2026-02-17T00:00:00Z',
+                },
+              ],
+              recent_teammates: ['ally'],
+            },
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            social: {
+              player_id: 'ally',
+              friends: ['alice'],
+              incoming_invites: [],
+              outgoing_invites: [],
+              recent_teammates: ['alice'],
+            },
+          }),
+        });
+
+      const graph = await fetchGameplaySocialGraph('alice');
+      const invitePayload = await inviteGameplayFriend({ fromPlayerId: 'alice', toPlayerId: 'ally' });
+      const accepted = await acceptGameplayFriendInvite({ playerId: 'ally', inviteId: 'invite-1' });
+
+      expect(graph?.recent_teammates[0]).toBe('ally');
+      expect(invitePayload?.social.outgoing_invites).toHaveLength(1);
+      expect(accepted?.friends).toContain('alice');
     });
   });
 

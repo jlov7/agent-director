@@ -183,6 +183,7 @@ class TestGameplayApi(unittest.TestCase):
             ("liveops.balance", {"difficulty_factor": 1.2, "reward_multiplier": 1.35, "note": "ops tune"}),
             ("liveops.advance_week", {}),
             ("rewards.claim", {"kind": "session"}),
+            ("comms.ping", {"intent": "focus", "target_objective_id": "obj-root-cause"}),
             ("safety.mute", {"target_player_id": "griefer-1"}),
             ("safety.block", {"target_player_id": "griefer-2"}),
             ("safety.report", {"target_player_id": "griefer-2", "reason": "abusive behavior"}),
@@ -229,6 +230,7 @@ class TestGameplayApi(unittest.TestCase):
         self.assertGreaterEqual(len(session["liveops"]["tuning_history"]), 1)
         self.assertTrue(session["rewards"]["session_claimed"])
         self.assertGreater(len(session["rewards"]["history"]), 0)
+        self.assertGreater(len(session["team_comms"]["pings"]), 0)
         self.assertIn("griefer-1", session["safety"]["muted_player_ids"])
         self.assertIn("griefer-2", session["safety"]["blocked_player_ids"])
         self.assertEqual(session["safety"]["reports"][0]["target_player_id"], "griefer-2")
@@ -407,6 +409,60 @@ class TestGameplayApi(unittest.TestCase):
         self.assertEqual(first["mission_seed"], second["mission_seed"])
         self.assertEqual(first["blueprint"], second["blueprint"])
         self.assertIn("depth=1", first["blueprint"])
+
+    def test_reconnect_and_friends_invite_flow(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/sessions",
+            {"trace_id": "trace-1", "host_player_id": "host", "name": "Social Session"},
+        )
+        self.assertEqual(status, 201)
+        session_id = data["session"]["id"]
+
+        status, data = self._request(
+            "POST",
+            f"/api/gameplay/sessions/{session_id}/join",
+            {"player_id": "ally", "role": "operator"},
+        )
+        self.assertEqual(status, 200)
+
+        status, data = self._request(
+            "POST",
+            f"/api/gameplay/sessions/{session_id}/reconnect",
+            {"player_id": "ally"},
+        )
+        self.assertEqual(status, 200)
+        ally = next(player for player in data["session"]["players"] if player["player_id"] == "ally")
+        self.assertEqual(ally["presence"], "active")
+
+        status, data = self._request("GET", "/api/gameplay/friends/host")
+        self.assertEqual(status, 200)
+        self.assertIn("ally", data["social"]["recent_teammates"])
+
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/friends/invite",
+            {"from_player_id": "host", "to_player_id": "ally"},
+        )
+        self.assertEqual(status, 201)
+        invite_id = data["invite"]["id"]
+
+        status, data = self._request("GET", "/api/gameplay/friends/ally")
+        self.assertEqual(status, 200)
+        self.assertEqual(len(data["social"]["incoming_invites"]), 1)
+        self.assertEqual(data["social"]["incoming_invites"][0]["id"], invite_id)
+
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/friends/accept",
+            {"player_id": "ally", "invite_id": invite_id},
+        )
+        self.assertEqual(status, 200)
+        self.assertIn("host", data["social"]["friends"])
+
+        status, data = self._request("GET", "/api/gameplay/friends/host")
+        self.assertEqual(status, 200)
+        self.assertIn("ally", data["social"]["friends"])
 
     def test_guild_and_liveops_endpoints(self) -> None:
         status, data = self._request(

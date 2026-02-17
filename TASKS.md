@@ -6,7 +6,7 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] Master tracker: `WORLD_CLASS_RELEASE_TODO.md`
 - [x] Batch A: WR-031, WR-036, WR-038, WR-039, WR-018
 - [x] Batch B: WR-029, WR-030
-- [ ] Batch C: WR-011..WR-017, WR-019..WR-028, WR-032..WR-035, WR-037, WR-040
+- [x] Batch C: WR-011..WR-017, WR-019..WR-028, WR-032..WR-035, WR-037, WR-040
 
 ## P0 — Must‑Have Excellence (UX + Correctness + Scale)
 - [x] UX audit pass across Cinema / Flow / Compare / Inspector (spacing, hierarchy, zero dead‑zones)

@@ -1,6 +1,7 @@
 import type {
   ExtensionDefinition,
   GameplayGuild,
+  GameplaySocialGraph,
   GameplayAnalyticsFunnelSummary,
   GameplayObservabilitySummary,
   GameplayLiveOps,
@@ -675,6 +676,20 @@ export async function leaveGameplaySession(input: {
   return payload?.session ?? null;
 }
 
+export async function reconnectGameplaySession(input: {
+  sessionId: string;
+  playerId: string;
+}): Promise<GameplaySession | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ session: GameplaySession }>(
+    `${API_BASE}/api/gameplay/sessions/${encodeURIComponent(input.sessionId)}/reconnect`,
+    {
+      player_id: input.playerId,
+    }
+  );
+  return payload?.session ?? null;
+}
+
 export async function applyGameplayAction(input: {
   sessionId: string;
   playerId: string;
@@ -717,6 +732,40 @@ export async function getGameplayProfile(playerId: string): Promise<GameplayProf
     `${API_BASE}/api/gameplay/profiles/${encodeURIComponent(playerId)}`
   );
   return payload?.profile ?? null;
+}
+
+export async function fetchGameplaySocialGraph(playerId: string): Promise<GameplaySocialGraph | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safeFetchJson<{ social: GameplaySocialGraph }>(
+    `${API_BASE}/api/gameplay/friends/${encodeURIComponent(playerId)}`
+  );
+  return payload?.social ?? null;
+}
+
+export async function inviteGameplayFriend(input: {
+  fromPlayerId: string;
+  toPlayerId: string;
+}): Promise<{ invite: Record<string, unknown>; social: GameplaySocialGraph } | null> {
+  if (FORCE_DEMO) return null;
+  return safePostJson<{ invite: Record<string, unknown>; social: GameplaySocialGraph }>(
+    `${API_BASE}/api/gameplay/friends/invite`,
+    {
+      from_player_id: input.fromPlayerId,
+      to_player_id: input.toPlayerId,
+    }
+  );
+}
+
+export async function acceptGameplayFriendInvite(input: {
+  playerId: string;
+  inviteId: string;
+}): Promise<GameplaySocialGraph | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ social: GameplaySocialGraph }>(`${API_BASE}/api/gameplay/friends/accept`, {
+    player_id: input.playerId,
+    invite_id: input.inviteId,
+  });
+  return payload?.social ?? null;
 }
 
 export async function unlockGameplayProfileSkill(playerId: string, skillId: string): Promise<GameplayProfile | null> {

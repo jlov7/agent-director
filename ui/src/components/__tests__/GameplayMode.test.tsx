@@ -90,4 +90,24 @@ describe('GameplayMode', () => {
     expect(screen.getByText(/Mission seed/i)).toBeInTheDocument();
     expect(screen.getByText(/seed=.*depth=1/i)).toBeInTheDocument();
   });
+
+  it('supports team ping intents and friend invites in local mode', () => {
+    render(<Harness />);
+    fireEvent.change(screen.getByLabelText('Ping intent'), { target: { value: 'assist' } });
+    fireEvent.change(screen.getByLabelText('Ping objective id'), { target: { value: 'obj-root-cause' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send ping' }));
+    expect(screen.getByText('obj-root-cause')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Friend player id'), { target: { value: 'ally' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Invite friend' }));
+    expect(screen.getByText(/Outgoing 1/i)).toBeInTheDocument();
+  });
+
+  it('exposes locale and gamepad controls with retry action', () => {
+    render(<Harness />);
+    expect(screen.getByLabelText('Gameplay locale')).toBeInTheDocument();
+    expect(screen.getByLabelText('Gamepad preset')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Disable gamepad controls/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Retry sync/i })).toBeInTheDocument();
+  });
 });

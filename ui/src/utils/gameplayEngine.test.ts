@@ -23,6 +23,7 @@ import {
   reportPlayer,
   rewindActiveFork,
   runPvPRound,
+  sendTeamPing,
   setSandboxMode,
   unlockSkillNode,
 } from './gameplayEngine';
@@ -255,6 +256,14 @@ describe('gameplayEngine', () => {
     expect(state.safety.mutedPlayerIds).toContain('griefer-1');
     expect(state.safety.blockedPlayerIds).toContain('griefer-2');
     expect(state.safety.reports[0]?.targetPlayerId).toBe('griefer-2');
+  });
+
+  it('records team ping intents for coordinated runs', () => {
+    const state = createInitialGameplayState('trace-1');
+    const next = sendTeamPing(state, 'assist', 'obj-root-cause', 'director');
+    expect(next.teamComms.pings).toHaveLength(1);
+    expect(next.teamComms.pings[0]?.intent).toBe('assist');
+    expect(next.teamComms.pings[0]?.targetObjectiveId).toBe('obj-root-cause');
   });
 
   it('marks run as win when campaign reaches success threshold', () => {

@@ -15,8 +15,8 @@ Ship Agent Director at a true public-launch quality bar: durable gameplay, opera
 - [x] Sync launcher section in `TASKS.md`
 - [x] Batch A (WR-031, WR-036, WR-038, WR-039, WR-018)
 - [x] Batch B (WR-029, WR-030)
-- [ ] Batch C (remaining WR items)
-- [ ] Final verification and release evidence refresh
+- [x] Batch C (remaining WR items)
+- [x] Final verification and release evidence refresh
 
 ## Surprises & Discoveries
 
@@ -38,9 +38,9 @@ Ship Agent Director at a true public-launch quality bar: durable gameplay, opera
 
 ## Outcomes & Retrospective
 
-In progress.
+Completed.
 
-Batch A update:
+Execution updates:
 - Completed WR-036 (terms/privacy docs and doc navigation wiring).
 - Completed WR-038 (release safety canary/rollback runbook).
 - Completed WR-039 (support operations runbook and user-facing help section).
@@ -55,6 +55,8 @@ Batch A update:
 - Completed WR-009 with cadence rewards (daily/session/streak/mastery), claim validation, and frontend reward claim UX.
 - Completed WR-010 with deeper multi-phase boss mechanics, visible vulnerability cues, and backend/frontend encounter logic tests.
 - Completed WR-011 with deterministic mission seeding, replay-stable campaign blueprint metadata, compatibility normalization for legacy sessions, and UI/backend seeded-generation tests.
+- Completed WR-012 through WR-017, WR-019 through WR-028, WR-032 through WR-035, WR-037, and WR-040 with gameplay/session hardening, social and resilience features, release security and integrity docs, content-authoring workflow, scenario sharing/export operations, monetization architecture, and closed-beta retention playbook.
+- Re-ran `make verify`, `make doctor`, and `make scorecard` to close the release evidence loop.
 
 # World-Class UX Program ExecPlan
 

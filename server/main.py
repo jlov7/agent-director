@@ -111,6 +111,10 @@ class ApiHandler(BaseHTTPRequestHandler):
                     profile = self.gameplay_store.get_profile(path_parts[3])
                     self._send_json(200, {"profile": profile})
                     return
+                if len(path_parts) == 4 and path_parts[2] == "friends":
+                    social = self.gameplay_store.get_friend_graph(path_parts[3])
+                    self._send_json(200, {"social": social})
+                    return
                 if len(path_parts) == 4 and path_parts[2] == "guilds":
                     guild = self.gameplay_store.get_guild(path_parts[3])
                     if not guild:
@@ -264,6 +268,12 @@ class ApiHandler(BaseHTTPRequestHandler):
                     )
                     self._send_json(200, {"session": session})
                     return
+                if len(path_parts) == 5 and path_parts[2] == "sessions" and path_parts[4] == "reconnect":
+                    session = self.gameplay_store.reconnect_session(
+                        session_id=path_parts[3], player_id=str(body.get("player_id") or "")
+                    )
+                    self._send_json(200, {"session": session})
+                    return
                 if len(path_parts) == 5 and path_parts[2] == "sessions" and path_parts[4] == "action":
                     expected_version = body.get("expected_version")
                     if expected_version is not None and not isinstance(expected_version, int):
@@ -300,6 +310,20 @@ class ApiHandler(BaseHTTPRequestHandler):
                 if len(path_parts) == 5 and path_parts[2] == "guilds" and path_parts[4] == "join":
                     guild = self.gameplay_store.join_guild(path_parts[3], str(body.get("player_id") or ""))
                     self._send_json(200, {"guild": guild})
+                    return
+                if path_parts == ["api", "gameplay", "friends", "invite"]:
+                    invite, social = self.gameplay_store.invite_friend(
+                        from_player_id=str(body.get("from_player_id") or ""),
+                        to_player_id=str(body.get("to_player_id") or ""),
+                    )
+                    self._send_json(201, {"invite": invite, "social": social})
+                    return
+                if path_parts == ["api", "gameplay", "friends", "accept"]:
+                    social = self.gameplay_store.accept_friend_invite(
+                        player_id=str(body.get("player_id") or ""),
+                        invite_id=str(body.get("invite_id") or ""),
+                    )
+                    self._send_json(200, {"social": social})
                     return
                 if len(path_parts) == 5 and path_parts[2] == "guilds" and path_parts[4] == "events":
                     guild, event = self.gameplay_store.schedule_guild_event(

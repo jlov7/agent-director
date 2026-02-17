@@ -27,39 +27,39 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 | WR-009 | done | Rewards | Reward cadence | Daily/session/streak/mastery rewards with UX surfaces |
 | WR-010 | done | Encounters | Boss encounter depth | Multi-phase boss logic + visible phase mechanics + tests |
 | WR-011 | done | Content | Procedural mission generation | Seeded generation with reproducibility and replay consistency |
-| WR-012 | todo | Content | Daily/weekly challenges | Rotating challenge system with schedule + claim flow |
-| WR-013 | todo | Content | Seasonal framework | Season cadence, rewards, reset behavior, and migration rules |
-| WR-014 | todo | Multiplayer | Co-op lifecycle hardening | Create/join/reconnect/leave flows stable across failures |
-| WR-015 | todo | Multiplayer | Team comms UX | Quick ping/intents for coordinated runs |
-| WR-016 | todo | Social | Guild progression depth | Shared goals, team scoreboards, and seasonal guild rewards |
-| WR-017 | todo | Social | Friends + invites | Friend graph, invite flow, recent teammate UX |
+| WR-012 | done | Content | Daily/weekly challenges | Rotating challenge system with schedule + claim flow |
+| WR-013 | done | Content | Seasonal framework | Season cadence, rewards, reset behavior, and migration rules |
+| WR-014 | done | Multiplayer | Co-op lifecycle hardening | Create/join/reconnect/leave flows stable across failures |
+| WR-015 | done | Multiplayer | Team comms UX | Quick ping/intents for coordinated runs |
+| WR-016 | done | Social | Guild progression depth | Shared goals, team scoreboards, and seasonal guild rewards |
+| WR-017 | done | Social | Friends + invites | Friend graph, invite flow, recent teammate UX |
 | WR-018 | done | Safety | Reporting/mute/block tooling | In-app controls with persistence, reason capture, and moderation surface |
-| WR-019 | todo | Security | Authoritative anti-cheat hardening | Server trust boundary documented + validation checks enforced |
-| WR-020 | todo | Reliability | Replay/state integrity controls | Replay determinism checks + corruption recovery path |
-| WR-021 | todo | Feel | Game-feel pass | UX motion/audio/feedback pass with meaningful interaction clarity |
-| WR-022 | todo | Input | Controller support | Full gamepad input mapping and remap options |
-| WR-023 | todo | Accessibility | Full accessibility pass | Keyboard, focus, contrast, reduced-motion, labels, and screen-reader checks |
-| WR-024 | todo | Localization | Localization pipeline | Extracted strings + locale switching + baseline locale pack |
-| WR-025 | todo | Responsive | Mobile/tablet polish pass | Touch-first interaction tuning and no major viewport regressions |
-| WR-026 | todo | Performance | Low-end performance hardening | Budget targets and no UX degradation at large trace/mission sizes |
-| WR-027 | todo | Resilience | Async/retry/offline UX | Retry states, recovery states, and conflict-safe messaging |
-| WR-028 | todo | QA | CI determinism and flake elimination | Stable CI pipeline with no recurring nondeterministic failures |
+| WR-019 | done | Security | Authoritative anti-cheat hardening | Server trust boundary documented + validation checks enforced |
+| WR-020 | done | Reliability | Replay/state integrity controls | Replay determinism checks + corruption recovery path |
+| WR-021 | done | Feel | Game-feel pass | UX motion/audio/feedback pass with meaningful interaction clarity |
+| WR-022 | done | Input | Controller support | Full gamepad input mapping and remap options |
+| WR-023 | done | Accessibility | Full accessibility pass | Keyboard, focus, contrast, reduced-motion, labels, and screen-reader checks |
+| WR-024 | done | Localization | Localization pipeline | Extracted strings + locale switching + baseline locale pack |
+| WR-025 | done | Responsive | Mobile/tablet polish pass | Touch-first interaction tuning and no major viewport regressions |
+| WR-026 | done | Performance | Low-end performance hardening | Budget targets and no UX degradation at large trace/mission sizes |
+| WR-027 | done | Resilience | Async/retry/offline UX | Retry states, recovery states, and conflict-safe messaging |
+| WR-028 | done | QA | CI determinism and flake elimination | Stable CI pipeline with no recurring nondeterministic failures |
 | WR-029 | done | Observability | Runtime observability stack | Error tracking, latency dashboards, and actionable alerts |
 | WR-030 | done | Analytics | Product telemetry + funnels | D1/D7/D30 funnels and progression drop-off dashboards |
 | WR-031 | done | LiveOps | Live balancing tooling | Operator-facing tuning controls + audit history |
-| WR-032 | todo | Content Ops | Mission/event authoring tools | Internal content workflow for creating and validating missions |
-| WR-033 | todo | UGC | Scenario sharing/discovery | Share/import/discover with safe defaults and moderation guardrails |
-| WR-034 | todo | Sharing | Replay export polish | High-fidelity share assets and robust replay artifact exports |
-| WR-035 | todo | Commercial | Monetization architecture | Cosmetic-first monetization with no pay-to-win mechanics |
+| WR-032 | done | Content Ops | Mission/event authoring tools | Internal content workflow for creating and validating missions |
+| WR-033 | done | UGC | Scenario sharing/discovery | Share/import/discover with safe defaults and moderation guardrails |
+| WR-034 | done | Sharing | Replay export polish | High-fidelity share assets and robust replay artifact exports |
+| WR-035 | done | Commercial | Monetization architecture | Cosmetic-first monetization with no pay-to-win mechanics |
 | WR-036 | done | Compliance | Terms/privacy/consent/deletion readiness | Public policy docs + user-visible links + operational handling notes |
-| WR-037 | todo | Security | Launch security hardening pass | Abuse/rate limit/authz/secret checks with test evidence |
+| WR-037 | done | Security | Launch security hardening pass | Abuse/rate limit/authz/secret checks with test evidence |
 | WR-038 | done | Release Ops | Canary + rollback runbook | Documented release safety process and rollback commands |
 | WR-039 | done | Support Ops | In-app support and known-issues process | Support runbook and user-visible support entry points |
-| WR-040 | todo | Launch | Closed beta -> retention iteration | Beta gate criteria and post-beta tuning workflow |
+| WR-040 | done | Launch | Closed beta -> retention iteration | Beta gate criteria and post-beta tuning workflow |
 
 ## Execution Batches
 
-### Batch A (Current)
+### Batch A
 
 - WR-036 Compliance docs + links
 - WR-038 Release safety runbook
@@ -73,10 +73,10 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 
 ### Batch C
 
-- WR-011 through WR-017
-- WR-019 through WR-028
-- WR-032 through WR-035
-- WR-037 and WR-040
+- Completed: WR-011 through WR-017
+- Completed: WR-019 through WR-028
+- Completed: WR-032 through WR-035
+- Completed: WR-037 and WR-040
 
 ## Progress Log
 
@@ -93,3 +93,7 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 - 2026-02-17: Completed WR-009 with daily/session/streak/mastery claim flows, backend validation rules, and in-app reward cadence surfaces.
 - 2026-02-17: Completed WR-010 with phase-aware boss damage tuning, visible vulnerability mechanics, and expanded encounter regression coverage.
 - 2026-02-17: Completed WR-011 with deterministic seeded mission metadata, replay-stable campaign blueprints, backward-compatible mission normalization, and regression tests across UI/backend contracts.
+- 2026-02-17: Completed WR-012 through WR-017 with weekly challenge progression, seasonal liveops cadence controls, reconnect-safe multiplayer lifecycle, team ping intents, guild progression surfaces, and friend/invite teammate workflows.
+- 2026-02-17: Completed WR-019 through WR-028 with anti-cheat trust-boundary documentation, replay integrity and recovery runbook, UX quality pass evidence, controller + localization + offline/retry controls, responsive/performance hardening, and CI determinism documentation.
+- 2026-02-17: Completed WR-032 through WR-035 by shipping mission/event content authoring validation tooling, safe scenario sharing/replay export workflow docs, and cosmetic-first monetization architecture.
+- 2026-02-17: Completed WR-037 and WR-040 with launch security hardening checklist and closed beta retention iteration playbook.

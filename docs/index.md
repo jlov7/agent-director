@@ -17,12 +17,21 @@ Welcome to the Agent Director documentation hub.
 - `demo-script-teleprompter.txt` — teleprompter-friendly narration
 - `hosting.md` — live demo hosting options
 - `ux-audit-2026-02-14.md` — deep multi-persona UX audit findings, fixes, and verification evidence
+- `ux-quality-pass.md` — game-feel, accessibility, and responsive quality baseline
+- `replay-integrity.md` — replay determinism and recovery controls
 
 ## Release Ops + Trust
 - `ops/release-safety.md` — canary + rollback release runbook
 - `ops/live-balancing-runbook.md` — live difficulty/economy balancing workflow
 - `ops/support-operations.md` — support triage, severity model, and response flow
 - `ops/observability-analytics.md` — runtime metrics, alerts, funnel, and retention dashboard contract
+- `ops/content-authoring-workflow.md` — mission and LiveOps content authoring + validation workflow
+- `ops/scenario-sharing-and-replay-export.md` — safe scenario sharing and replay export flow
+- `ops/ci-determinism.md` — CI stability and flake elimination controls
+- `ops/launch-security-hardening.md` — launch hardening checklist and evidence map
+- `ops/closed-beta-retention.md` — beta gates and retention iteration loop
+- `security/authoritative-anti-cheat.md` — gameplay trust boundary + anti-cheat controls
+- `commercial/monetization-architecture.md` — cosmetic-first monetization architecture
 - `legal/terms.md` — draft terms of use
 - `legal/privacy.md` — draft privacy notice
 

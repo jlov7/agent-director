@@ -180,6 +180,7 @@ class GameplayStore:
                 "profiles": {},
                 "guilds": {},
                 "liveops": self._default_liveops(seed=2026, week=1),
+                "social": {"friends": {}, "invites": []},
             }
         with self._path.open("r", encoding="utf-8") as handle:
             loaded = json.load(handle)
@@ -187,7 +188,11 @@ class GameplayStore:
         loaded.setdefault("profiles", {})
         loaded.setdefault("guilds", {})
         loaded.setdefault("liveops", self._default_liveops(seed=2026, week=1))
+        loaded.setdefault("social", {"friends": {}, "invites": []})
         self._normalize_liveops(loaded["liveops"])
+        self._normalize_social(loaded["social"])
+        for profile in loaded["profiles"].values():
+            profile.setdefault("recent_teammates", [])
         for session in loaded["sessions"].values():
             self._normalize_session(session, loaded["liveops"])
         return loaded
@@ -232,6 +237,26 @@ class GameplayStore:
         telemetry.setdefault("difficultyFactor", 1.0)
         telemetry.setdefault("rewardMultiplier", 1.0)
 
+    def _normalize_social(self, social: Dict[str, Any]) -> None:
+        social.setdefault("friends", {})
+        social.setdefault("invites", [])
+        friends = social["friends"]
+        if isinstance(friends, dict):
+            for player_id, entries in list(friends.items()):
+                if not isinstance(entries, list):
+                    friends[player_id] = []
+                    continue
+                normalized = []
+                for entry in entries:
+                    friend_id = str(entry or "").strip().lower()
+                    if friend_id and friend_id not in normalized:
+                        normalized.append(friend_id)
+                friends[player_id] = normalized
+        else:
+            social["friends"] = {}
+        if not isinstance(social["invites"], list):
+            social["invites"] = []
+
     def _normalize_session(self, session: Dict[str, Any], fallback_liveops: Dict[str, Any] | None = None) -> None:
         default_liveops = fallback_liveops or self._default_liveops(seed=int(session.get("seed", 2026) or 2026), week=1)
         liveops = session.setdefault("liveops", deepcopy(default_liveops))
@@ -257,6 +282,9 @@ class GameplayStore:
                 "reports": [],
             },
         )
+        team_comms = session.setdefault("team_comms", {"pings": []})
+        if not isinstance(team_comms.get("pings"), list):
+            team_comms["pings"] = []
         economy = session.setdefault(
             "economy",
             {
@@ -317,6 +345,7 @@ class GameplayStore:
         profile = self._state["profiles"].get(player_id)
         if profile is not None:
             profile.setdefault("milestones", [])
+            profile.setdefault("recent_teammates", [])
             rewards = profile.setdefault("rewards", {})
             rewards.setdefault("last_daily_claim_date", None)
             rewards.setdefault("daily_streak", 0)
@@ -333,6 +362,7 @@ class GameplayStore:
             "stats": {"raids": 0, "bosses": 0, "campaigns": 0, "pvp_wins": 0},
             "modifiers": {},
             "rewards": {"last_daily_claim_date": None, "daily_streak": 0},
+            "recent_teammates": [],
         }
         self._state["profiles"][player_id] = profile
         return profile
@@ -342,6 +372,140 @@ class GameplayStore:
         if player_id not in profiles:
             profiles[player_id] = deepcopy(self._ensure_profile(player_id))
         return profiles[player_id]
+
+    def _refresh_recent_teammates(self, session: Dict[str, Any]) -> None:
+        participant_ids = [str(entry.get("player_id") or "").strip().lower() for entry in session.get("players", [])]
+        participant_ids = [player_id for player_id in participant_ids if player_id]
+        for player_id in participant_ids:
+            profile = self._ensure_profile(player_id)
+            existing = [str(entry).strip().lower() for entry in profile.get("recent_teammates", []) if str(entry).strip()]
+            for teammate_id in participant_ids:
+                if teammate_id == player_id:
+                    continue
+                if teammate_id in existing:
+                    existing.remove(teammate_id)
+                existing.insert(0, teammate_id)
+            profile["recent_teammates"] = existing[:12]
+            self._state["profiles"][player_id] = profile
+
+    def _friend_graph_locked(self, player_id: str) -> Dict[str, Any]:
+        normalized_player_id = str(player_id).strip().lower()
+        if not normalized_player_id:
+            raise ValueError("player_id must be non-empty")
+        self._ensure_profile(normalized_player_id)
+        social = self._state.setdefault("social", {"friends": {}, "invites": []})
+        self._normalize_social(social)
+        friends_map = social["friends"]
+        invites = social["invites"]
+        friends = list(friends_map.get(normalized_player_id, []))
+        incoming = [
+            invite
+            for invite in invites
+            if str(invite.get("to_player_id") or "").strip().lower() == normalized_player_id
+            and str(invite.get("status") or "") == "pending"
+        ]
+        outgoing = [
+            invite
+            for invite in invites
+            if str(invite.get("from_player_id") or "").strip().lower() == normalized_player_id
+            and str(invite.get("status") or "") == "pending"
+        ]
+        recent_teammates = list(self._state["profiles"][normalized_player_id].get("recent_teammates", []))
+        return {
+            "player_id": normalized_player_id,
+            "friends": friends,
+            "incoming_invites": incoming,
+            "outgoing_invites": outgoing,
+            "recent_teammates": recent_teammates,
+        }
+
+    def _add_friend_edge_locked(self, left_player_id: str, right_player_id: str) -> None:
+        social = self._state.setdefault("social", {"friends": {}, "invites": []})
+        self._normalize_social(social)
+        friends = social["friends"]
+        left_list = friends.setdefault(left_player_id, [])
+        right_list = friends.setdefault(right_player_id, [])
+        if right_player_id not in left_list:
+            left_list.append(right_player_id)
+        if left_player_id not in right_list:
+            right_list.append(left_player_id)
+
+    def get_friend_graph(self, player_id: str) -> Dict[str, Any]:
+        with self._lock:
+            return deepcopy(self._friend_graph_locked(player_id))
+
+    def invite_friend(self, from_player_id: str, to_player_id: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        inviter_id = str(from_player_id or "").strip().lower()
+        target_id = str(to_player_id or "").strip().lower()
+        if not inviter_id:
+            raise ValueError("from_player_id must be non-empty")
+        if not target_id:
+            raise ValueError("to_player_id must be non-empty")
+        if inviter_id == target_id:
+            raise ValueError("Cannot invite yourself")
+        with self._lock:
+            self._ensure_profile(inviter_id)
+            self._ensure_profile(target_id)
+            social = self._state.setdefault("social", {"friends": {}, "invites": []})
+            self._normalize_social(social)
+            already_friends = target_id in social["friends"].get(inviter_id, [])
+            if already_friends:
+                raise ValueError("Players are already friends")
+            pending = next(
+                (
+                    invite
+                    for invite in social["invites"]
+                    if str(invite.get("status") or "") == "pending"
+                    and str(invite.get("from_player_id") or "").strip().lower() == inviter_id
+                    and str(invite.get("to_player_id") or "").strip().lower() == target_id
+                ),
+                None,
+            )
+            if pending is not None:
+                raise ValueError("Invite already pending")
+            invite = {
+                "id": f"invite-{uuid4().hex[:8]}",
+                "from_player_id": inviter_id,
+                "to_player_id": target_id,
+                "status": "pending",
+                "created_at": _utc_now(),
+            }
+            social["invites"] = [invite, *social["invites"]][:200]
+            self._save()
+            return deepcopy(invite), deepcopy(self._friend_graph_locked(inviter_id))
+
+    def accept_friend_invite(self, player_id: str, invite_id: str) -> Dict[str, Any]:
+        accepter_id = str(player_id or "").strip().lower()
+        normalized_invite_id = str(invite_id or "").strip().lower()
+        if not accepter_id:
+            raise ValueError("player_id must be non-empty")
+        if not normalized_invite_id:
+            raise ValueError("invite_id must be non-empty")
+        with self._lock:
+            self._ensure_profile(accepter_id)
+            social = self._state.setdefault("social", {"friends": {}, "invites": []})
+            self._normalize_social(social)
+            invite = next(
+                (
+                    candidate
+                    for candidate in social["invites"]
+                    if str(candidate.get("id") or "").strip().lower() == normalized_invite_id
+                ),
+                None,
+            )
+            if invite is None:
+                raise FileNotFoundError(f"Invite not found: {normalized_invite_id}")
+            if str(invite.get("to_player_id") or "").strip().lower() != accepter_id:
+                raise ValueError("Invite does not belong to player")
+            if str(invite.get("status") or "") != "pending":
+                raise ValueError("Invite is not pending")
+            inviter_id = str(invite.get("from_player_id") or "").strip().lower()
+            self._ensure_profile(inviter_id)
+            invite["status"] = "accepted"
+            invite["responded_at"] = _utc_now()
+            self._add_friend_edge_locked(inviter_id, accepter_id)
+            self._save()
+            return deepcopy(self._friend_graph_locked(accepter_id))
 
     def _serialize_session(self, session: Dict[str, Any]) -> Dict[str, Any]:
         payload = deepcopy(session)
@@ -701,6 +865,9 @@ class GameplayStore:
                     "blocked_player_ids": [],
                     "reports": [],
                 },
+                "team_comms": {
+                    "pings": [],
+                },
                 "telemetry": {
                     "actions": 0,
                     "successes": 0,
@@ -738,6 +905,7 @@ class GameplayStore:
                 existing["role"] = role
                 existing["presence"] = "active"
             self._session_profile(session, player_id)
+            self._refresh_recent_teammates(session)
             session["version"] += 1
             session["updated_at"] = _utc_now()
             if len(players) >= 2 and session["status"] == "lobby":
@@ -761,6 +929,29 @@ class GameplayStore:
             self._save()
             public = self._serialize_session(session)
         self._publish(session_id, "gameplay", {"session": public, "event": {"type": "session.leave", "player_id": player_id}})
+        return public
+
+    def reconnect_session(self, session_id: str, player_id: str) -> Dict[str, Any]:
+        normalized_player_id = str(player_id or "").strip().lower()
+        if not normalized_player_id:
+            raise ValueError("player_id must be non-empty")
+        with self._lock:
+            session = self._state["sessions"].get(session_id)
+            if session is None:
+                raise FileNotFoundError(f"Gameplay session not found: {session_id}")
+            player = next((entry for entry in session["players"] if entry["player_id"] == normalized_player_id), None)
+            if player is None:
+                raise ValueError("player_id is not part of the session")
+            player["presence"] = "active"
+            session["version"] += 1
+            session["updated_at"] = _utc_now()
+            self._save()
+            public = self._serialize_session(session)
+        self._publish(
+            session_id,
+            "gameplay",
+            {"session": public, "event": {"type": "session.reconnect", "player_id": normalized_player_id}},
+        )
         return public
 
     def _mutate_profile_skill_unlock(self, profile: Dict[str, Any], skill_id: str) -> None:
@@ -1213,6 +1404,23 @@ class GameplayStore:
                     raise ValueError("kind must be one of daily/session/streak/mastery")
                 awarded = self._claim_reward(session, actor_profile, kind, mastery_id)
                 self._grant_profile_xp(actor_profile, 30 + max(1, awarded // 10))
+            elif action_type == "comms.ping":
+                intent = str(payload.get("intent") or "").strip().lower()
+                if intent not in {"focus", "assist", "defend", "rotate"}:
+                    raise ValueError("intent must be one of focus, assist, defend, rotate")
+                target_objective_id = str(payload.get("target_objective_id") or "").strip()
+                if target_objective_id and not any(
+                    objective.get("id") == target_objective_id for objective in session["raid"]["objectives"]
+                ):
+                    raise ValueError("target_objective_id not found")
+                ping = {
+                    "id": f"ping-{uuid4().hex[:8]}",
+                    "from_player_id": player_id,
+                    "intent": intent,
+                    "target_objective_id": target_objective_id or None,
+                    "created_at": _utc_now(),
+                }
+                session["team_comms"]["pings"] = [ping, *session["team_comms"].get("pings", [])][:50]
             elif action_type == "safety.mute":
                 target_player_id = str(payload.get("target_player_id") or "").strip().lower()
                 if not target_player_id:

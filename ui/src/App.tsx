@@ -23,6 +23,7 @@ import type {
   GameplayAnalyticsFunnelSummary,
   GameplayGuild,
   GameplayObservabilitySummary,
+  GameplaySocialGraph,
   GameplaySession,
   InvestigationReport,
   ReplayJob,
@@ -38,7 +39,9 @@ import {
   clearStepDetailsCache,
   createReplayJob,
   createGameplaySession,
+  reconnectGameplaySession,
   fetchGameplayAnalyticsFunnels,
+  fetchGameplaySocialGraph,
   fetchInvestigation,
   fetchGameplayObservabilitySummary,
   getGameplaySession,
@@ -47,6 +50,8 @@ import {
   fetchTrace as fetchTraceById,
   joinGameplaySession,
   leaveGameplaySession,
+  inviteGameplayFriend,
+  acceptGameplayFriendInvite,
   listExtensions,
   prefetchStepDetails,
   applyGameplayAction,
@@ -84,6 +89,7 @@ import {
   type SharedAnnotation,
 } from './utils/collaboration';
 import { createInitialGameplayState, type GameplayState } from './utils/gameplayEngine';
+import type { GameplayLocale } from './utils/gameplayI18n';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
@@ -409,6 +415,19 @@ function mapGameplaySessionToState(
           note: entry.note,
         })) ?? fallback.liveops.tuningHistory ?? [],
     },
+    teamComms: {
+      pings:
+        session.team_comms?.pings?.map((ping) => ({
+          id: ping.id,
+          fromPlayerId: ping.from_player_id,
+          intent:
+            ping.intent === 'focus' || ping.intent === 'assist' || ping.intent === 'defend' || ping.intent === 'rotate'
+              ? ping.intent
+              : 'focus',
+          targetObjectiveId: ping.target_objective_id ?? null,
+          createdAt: Date.parse(ping.created_at) || Date.now(),
+        })) ?? fallback.teamComms.pings ?? [],
+    },
     safety: {
       mutedPlayerIds: session.safety?.muted_player_ids ?? fallback.safety.mutedPlayerIds ?? [],
       blockedPlayerIds: session.safety?.blocked_player_ids ?? fallback.safety.blockedPlayerIds ?? [],
@@ -584,6 +603,14 @@ export default function App() {
   const [gameplaySession, setGameplaySession] = useState<GameplaySession | null>(null);
   const [gameplaySessionError, setGameplaySessionError] = useState<string | null>(null);
   const [gameplayGuild, setGameplayGuild] = useState<GameplayGuild | null>(null);
+  const [gameplaySocial, setGameplaySocial] = useState<GameplaySocialGraph | null>(null);
+  const [gameplayLocale, setGameplayLocale] = usePersistedState<GameplayLocale>('agentDirector.gameplayLocale.v1', 'en');
+  const [gamepadEnabled, setGamepadEnabled] = usePersistedState('agentDirector.gamepad.enabled.v1', true);
+  const [gamepadPreset, setGamepadPreset] = usePersistedState<'standard' | 'lefty'>(
+    'agentDirector.gamepad.preset.v1',
+    'standard'
+  );
+  const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [gameplayObservability, setGameplayObservability] = useState<GameplayObservabilitySummary | null>(null);
   const [gameplayAnalytics, setGameplayAnalytics] = useState<GameplayAnalyticsFunnelSummary | null>(null);
   const [activeSessions, setActiveSessions] = useState(1);
@@ -601,6 +628,7 @@ export default function App() {
   const filterMeasureRef = useRef(0);
   const applyingRemoteCursorRef = useRef(false);
   const gameplayFunnelFlagsRef = useRef<Record<string, boolean>>({});
+  const gamepadPressedRef = useRef<Record<string, boolean>>({});
 
   const textFilteredSteps = useMemo(() => {
     if (!trace) return [];
@@ -747,6 +775,73 @@ export default function App() {
       cancelled = true;
     };
   }, [gameplaySession?.guild.guild_id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchGameplaySocialGraph(gameplayPlayerId).then((social) => {
+      if (cancelled) return;
+      if (social) setGameplaySocial(social);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameplayPlayerId, gameplaySession?.id]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!gamepadEnabled) {
+      gamepadPressedRef.current = {};
+      return;
+    }
+    if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return;
+    const mapping =
+      gamepadPreset === 'lefty'
+        ? { playPause: 1, palette: 3, modeCycle: 2, speedDown: 6, speedUp: 7 }
+        : { playPause: 0, palette: 2, modeCycle: 3, speedDown: 4, speedUp: 5 };
+    const modeOrder: Mode[] = ['cinema', 'flow', 'compare', 'matrix', 'gameplay'];
+    let frameId = 0;
+    const check = (pressed: boolean, key: string, onPress: () => void) => {
+      const wasPressed = Boolean(gamepadPressedRef.current[key]);
+      if (pressed && !wasPressed) onPress();
+      gamepadPressedRef.current[key] = pressed;
+    };
+    const tick = () => {
+      const gamepad = navigator.getGamepads()[0];
+      if (gamepad) {
+        check(Boolean(gamepad.buttons[mapping.playPause]?.pressed), 'playPause', () => setIsPlaying((prev) => !prev));
+        check(Boolean(gamepad.buttons[mapping.palette]?.pressed), 'palette', () => setShowPalette(true));
+        check(Boolean(gamepad.buttons[mapping.modeCycle]?.pressed), 'modeCycle', () => {
+          setMode((prev) => {
+            const index = modeOrder.indexOf(prev);
+            return modeOrder[(index + 1) % modeOrder.length] as Mode;
+          });
+        });
+        check(Boolean(gamepad.buttons[mapping.speedDown]?.pressed), 'speedDown', () => {
+          setSpeed((prev) => Math.max(0.25, Number((prev - 0.25).toFixed(2))));
+        });
+        check(Boolean(gamepad.buttons[mapping.speedUp]?.pressed), 'speedUp', () => {
+          setSpeed((prev) => Math.min(3, Number((prev + 0.25).toFixed(2))));
+        });
+      }
+      frameId = window.requestAnimationFrame(tick);
+    };
+    frameId = window.requestAnimationFrame(tick);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      gamepadPressedRef.current = {};
+    };
+  }, [gamepadEnabled, gamepadPreset, setMode, setSpeed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1174,6 +1269,18 @@ export default function App() {
     appendActivity(`Left gameplay session ${gameplaySessionId}`);
   }, [appendActivity, gameplayPlayerId, gameplaySessionId, setGameplaySessionId]);
 
+  const handleReconnectGameplaySession = useCallback(async () => {
+    if (!gameplaySessionId) return;
+    const session = await reconnectGameplaySession({ sessionId: gameplaySessionId, playerId: gameplayPlayerId });
+    if (!session) {
+      setGameplaySessionError('Failed to reconnect gameplay session.');
+      return;
+    }
+    setGameplaySession(session);
+    setGameplaySessionError(null);
+    appendActivity(`Reconnected gameplay session ${gameplaySessionId}`);
+  }, [appendActivity, gameplayPlayerId, gameplaySessionId]);
+
   const handleGameplayAction = useCallback(
     async (actionType: string, payload?: Record<string, unknown>) => {
       if (!gameplaySession?.id) return;
@@ -1286,6 +1393,60 @@ export default function App() {
     },
     [appendActivity]
   );
+
+  const handleInviteGameplayFriend = useCallback(
+    async (toPlayerId: string) => {
+      const payload = await inviteGameplayFriend({
+        fromPlayerId: gameplayPlayerId,
+        toPlayerId: toPlayerId.trim().toLowerCase(),
+      });
+      if (!payload) {
+        setGameplaySessionError('Failed to send friend invite.');
+        return;
+      }
+      setGameplaySocial(payload.social);
+      setGameplaySessionError(null);
+      appendActivity(`Sent friend invite to ${toPlayerId}`);
+    },
+    [appendActivity, gameplayPlayerId]
+  );
+
+  const handleAcceptGameplayFriendInvite = useCallback(
+    async (inviteId: string) => {
+      const social = await acceptGameplayFriendInvite({
+        playerId: gameplayPlayerId,
+        inviteId,
+      });
+      if (!social) {
+        setGameplaySessionError('Failed to accept friend invite.');
+        return;
+      }
+      setGameplaySocial(social);
+      setGameplaySessionError(null);
+      appendActivity(`Accepted friend invite ${inviteId}`);
+    },
+    [appendActivity, gameplayPlayerId]
+  );
+
+  const handleRetryConnectivity = useCallback(() => {
+    setGameplaySessionError(null);
+    void reload();
+    if (gameplaySessionId) {
+      void getGameplaySession(gameplaySessionId).then((session) => {
+        if (session) setGameplaySession(session);
+      });
+    }
+    void fetchGameplaySocialGraph(gameplayPlayerId).then((social) => {
+      if (social) setGameplaySocial(social);
+    });
+    void fetchGameplayObservabilitySummary().then((observability) => {
+      if (observability) setGameplayObservability(observability);
+    });
+    void fetchGameplayAnalyticsFunnels().then((analytics) => {
+      if (analytics) setGameplayAnalytics(analytics);
+    });
+    appendActivity('Retried connectivity sync');
+  }, [appendActivity, gameplayPlayerId, gameplaySessionId, reload]);
 
   const moveLaneGroup = useCallback(
     (groupKey: string, direction: 'up' | 'down') => {
@@ -3041,8 +3202,20 @@ export default function App() {
                   onCreateSession={handleCreateGameplaySession}
                   onJoinSession={handleJoinGameplaySession}
                   onLeaveSession={handleLeaveGameplaySession}
+                  onReconnectSession={handleReconnectGameplaySession}
                   onDispatchAction={handleGameplayAction}
                   guild={gameplayGuild}
+                  social={gameplaySocial}
+                  onInviteFriend={handleInviteGameplayFriend}
+                  onAcceptFriendInvite={handleAcceptGameplayFriendInvite}
+                  locale={gameplayLocale}
+                  onLocaleChange={setGameplayLocale}
+                  gamepadEnabled={gamepadEnabled}
+                  onToggleGamepad={setGamepadEnabled}
+                  gamepadPreset={gamepadPreset}
+                  onGamepadPresetChange={setGamepadPreset}
+                  isOnline={isOnline}
+                  onRetryConnectivity={handleRetryConnectivity}
                   onCreateGuild={handleCreateGameplayGuild}
                   onJoinGuild={handleJoinGameplayGuild}
                   onScheduleGuildEvent={handleScheduleGameplayGuildEvent}

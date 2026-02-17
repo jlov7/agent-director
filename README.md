@@ -181,8 +181,8 @@ make verify-ux
 
 | Category | Tests | Coverage |
 |----------|-------|----------|
-| Unit (Vitest) | 239 | Components, hooks, API, utilities |
-| E2E (Playwright) | 43 | Onboarding, keyboard, inspector, flow, matrix |
+| Unit (Vitest) | 301 | Components, hooks, API, utilities, gameplay systems |
+| E2E (Playwright) | 45 | Onboarding, keyboard, inspector, gameplay, flow, matrix |
 | Visual | 7+ | Cinema, Flow, Compare, Matrix state snapshots |
 | Accessibility | 1 | Axe violations scan |
 
@@ -208,6 +208,15 @@ See `TESTING.md` for details.
 - `docs/ops/live-balancing-runbook.md` — weekly gameplay balancing workflow
 - `docs/ops/observability-analytics.md` — runtime observability metrics, alerts, funnels, and retention
 - `docs/ops/release-safety.md` — canary + rollback runbook
+- `docs/ops/content-authoring-workflow.md` — mission/event authoring and validation workflow
+- `docs/ops/scenario-sharing-and-replay-export.md` — safe sharing and replay artifact export
+- `docs/ops/ci-determinism.md` — CI flake control and deterministic verification gates
+- `docs/ops/launch-security-hardening.md` — launch abuse/authz/secret hardening checklist
+- `docs/ops/closed-beta-retention.md` — closed beta gate criteria and retention iteration loop
+- `docs/security/authoritative-anti-cheat.md` — trust-boundary and anti-cheat validation controls
+- `docs/replay-integrity.md` — replay determinism and corruption recovery path
+- `docs/commercial/monetization-architecture.md` — cosmetic-first monetization architecture
+- `docs/ux-quality-pass.md` — game-feel, accessibility, and responsive quality pass evidence
 
 ## Gameplay Systems (v2)
 
@@ -256,6 +265,8 @@ Clean up old traces and export snapshots:
 ```bash
 python3 scripts/store_maintenance.py cleanup --keep 20
 python3 scripts/store_maintenance.py snapshot --output ./agent-director-snapshot.zip
+python3 scripts/content_authoring.py validate-mission ./mission.json
+python3 scripts/content_authoring.py validate-liveops ./challenge.json
 ```
 
 ## Deployment notes
