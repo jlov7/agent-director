@@ -217,6 +217,8 @@ class TestGameplayApi(unittest.TestCase):
         self.assertGreater(session["pvp"]["round"], 0)
         self.assertGreaterEqual(len(session["time"]["forks"]), 2)
         self.assertLess(session["boss"]["hp"], session["boss"]["max_hp"])
+        self.assertIn("phase_mechanic", session["boss"])
+        self.assertIn("vulnerability", session["boss"])
         self.assertIn("hint", session["director"])
         self.assertGreater(session["economy"]["ledger_count"], 0)
         self.assertGreater(session["guild"]["operations_score"], 0)
@@ -354,6 +356,38 @@ class TestGameplayApi(unittest.TestCase):
         self.assertIn("raid_mastery", rewards["mastery_claims"])
         self.assertGreaterEqual(rewards["streak_days"], 1)
         self.assertGreaterEqual(len(rewards["history"]), 3)
+
+    def test_boss_phase_mechanics_progress_with_actions(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/sessions",
+            {"trace_id": "trace-1", "host_player_id": "host", "name": "Boss Mechanics"},
+        )
+        self.assertEqual(status, 201)
+        session_id = data["session"]["id"]
+        version = data["session"]["version"]
+        phase = data["session"]["boss"]["phase"]
+
+        for _ in range(10):
+            action_status, action_data = self._request(
+                "POST",
+                f"/api/gameplay/sessions/{session_id}/action",
+                {
+                    "player_id": "host",
+                    "type": "boss.act",
+                    "payload": {"action": "exploit"},
+                    "expected_version": version,
+                },
+            )
+            self.assertEqual(action_status, 200)
+            version = action_data["session"]["version"]
+            phase = action_data["session"]["boss"]["phase"]
+            if phase >= 2:
+                break
+
+        self.assertGreaterEqual(phase, 2)
+        self.assertIn("phase_mechanic", action_data["session"]["boss"])
+        self.assertIn("vulnerability", action_data["session"]["boss"])
 
     def test_guild_and_liveops_endpoints(self) -> None:
         status, data = self._request(

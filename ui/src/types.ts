@@ -332,6 +332,8 @@ export interface GameplaySession {
     max_hp: number;
     enraged: boolean;
     adaptive_pattern: string;
+    phase_mechanic?: string;
+    vulnerability?: 'strike' | 'shield' | 'exploit';
   };
   director: {
     risk: number;

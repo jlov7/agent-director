@@ -78,4 +78,10 @@ describe('GameplayMode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Claim session' }));
     expect(screen.getByText(/session claimed/i)).toBeInTheDocument();
   });
+
+  it('shows boss phase mechanics and vulnerability', () => {
+    render(<Harness />);
+    expect(screen.getByText(/Phase 1: Shield lattice destabilization/i)).toBeInTheDocument();
+    expect(screen.getByText(/Current vulnerability: exploit/i)).toBeInTheDocument();
+  });
 });

@@ -308,6 +308,21 @@ function mapGameplaySessionToState(
       hp: session.boss.hp,
       maxHp: session.boss.max_hp,
       enraged: session.boss.enraged,
+      phaseMechanic:
+        session.boss.phase_mechanic ??
+        (session.boss.phase === 1
+          ? 'Phase 1: Shield lattice destabilization'
+          : session.boss.phase === 2
+            ? 'Phase 2: Mirror clones absorb exploit damage'
+            : 'Phase 3: Enrage pulse; shield counters become lethal'),
+      vulnerability:
+        session.boss.vulnerability === 'strike' || session.boss.vulnerability === 'shield' || session.boss.vulnerability === 'exploit'
+          ? session.boss.vulnerability
+          : session.boss.phase === 1
+            ? 'exploit'
+            : session.boss.phase === 2
+              ? 'strike'
+              : 'shield',
     },
     director: {
       risk: session.director.risk,

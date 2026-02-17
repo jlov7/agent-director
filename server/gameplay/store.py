@@ -237,6 +237,9 @@ class GameplayStore:
         liveops = session.setdefault("liveops", deepcopy(default_liveops))
         self._normalize_liveops(liveops)
         session.setdefault("sandbox", {"enabled": False})
+        boss = session.setdefault("boss", {})
+        boss.setdefault("phase_mechanic", "Phase 1: Shield lattice destabilization")
+        boss.setdefault("vulnerability", "exploit")
         session.setdefault(
             "safety",
             {
@@ -643,6 +646,8 @@ class GameplayStore:
                     "max_hp": 360,
                     "enraged": False,
                     "adaptive_pattern": "observe",
+                    "phase_mechanic": "Phase 1: Shield lattice destabilization",
+                    "vulnerability": "exploit",
                 },
                 "director": {
                     "risk": 30,
@@ -1017,14 +1022,30 @@ class GameplayStore:
                 )
             elif action_type == "boss.act":
                 action = str(payload.get("action") or "")
-                damage = 42 if action == "exploit" else 24 if action == "strike" else 8 if action == "shield" else None
-                if damage is None:
-                    raise ValueError("Unknown boss action")
                 boss = session["boss"]
+                current_phase = int(boss.get("phase", 1))
+                phase_damage: Dict[int, Dict[str, int]] = {
+                    1: {"exploit": 42, "strike": 24, "shield": 8},
+                    2: {"exploit": 34, "strike": 28, "shield": 10},
+                    3: {"exploit": 26, "strike": 18, "shield": 14},
+                }
+                if action not in {"exploit", "strike", "shield"}:
+                    raise ValueError("Unknown boss action")
+                damage = int(phase_damage.get(current_phase, phase_damage[1]).get(action, 0))
+                if action == boss.get("vulnerability"):
+                    damage += 8
                 boss["hp"] = _clamp(boss["hp"] - damage, 0, boss["max_hp"])
                 ratio = boss["hp"] / boss["max_hp"]
                 boss["phase"] = 3 if ratio <= 0.33 else 2 if ratio <= 0.66 else 1
                 boss["enraged"] = boss["phase"] == 3 or boss["hp"] <= int(boss["max_hp"] * 0.2)
+                boss["phase_mechanic"] = (
+                    "Phase 1: Shield lattice destabilization"
+                    if boss["phase"] == 1
+                    else "Phase 2: Mirror clones absorb exploit damage"
+                    if boss["phase"] == 2
+                    else "Phase 3: Enrage pulse; shield counters become lethal"
+                )
+                boss["vulnerability"] = "exploit" if boss["phase"] == 1 else "strike" if boss["phase"] == 2 else "shield"
                 boss["adaptive_pattern"] = (
                     "counter-focus" if action == "exploit" else "aoe-pressure" if action == "strike" else "shield-break"
                 )

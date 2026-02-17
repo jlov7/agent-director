@@ -131,6 +131,16 @@ describe('gameplayEngine', () => {
     let state = createInitialGameplayState('trace-1');
     state = applyBossAction(state, 'exploit');
     expect(state.boss.hp).toBeLessThan(state.boss.maxHp);
+    expect(state.boss.phaseMechanic.length).toBeGreaterThan(0);
+  });
+
+  it('surfaces phase-specific boss vulnerability mechanics', () => {
+    let state = createInitialGameplayState('trace-1');
+    while (state.boss.phase === 1) {
+      state = applyBossAction(state, 'exploit');
+    }
+    expect(state.boss.phase).toBeGreaterThanOrEqual(2);
+    expect(state.boss.vulnerability).toBe('strike');
   });
 
   it('adapts director guidance from performance signals', () => {

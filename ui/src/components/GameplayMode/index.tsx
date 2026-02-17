@@ -502,6 +502,8 @@ export default function GameplayMode({
         <article className="gameplay-card">
           <h3>7) Boss Encounter Runs</h3>
           <p>{state.boss.name} • Phase {state.boss.phase} • HP {state.boss.hp}/{state.boss.maxHp}</p>
+          <p>{state.boss.phaseMechanic}</p>
+          <p>Current vulnerability: {state.boss.vulnerability}</p>
           <div className="gameplay-inline">
             <button
               className="ghost-button"

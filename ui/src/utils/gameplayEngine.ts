@@ -120,6 +120,8 @@ export type BossState = {
   hp: number;
   maxHp: number;
   enraged: boolean;
+  phaseMechanic: string;
+  vulnerability: BossAction;
 };
 
 export type DirectorState = {
@@ -539,6 +541,8 @@ export function createInitialGameplayState(seedSource: string): GameplayState {
       hp: 320,
       maxHp: 320,
       enraged: false,
+      phaseMechanic: 'Phase 1: Shield lattice destabilization',
+      vulnerability: 'exploit',
     },
     director: {
       risk: 30,
@@ -923,10 +927,24 @@ export function mergeForkIntoPrimary(state: GameplayState, forkId: string): Game
 
 export function applyBossAction(state: GameplayState, action: BossAction): GameplayState {
   const currentOutcome = readOutcomeState(state);
-  const damage = action === 'exploit' ? 42 : action === 'strike' ? 24 : 8;
+  const phaseDamage: Record<1 | 2 | 3, Record<BossAction, number>> = {
+    1: { exploit: 42, strike: 24, shield: 8 },
+    2: { exploit: 34, strike: 28, shield: 10 },
+    3: { exploit: 26, strike: 18, shield: 14 },
+  };
+  const baseDamage = phaseDamage[state.boss.phase][action];
+  const vulnerabilityBonus = state.boss.vulnerability === action ? 8 : 0;
+  const damage = baseDamage + vulnerabilityBonus;
   const hp = clamp(state.boss.hp - damage, 0, state.boss.maxHp);
   const ratio = hp / state.boss.maxHp;
   const phase: 1 | 2 | 3 = ratio <= 0.33 ? 3 : ratio <= 0.66 ? 2 : 1;
+  const phaseMechanic =
+    phase === 1
+      ? 'Phase 1: Shield lattice destabilization'
+      : phase === 2
+        ? 'Phase 2: Mirror clones absorb exploit damage'
+        : 'Phase 3: Enrage pulse; shield counters become lethal';
+  const vulnerability: BossAction = phase === 1 ? 'exploit' : phase === 2 ? 'strike' : 'shield';
   const nextState: GameplayState = {
     ...state,
     boss: {
@@ -934,6 +952,8 @@ export function applyBossAction(state: GameplayState, action: BossAction): Gamep
       hp,
       phase,
       enraged: phase === 3 || hp <= state.boss.maxHp * 0.2,
+      phaseMechanic,
+      vulnerability,
     },
     outcome:
       hp <= 0
