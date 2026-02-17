@@ -52,6 +52,7 @@ Batch A update:
 - Completed WR-006 with persistent XP progression, level-up rewards, milestone unlock contracts, and backend save/load support.
 - Completed WR-007 with tuned skill unlock paths, per-slot loadout constraints, and validated frontend/backend progression rules.
 - Completed WR-008 with anti-inflation economy controls, source/sink balancing, and week-over-week upkeep safeguards.
+- Completed WR-009 with cadence rewards (daily/session/streak/mastery), claim validation, and frontend reward claim UX.
 
 # World-Class UX Program ExecPlan
 

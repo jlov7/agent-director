@@ -5,6 +5,7 @@ import {
   advanceLiveOpsWeek,
   advanceRaidObjective,
   applyBossAction,
+  claimCadenceReward,
   applyNarrativeChoice,
   blockPlayer,
   completeCampaignMission,
@@ -172,6 +173,29 @@ describe('gameplayEngine', () => {
     };
     const next = advanceLiveOpsWeek(state);
     expect(next.economy.credits).toBeLessThan(state.economy.credits);
+  });
+
+  it('claims cadence rewards with gating rules', () => {
+    let state = createInitialGameplayState('trace-1');
+    state = claimCadenceReward(state, 'daily');
+    expect(state.rewards.streakDays).toBe(1);
+    const afterSecondDaily = claimCadenceReward(state, 'daily');
+    expect(afterSecondDaily.rewards.history.length).toBe(state.rewards.history.length);
+
+    const blockedSession = claimCadenceReward(state, 'session');
+    expect(blockedSession.rewards.sessionClaimed).toBe(false);
+    state = advanceRaidObjective(state, state.raid.objectives[0]?.id ?? '', 10);
+    state = claimCadenceReward(state, 'session');
+    expect(state.rewards.sessionClaimed).toBe(true);
+  });
+
+  it('claims mastery reward once requirement is met', () => {
+    let state = createInitialGameplayState('trace-1');
+    state = advanceRaidObjective(state, 'obj-root-cause', 100);
+    state = advanceRaidObjective(state, 'obj-recover', 100);
+    state = advanceRaidObjective(state, 'obj-harden', 100);
+    state = claimCadenceReward(state, 'mastery', 'raid_mastery');
+    expect(state.rewards.masteryClaims).toContain('raid_mastery');
   });
 
   it('updates guild operations score', () => {

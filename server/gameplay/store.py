@@ -257,6 +257,23 @@ class GameplayStore:
             },
         )
         self._normalize_economy(economy)
+        rewards = session.setdefault(
+            "rewards",
+            {
+                "daily_claimed_date": None,
+                "streak_days": 0,
+                "session_claimed": False,
+                "streak_claimed_for": 0,
+                "mastery_claims": [],
+                "history": [],
+            },
+        )
+        rewards.setdefault("daily_claimed_date", None)
+        rewards.setdefault("streak_days", 0)
+        rewards.setdefault("session_claimed", False)
+        rewards.setdefault("streak_claimed_for", 0)
+        rewards.setdefault("mastery_claims", [])
+        rewards.setdefault("history", [])
 
     def _normalize_economy(self, economy: Dict[str, Any]) -> None:
         economy.setdefault("tokens", 0)
@@ -284,6 +301,9 @@ class GameplayStore:
         profile = self._state["profiles"].get(player_id)
         if profile is not None:
             profile.setdefault("milestones", [])
+            rewards = profile.setdefault("rewards", {})
+            rewards.setdefault("last_daily_claim_date", None)
+            rewards.setdefault("daily_streak", 0)
             return profile
         profile = {
             "player_id": player_id,
@@ -296,6 +316,7 @@ class GameplayStore:
             "loadout_capacity": 3,
             "stats": {"raids": 0, "bosses": 0, "campaigns": 0, "pvp_wins": 0},
             "modifiers": {},
+            "rewards": {"last_daily_claim_date": None, "daily_streak": 0},
         }
         self._state["profiles"][player_id] = profile
         return profile
@@ -439,6 +460,86 @@ class GameplayStore:
         self._refresh_economy_index(economy)
         return upkeep
 
+    def _append_reward_history(self, session: Dict[str, Any], kind: str, amount: int, details: Dict[str, Any]) -> None:
+        rewards = session["rewards"]
+        rewards["history"] = [
+            {
+                "id": f"reward-{uuid4().hex[:8]}",
+                "kind": kind,
+                "amount": amount,
+                "at": _utc_now(),
+                "details": details,
+            },
+            *rewards.get("history", []),
+        ][:60]
+
+    def _claim_reward(self, session: Dict[str, Any], actor_profile: Dict[str, Any], kind: str, mastery_id: str | None) -> int:
+        rewards = session["rewards"]
+        profile_rewards = actor_profile.setdefault("rewards", {"last_daily_claim_date": None, "daily_streak": 0})
+        today = datetime.now(timezone.utc).date()
+
+        if kind == "daily":
+            last_claim_raw = profile_rewards.get("last_daily_claim_date")
+            last_claim_date = _parse_timestamp(f"{last_claim_raw}T00:00:00Z") if isinstance(last_claim_raw, str) else None
+            if last_claim_raw == today.isoformat():
+                raise ValueError("Daily reward already claimed today")
+            if last_claim_date is not None and (today - last_claim_date.date()) == timedelta(days=1):
+                profile_rewards["daily_streak"] = int(profile_rewards.get("daily_streak", 0)) + 1
+            else:
+                profile_rewards["daily_streak"] = 1
+            profile_rewards["last_daily_claim_date"] = today.isoformat()
+            rewards["daily_claimed_date"] = today.isoformat()
+            rewards["streak_days"] = int(profile_rewards["daily_streak"])
+            base_reward = 90 + min(7, int(profile_rewards["daily_streak"])) * 10
+            awarded = self._apply_token_reward(
+                session,
+                base_reward,
+                "reward_daily",
+                {"streak_days": int(profile_rewards["daily_streak"])},
+            )
+            self._append_reward_history(session, "daily", awarded, {"streak_days": int(profile_rewards["daily_streak"])})
+            return awarded
+
+        if kind == "session":
+            if rewards.get("session_claimed"):
+                raise ValueError("Session reward already claimed")
+            if int(session["telemetry"].get("actions", 0)) < 5:
+                raise ValueError("Session reward requires at least 5 actions")
+            rewards["session_claimed"] = True
+            awarded = self._apply_token_reward(session, 140, "reward_session", {"actions": session["telemetry"]["actions"]})
+            self._append_reward_history(session, "session", awarded, {"actions": int(session["telemetry"]["actions"])})
+            return awarded
+
+        if kind == "streak":
+            streak_days = int(profile_rewards.get("daily_streak", 0))
+            if streak_days < 3:
+                raise ValueError("Streak reward requires at least 3 daily claims")
+            claimed_for = int(rewards.get("streak_claimed_for", 0))
+            if claimed_for >= streak_days:
+                raise ValueError("Streak reward already claimed for current streak")
+            rewards["streak_claimed_for"] = streak_days
+            awarded = self._apply_token_reward(session, 170 + streak_days * 5, "reward_streak", {"streak_days": streak_days})
+            self._append_reward_history(session, "streak", awarded, {"streak_days": streak_days})
+            return awarded
+
+        mastery_key = (mastery_id or "raid_mastery").strip().lower()
+        if mastery_key in rewards.get("mastery_claims", []):
+            raise ValueError("Mastery reward already claimed")
+        mastery_requirements = {
+            "raid_mastery": bool(session["raid"].get("completed")),
+            "campaign_mastery": int(session["campaign"].get("depth", 0)) >= 4,
+            "boss_mastery": int(session["boss"].get("hp", 1)) <= 0,
+        }
+        if mastery_key not in mastery_requirements:
+            raise ValueError("Unknown mastery reward")
+        if not mastery_requirements[mastery_key]:
+            raise ValueError("Mastery requirement not met")
+        rewards["mastery_claims"] = [*rewards.get("mastery_claims", []), mastery_key]
+        mastery_rewards = {"raid_mastery": 180, "campaign_mastery": 220, "boss_mastery": 260}
+        awarded = self._apply_token_reward(session, mastery_rewards[mastery_key], "reward_mastery", {"mastery_id": mastery_key})
+        self._append_reward_history(session, "mastery", awarded, {"mastery_id": mastery_key})
+        return awarded
+
     def _publish(self, session_id: str, event_type: str, payload: Dict[str, Any]) -> None:
         event = {"type": event_type, "publishedAt": _utc_now(), **payload}
         subscribers = self._subscribers.get(session_id, {})
@@ -557,6 +658,14 @@ class GameplayStore:
                     "ledger": [],
                     "policy": deepcopy(ECONOMY_POLICY_DEFAULT),
                     "inflation_index": 0.5,
+                },
+                "rewards": {
+                    "daily_claimed_date": None,
+                    "streak_days": int(profile.get("rewards", {}).get("daily_streak", 0)),
+                    "session_claimed": False,
+                    "streak_claimed_for": 0,
+                    "mastery_claims": [],
+                    "history": [],
                 },
                 "guild": {
                     "guild_id": None,
@@ -1063,6 +1172,13 @@ class GameplayStore:
             elif action_type == "liveops.advance_week":
                 self._advance_liveops_week_locked(session["liveops"])
                 self._apply_weekly_upkeep_sink(session)
+            elif action_type == "rewards.claim":
+                kind = str(payload.get("kind") or "").strip().lower()
+                mastery_id = str(payload.get("mastery_id") or "").strip().lower() or None
+                if kind not in {"daily", "session", "streak", "mastery"}:
+                    raise ValueError("kind must be one of daily/session/streak/mastery")
+                awarded = self._claim_reward(session, actor_profile, kind, mastery_id)
+                self._grant_profile_xp(actor_profile, 30 + max(1, awarded // 10))
             elif action_type == "safety.mute":
                 target_player_id = str(payload.get("target_player_id") or "").strip().lower()
                 if not target_player_id:

@@ -24,7 +24,7 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 | WR-006 | done | Progression | Persistent XP and milestone system | XP accrual + leveling + rewards + save/load contracts |
 | WR-007 | done | Progression | Skill tree/loadout balancing | Costs, unlock paths, and slot constraints tuned and validated |
 | WR-008 | done | Economy | Economy balance pass | Stable source/sink loop with anti-inflation safeguards |
-| WR-009 | todo | Rewards | Reward cadence | Daily/session/streak/mastery rewards with UX surfaces |
+| WR-009 | done | Rewards | Reward cadence | Daily/session/streak/mastery rewards with UX surfaces |
 | WR-010 | todo | Encounters | Boss encounter depth | Multi-phase boss logic + visible phase mechanics + tests |
 | WR-011 | todo | Content | Procedural mission generation | Seeded generation with reproducibility and replay consistency |
 | WR-012 | todo | Content | Daily/weekly challenges | Rotating challenge system with schedule + claim flow |
@@ -73,7 +73,7 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 
 ### Batch C
 
-- WR-009 through WR-017
+- WR-010 through WR-017
 - WR-019 through WR-028
 - WR-032 through WR-035
 - WR-037 and WR-040
@@ -90,3 +90,4 @@ Ship Agent Director as a public, release-ready, world-class game product with du
 - 2026-02-17: Completed WR-006 with persistent profile XP/level progression, milestone unlocks, and frontend/backend save-load mapping.
 - 2026-02-17: Completed WR-007 with tuned multi-tier skill costs, level/milestone unlock paths, per-slot loadout limits, and frontend/backend validation tests.
 - 2026-02-17: Completed WR-008 with adaptive reward scaling, anti-inflation sinks, weekly upkeep drains, and economy validation across UI/backend contracts.
+- 2026-02-17: Completed WR-009 with daily/session/streak/mastery claim flows, backend validation rules, and in-app reward cadence surfaces.

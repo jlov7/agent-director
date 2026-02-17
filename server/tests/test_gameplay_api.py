@@ -182,6 +182,7 @@ class TestGameplayApi(unittest.TestCase):
             ("liveops.progress", {"delta": 1}),
             ("liveops.balance", {"difficulty_factor": 1.2, "reward_multiplier": 1.35, "note": "ops tune"}),
             ("liveops.advance_week", {}),
+            ("rewards.claim", {"kind": "session"}),
             ("safety.mute", {"target_player_id": "griefer-1"}),
             ("safety.block", {"target_player_id": "griefer-2"}),
             ("safety.report", {"target_player_id": "griefer-2", "reason": "abusive behavior"}),
@@ -222,6 +223,8 @@ class TestGameplayApi(unittest.TestCase):
         self.assertGreater(len(session["cinematic"]["events"]), 0)
         self.assertGreaterEqual(session["liveops"]["week"], 2)
         self.assertGreaterEqual(len(session["liveops"]["tuning_history"]), 1)
+        self.assertTrue(session["rewards"]["session_claimed"])
+        self.assertGreater(len(session["rewards"]["history"]), 0)
         self.assertIn("griefer-1", session["safety"]["muted_player_ids"])
         self.assertIn("griefer-2", session["safety"]["blocked_player_ids"])
         self.assertEqual(session["safety"]["reports"][0]["target_player_id"], "griefer-2")
@@ -303,6 +306,54 @@ class TestGameplayApi(unittest.TestCase):
         self.assertTrue(any(entry.get("type") == "sink" for entry in ledger))
         self.assertLess(session["economy"]["tokens"], 1200)
         self.assertLess(session["economy"]["inflation_index"], 4.0)
+
+    def test_reward_cadence_claims_validate_and_persist(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/sessions",
+            {"trace_id": "trace-1", "host_player_id": "host", "name": "Reward Cadence"},
+        )
+        self.assertEqual(status, 201)
+        session_id = data["session"]["id"]
+        version = data["session"]["version"]
+
+        def apply(action_type: str, payload: dict, expected_status: int = 200) -> dict:
+            nonlocal version
+            action_status, action_data = self._request(
+                "POST",
+                f"/api/gameplay/sessions/{session_id}/action",
+                {
+                    "player_id": "host",
+                    "type": action_type,
+                    "payload": payload,
+                    "expected_version": version,
+                },
+            )
+            self.assertEqual(action_status, expected_status, action_data.get("error", action_type))
+            if action_status == 200:
+                version = action_data["session"]["version"]
+            return action_data
+
+        for objective_id in ("obj-root-cause", "obj-recover", "obj-harden"):
+            apply("raid.objective_progress", {"objective_id": objective_id, "delta": 100})
+
+        apply("rewards.claim", {"kind": "daily"})
+        second_daily = apply("rewards.claim", {"kind": "daily"}, expected_status=400)
+        self.assertIn("already claimed", second_daily.get("error", ""))
+
+        apply("rewards.claim", {"kind": "mastery", "mastery_id": "raid_mastery"})
+
+        for _ in range(2):
+            apply("raid.objective_progress", {"objective_id": "obj-root-cause", "delta": 1})
+        apply("rewards.claim", {"kind": "session"})
+
+        status, data = self._request("GET", f"/api/gameplay/sessions/{session_id}")
+        self.assertEqual(status, 200)
+        rewards = data["session"]["rewards"]
+        self.assertTrue(rewards["session_claimed"])
+        self.assertIn("raid_mastery", rewards["mastery_claims"])
+        self.assertGreaterEqual(rewards["streak_days"], 1)
+        self.assertGreaterEqual(len(rewards["history"]), 3)
 
     def test_guild_and_liveops_endpoints(self) -> None:
         status, data = self._request(

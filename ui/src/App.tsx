@@ -329,6 +329,24 @@ function mapGameplaySessionToState(
           ).toFixed(3)
         ),
     },
+    rewards: {
+      dailyClaimedOn: session.rewards?.daily_claimed_date ?? fallback.rewards?.dailyClaimedOn ?? null,
+      streakDays: session.rewards?.streak_days ?? fallback.rewards?.streakDays ?? 0,
+      sessionClaimed: session.rewards?.session_claimed ?? fallback.rewards?.sessionClaimed ?? false,
+      streakClaimedFor: session.rewards?.streak_claimed_for ?? fallback.rewards?.streakClaimedFor ?? 0,
+      masteryClaims: session.rewards?.mastery_claims ?? fallback.rewards?.masteryClaims ?? [],
+      history:
+        session.rewards?.history?.map((entry) => ({
+          id: entry.id,
+          kind:
+            entry.kind === 'daily' || entry.kind === 'session' || entry.kind === 'streak' || entry.kind === 'mastery'
+              ? entry.kind
+              : 'daily',
+          amount: entry.amount,
+          at: Date.parse(entry.at) || Date.now(),
+          details: entry.details ? Object.fromEntries(Object.entries(entry.details).map(([key, value]) => [key, String(value)])) : {},
+        })) ?? fallback.rewards?.history ?? [],
+    },
     guild: {
       name: session.guild.guild_id ?? 'Trace Guild',
       members: session.players.length,

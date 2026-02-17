@@ -69,4 +69,13 @@ describe('GameplayMode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mission success' }));
     expect(screen.getByRole('button', { name: 'Unlock Surge Compiler' })).not.toBeDisabled();
   });
+
+  it('supports reward cadence claim actions', () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByRole('button', { name: 'Claim daily' }));
+    expect(screen.getByText(/Reward cadence: streak 1/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Mission success' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Claim session' }));
+    expect(screen.getByText(/session claimed/i)).toBeInTheDocument();
+  });
 });

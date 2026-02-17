@@ -355,6 +355,20 @@ export interface GameplaySession {
       reward_ceiling?: number;
     };
   };
+  rewards?: {
+    daily_claimed_date?: string | null;
+    streak_days?: number;
+    session_claimed?: boolean;
+    streak_claimed_for?: number;
+    mastery_claims?: string[];
+    history?: Array<{
+      id: string;
+      kind: string;
+      amount: number;
+      at: string;
+      details?: Record<string, unknown>;
+    }>;
+  };
   guild: {
     guild_id: string | null;
     operations_score: number;

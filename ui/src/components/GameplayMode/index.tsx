@@ -8,11 +8,13 @@ import {
   applyNarrativeChoice,
   blockPlayer,
   completeCampaignMission,
+  claimCadenceReward,
   craftUpgrade,
   createTimeFork,
   equipLoadoutSkill,
   evaluateSkillEquip,
   evaluateSkillUnlock,
+  evaluateCadenceReward,
   generateAdaptiveDirectorUpdate,
   joinRaid,
   mergeForkIntoPrimary,
@@ -123,6 +125,14 @@ export default function GameplayMode({
   const safety = state.safety ?? { mutedPlayerIds: [], blockedPlayerIds: [], reports: [] };
   const sandbox = state.sandbox ?? { enabled: false };
   const progression = state.progression ?? { xp: 0, level: 1, nextLevelXp: 200, milestones: [] };
+  const rewards = state.rewards ?? {
+    dailyClaimedOn: null,
+    streakDays: 0,
+    sessionClaimed: false,
+    streakClaimedFor: 0,
+    masteryClaims: [],
+    history: [],
+  };
   const coreLoopPhase = useMemo(() => {
     if (state.outcome.status === 'win' || state.outcome.status === 'loss') return 4;
     const executionSignals =
@@ -588,6 +598,70 @@ export default function GameplayMode({
             >
               Craft overclock core
             </button>
+          </div>
+          <div className="gameplay-list">
+            <p>
+              Reward cadence: streak {rewards.streakDays} • session {rewards.sessionClaimed ? 'claimed' : 'open'} • mastery{' '}
+              {rewards.masteryClaims.length}
+            </p>
+            <div className="gameplay-inline">
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={!evaluateCadenceReward(state, 'daily').allowed}
+                onClick={() =>
+                  applyAction(
+                    'rewards.claim',
+                    { kind: 'daily' },
+                    (prev) => claimCadenceReward(prev, 'daily')
+                  )
+                }
+              >
+                Claim daily
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={!evaluateCadenceReward(state, 'session').allowed}
+                onClick={() =>
+                  applyAction(
+                    'rewards.claim',
+                    { kind: 'session' },
+                    (prev) => claimCadenceReward(prev, 'session')
+                  )
+                }
+              >
+                Claim session
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={!evaluateCadenceReward(state, 'streak').allowed}
+                onClick={() =>
+                  applyAction(
+                    'rewards.claim',
+                    { kind: 'streak' },
+                    (prev) => claimCadenceReward(prev, 'streak')
+                  )
+                }
+              >
+                Claim streak
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={!evaluateCadenceReward(state, 'mastery', 'raid_mastery').allowed}
+                onClick={() =>
+                  applyAction(
+                    'rewards.claim',
+                    { kind: 'mastery', mastery_id: 'raid_mastery' },
+                    (prev) => claimCadenceReward(prev, 'mastery', 'raid_mastery')
+                  )
+                }
+              >
+                Claim raid mastery
+              </button>
+            </div>
           </div>
         </article>
 

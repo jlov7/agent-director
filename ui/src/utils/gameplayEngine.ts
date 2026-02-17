@@ -89,6 +89,11 @@ export type SkillRuleCheck = {
   reason: string;
 };
 
+export type RewardRuleCheck = {
+  allowed: boolean;
+  reason: string;
+};
+
 export type PvPState = {
   round: number;
   stability: number;
@@ -130,6 +135,25 @@ export type EconomyState = {
   crafted: string[];
   inflationIndex: number;
   reserveTarget: number;
+};
+
+export type CadenceRewardKind = 'daily' | 'session' | 'streak' | 'mastery';
+
+export type RewardHistoryEntry = {
+  id: string;
+  kind: CadenceRewardKind;
+  amount: number;
+  at: number;
+  details?: Record<string, string | number>;
+};
+
+export type RewardsState = {
+  dailyClaimedOn: string | null;
+  streakDays: number;
+  sessionClaimed: boolean;
+  streakClaimedFor: number;
+  masteryClaims: string[];
+  history: RewardHistoryEntry[];
 };
 
 export type GuildState = {
@@ -231,6 +255,7 @@ export type GameplayState = {
   boss: BossState;
   director: DirectorState;
   economy: EconomyState;
+  rewards: RewardsState;
   guild: GuildState;
   cinematic: CinematicState;
   liveops: LiveOpsState;
@@ -527,6 +552,14 @@ export function createInitialGameplayState(seedSource: string): GameplayState {
       crafted: [],
       inflationIndex: 0.438,
       reserveTarget: 320,
+    },
+    rewards: {
+      dailyClaimedOn: null,
+      streakDays: 0,
+      sessionClaimed: false,
+      streakClaimedFor: 0,
+      masteryClaims: [],
+      history: [],
     },
     guild: {
       name: 'Trace Guild',
@@ -1070,6 +1103,106 @@ export function progressLiveOpsChallenge(state: GameplayState, delta: number): G
   return grantProgressionXp(applyCreditReward(nextState, challenge.rewardCredits), 80);
 }
 
+export function evaluateCadenceReward(
+  state: GameplayState,
+  kind: CadenceRewardKind,
+  masteryId: 'raid_mastery' | 'campaign_mastery' | 'boss_mastery' = 'raid_mastery'
+): RewardRuleCheck {
+  const rewards = readRewardsState(state);
+  const today = new Date().toISOString().slice(0, 10);
+  if (kind === 'daily') {
+    if (rewards.dailyClaimedOn === today) return { allowed: false, reason: 'Daily reward already claimed today.' };
+    return { allowed: true, reason: 'Daily reward available.' };
+  }
+  if (kind === 'session') {
+    if (rewards.sessionClaimed) return { allowed: false, reason: 'Session reward already claimed.' };
+    const sessionEligible =
+      state.raid.objectives.some((objective) => objective.progress > 0) || state.campaign.depth > 1 || state.pvp.round > 0;
+    if (!sessionEligible) return { allowed: false, reason: 'Session reward requires gameplay activity.' };
+    return { allowed: true, reason: 'Session reward available.' };
+  }
+  if (kind === 'streak') {
+    if (rewards.streakDays < 3) return { allowed: false, reason: 'Streak reward requires 3+ daily claims.' };
+    if (rewards.streakClaimedFor >= rewards.streakDays) {
+      return { allowed: false, reason: 'Streak reward already claimed for current streak.' };
+    }
+    return { allowed: true, reason: 'Streak reward available.' };
+  }
+  if (rewards.masteryClaims.includes(masteryId)) return { allowed: false, reason: 'Mastery reward already claimed.' };
+  const masteryReady =
+    masteryId === 'raid_mastery'
+      ? state.raid.completed
+      : masteryId === 'campaign_mastery'
+        ? state.campaign.depth >= 4
+        : state.boss.hp <= 0;
+  if (!masteryReady) return { allowed: false, reason: 'Mastery requirement not met.' };
+  return { allowed: true, reason: 'Mastery reward available.' };
+}
+
+export function claimCadenceReward(
+  state: GameplayState,
+  kind: CadenceRewardKind,
+  masteryId: 'raid_mastery' | 'campaign_mastery' | 'boss_mastery' = 'raid_mastery'
+): GameplayState {
+  const check = evaluateCadenceReward(state, kind, masteryId);
+  if (!check.allowed) return state;
+  const rewards = readRewardsState(state);
+  const today = new Date().toISOString().slice(0, 10);
+  let nextRewards: RewardsState = rewards;
+  let baseCredits = 0;
+  let details: RewardHistoryEntry['details'] = {};
+  if (kind === 'daily') {
+    const streakDays = rewards.dailyClaimedOn === today ? rewards.streakDays : rewards.streakDays + 1;
+    nextRewards = {
+      ...rewards,
+      dailyClaimedOn: today,
+      streakDays,
+    };
+    baseCredits = 90 + Math.min(7, streakDays) * 10;
+    details = { streakDays };
+  } else if (kind === 'session') {
+    nextRewards = {
+      ...rewards,
+      sessionClaimed: true,
+    };
+    baseCredits = 140;
+    details = { actions: state.pvp.round + state.narrative.history.length + state.campaign.depth };
+  } else if (kind === 'streak') {
+    nextRewards = {
+      ...rewards,
+      streakClaimedFor: rewards.streakDays,
+    };
+    baseCredits = 170 + rewards.streakDays * 5;
+    details = { streakDays: rewards.streakDays };
+  } else {
+    nextRewards = {
+      ...rewards,
+      masteryClaims: [...rewards.masteryClaims, masteryId],
+    };
+    baseCredits = masteryId === 'boss_mastery' ? 260 : masteryId === 'campaign_mastery' ? 220 : 180;
+    details = { masteryId };
+  }
+  const nextState = applyCreditReward({ ...state, rewards: nextRewards }, baseCredits);
+  const awarded = Math.max(1, nextState.economy.credits - state.economy.credits);
+  const entry: RewardHistoryEntry = {
+    id: `reward-${nextRewards.history.length + 1}-${state.seed % 1000}`,
+    kind,
+    amount: awarded,
+    at: Date.now(),
+    details,
+  };
+  return grantProgressionXp(
+    {
+      ...nextState,
+      rewards: {
+        ...nextRewards,
+        history: [entry, ...nextRewards.history].slice(0, 60),
+      },
+    },
+    30 + Math.max(1, Math.round(awarded / 10))
+  );
+}
+
 export function applyLiveOpsBalancing(
   state: GameplayState,
   inputs: { difficultyFactor: number; rewardMultiplier: number; note: string }
@@ -1171,6 +1304,19 @@ function readLiveOpsState(state: GameplayState): LiveOpsState {
     rewardMultiplier: state.liveops?.rewardMultiplier ?? 1,
     tuningHistory: state.liveops?.tuningHistory ?? [],
   };
+}
+
+function readRewardsState(state: GameplayState): RewardsState {
+  return (
+    state.rewards ?? {
+      dailyClaimedOn: null,
+      streakDays: 0,
+      sessionClaimed: false,
+      streakClaimedFor: 0,
+      masteryClaims: [],
+      history: [],
+    }
+  );
 }
 
 function normalizePlayerId(value: string) {
