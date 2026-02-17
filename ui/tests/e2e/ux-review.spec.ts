@@ -43,10 +43,7 @@ for (const viewport of viewports) {
       await expect(page.locator('.inspector')).toBeVisible();
       await page.evaluate(() => window.scrollTo(0, 0));
       await maybePercySnapshot(page, `ux-${viewport.name}-cinema`, { widths: [viewport.size.width] });
-      await expect(page).toHaveScreenshot(`ux-${viewport.name}-cinema.png`, {
-        fullPage: true,
-        ...screenshotOptions,
-      });
+      await expect(page.locator('.app')).toHaveScreenshot(`ux-${viewport.name}-cinema.png`, screenshotOptions);
     });
 
     test('flow layout snapshot', async ({ page }) => {
@@ -56,10 +53,7 @@ for (const viewport of viewports) {
       await expect(page.locator('.flow-node').first()).toBeVisible();
       await page.evaluate(() => window.scrollTo(0, 0));
       await maybePercySnapshot(page, `ux-${viewport.name}-flow`, { widths: [viewport.size.width] });
-      await expect(page).toHaveScreenshot(`ux-${viewport.name}-flow.png`, {
-        fullPage: true,
-        ...screenshotOptions,
-      });
+      await expect(page.locator('.app')).toHaveScreenshot(`ux-${viewport.name}-flow.png`, screenshotOptions);
     });
 
     test('compare layout snapshot', async ({ page }) => {
@@ -68,10 +62,7 @@ for (const viewport of viewports) {
       await openCompare(page);
       await page.evaluate(() => window.scrollTo(0, 0));
       await maybePercySnapshot(page, `ux-${viewport.name}-compare`, { widths: [viewport.size.width] });
-      await expect(page).toHaveScreenshot(`ux-${viewport.name}-compare.png`, {
-        fullPage: true,
-        ...screenshotOptions,
-      });
+      await expect(page.locator('.app')).toHaveScreenshot(`ux-${viewport.name}-compare.png`, screenshotOptions);
     });
   });
 }
