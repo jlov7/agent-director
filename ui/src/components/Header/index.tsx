@@ -29,6 +29,14 @@ type HeaderProps = {
   modeHotkeys?: string;
   onMotionChange?: (mode: 'cinematic' | 'balanced' | 'minimal') => void;
   onCreateHandoffDigest?: () => void;
+  workspaces?: Array<{ id: string; label: string }>;
+  workspaceId?: string;
+  onWorkspaceChange?: (workspaceId: string) => void;
+  workspaceRole?: 'viewer' | 'operator' | 'admin';
+  onWorkspaceRoleChange?: (role: 'viewer' | 'operator' | 'admin') => void;
+  sessionLabel?: string;
+  sessionExpired?: boolean;
+  onRenewSession?: () => void;
 };
 
 export default function Header({
@@ -56,6 +64,14 @@ export default function Header({
   runHealthScore = 100,
   modeHotkeys = 'C / F / Space',
   onCreateHandoffDigest,
+  workspaces = [],
+  workspaceId,
+  onWorkspaceChange,
+  workspaceRole = 'operator',
+  onWorkspaceRoleChange,
+  sessionLabel = 'Active',
+  sessionExpired = false,
+  onRenewSession,
 }: HeaderProps) {
   const clampedHealth = Math.max(0, Math.min(100, Math.round(runHealthScore)));
   const missionLabel = missionCompletion
@@ -115,6 +131,17 @@ export default function Header({
           <span className="header-mode-pill" aria-label="Current mode">
             Mode: {mode}
           </span>
+          {workspaceId ? (
+            <span className="header-workspace-pill" aria-label="Current workspace">
+              Workspace: {workspaceId}
+            </span>
+          ) : null}
+          <span className={`header-role-pill role-${workspaceRole}`} aria-label="Current workspace role">
+            Role: {workspaceRole}
+          </span>
+          <span className={`header-session-pill ${sessionExpired ? 'expired' : ''}`} aria-label="Session status">
+            Session: {sessionLabel}
+          </span>
           <span className="header-hotkeys" aria-label="Mode hotkeys">
             Keys: {modeHotkeys}
           </span>
@@ -132,6 +159,36 @@ export default function Header({
         </div>
       </div>
       <div className="header-actions">
+        <label className="theme-picker">
+          Workspace
+          <select
+            className="trace-select"
+            value={workspaceId}
+            aria-label="Select workspace"
+            onChange={(event) => onWorkspaceChange?.(event.target.value)}
+          >
+            {workspaces.map((workspace) => (
+              <option key={workspace.id} value={workspace.id}>
+                {workspace.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="theme-picker">
+          Role
+          <select
+            className="trace-select"
+            value={workspaceRole}
+            aria-label="Select workspace role"
+            onChange={(event) =>
+              onWorkspaceRoleChange?.(event.target.value as 'viewer' | 'operator' | 'admin')
+            }
+          >
+            <option value="viewer">Viewer</option>
+            <option value="operator">Operator</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
         <label className="theme-picker">
           Theme
           <select
@@ -224,6 +281,15 @@ export default function Header({
           data-help-placement="bottom"
         >
           Refresh
+        </button>
+        <button
+          className={`ghost-button ${sessionExpired ? 'warn' : ''}`}
+          type="button"
+          onClick={onRenewSession}
+          aria-label="Renew workspace session"
+          title="Renew workspace session"
+        >
+          Renew Session
         </button>
         <button
           className="ghost-button"

@@ -1,3 +1,43 @@
+# SaaS UX World-Class Sweep ExecPlan
+
+## Purpose / Big Picture
+
+Upgrade the frontend experience from feature-rich demo quality to SaaS-grade product quality with deep-linkable journeys, resilient state UX, and web-product readiness.
+
+## Scope
+
+- In scope: SWC-001..SWC-027 from `docs/plans/2026-02-18-saas-ux-world-class-sweep-plan.md`.
+- Out of scope: backend architecture rewrites that are not required for the UX journey contract.
+
+## Progress
+
+- [x] SWC-001 tracked plan initialized
+- [x] SWC-002 deep-link URL state for mode/trace/step
+- [x] SWC-003 unified app shell states
+- [x] SWC-004 global notification center
+- [ ] SWC-005 async action resilience UX consistency
+- [x] SWC-006 SEO baseline
+- [x] SWC-007 PWA baseline
+- [x] SWC-008 keyboard/a11y parity
+- [x] SWC-009 session UX contract + expiry controls
+- [x] SWC-010 workspace switcher in header
+- [x] SWC-011 role-aware action gating
+- [ ] SWC-012..SWC-027 remaining SaaS UX program
+
+## Decision Log
+
+- Execute highest-leverage foundational UX changes first because downstream journey work depends on reliable routing, state surfacing, and web metadata.
+- Keep first execution batch additive and low-risk to preserve existing release-gate stability.
+
+## Validation Plan
+
+- `pnpm -C ui typecheck`
+- `pnpm -C ui test`
+- `pnpm -C ui test:e2e`
+- `make verify-ux`
+
+---
+
 # Pre-Release Hardening ExecPlan
 
 ## Purpose / Big Picture

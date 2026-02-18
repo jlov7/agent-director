@@ -22,11 +22,16 @@ test('creates a gameplay multiplayer session', async ({ page }) => {
   await page.getByLabel('Session name').fill('E2E Night Ops');
   await page.getByRole('button', { name: 'Create multiplayer session' }).click();
 
-  const errorVisible = await page
-    .getByText('Failed to create gameplay session.')
-    .isVisible()
-    .catch(() => false);
-  if (errorVisible) {
+  const localSession = page.getByText('Session: local-only');
+  const remoteSession = page.getByText(/^Session: session-/);
+
+  await Promise.race([
+    localSession.waitFor({ state: 'visible', timeout: 7000 }).catch(() => undefined),
+    remoteSession.waitFor({ state: 'visible', timeout: 7000 }).catch(() => undefined),
+  ]);
+
+  const localVisible = await localSession.isVisible().catch(() => false);
+  if (localVisible) {
     await expect(page.getByText('Session: local-only')).toBeVisible();
   } else {
     await expect(page.getByText(/^Session: session-/)).toBeVisible();

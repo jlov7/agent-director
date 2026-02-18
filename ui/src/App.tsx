@@ -15,6 +15,11 @@ import IntroOverlay from './components/common/IntroOverlay';
 import HeroRibbon from './components/common/HeroRibbon';
 import QuickActions from './components/common/QuickActions';
 import StoryModeBanner from './components/common/StoryModeBanner';
+import AppShellState from './components/common/AppShellState';
+import NotificationCenter, {
+  type AppNotification,
+  type NotificationLevel,
+} from './components/common/NotificationCenter';
 import type { MatrixScenarioDraft } from './components/Matrix';
 import MorphOrchestrator from './components/Morph/MorphOrchestrator';
 import { useTrace } from './hooks/useTrace';
@@ -90,6 +95,7 @@ import {
 } from './utils/collaboration';
 import { createInitialGameplayState, type GameplayState } from './utils/gameplayEngine';
 import type { GameplayLocale } from './utils/gameplayI18n';
+import { buildUrlAppState, parseUrlAppState } from './utils/urlState';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
@@ -99,6 +105,7 @@ const PRESENCE_HEARTBEAT_MS = 5000;
 const COLLAB_CURSOR_STORAGE_KEY = 'agentDirector.collab.cursors.v1';
 const COLLAB_ANNOTATION_STORAGE_KEY = 'agentDirector.collab.annotations.v1';
 const COLLAB_ACTIVITY_STORAGE_KEY = 'agentDirector.collab.activity.v1';
+const NOTIFICATION_TTL_MS = 6000;
 
 type Mode = 'cinema' | 'flow' | 'compare' | 'matrix' | 'gameplay';
 type IntroPersona = 'builder' | 'executive' | 'operator';
@@ -106,6 +113,7 @@ type ThemeMode = 'studio' | 'focus' | 'contrast';
 type MotionMode = 'cinematic' | 'balanced' | 'minimal';
 type LaunchPath = 'rapid_triage' | 'deep_diagnosis' | 'team_sync';
 type RecommendationTone = 'priority' | 'warning' | 'info';
+type SaaSRole = 'viewer' | 'operator' | 'admin';
 
 type Rect = { left: number; top: number; width: number; height: number };
 type DirectorRecommendation = {
@@ -132,6 +140,14 @@ type StoryBeat = {
   duration: number;
   action: () => void | Promise<void>;
 };
+
+type WorkspaceOption = { id: string; label: string };
+
+const WORKSPACE_OPTIONS: WorkspaceOption[] = [
+  { id: 'personal', label: 'Personal' },
+  { id: 'operations', label: 'Operations' },
+  { id: 'executive', label: 'Executive' },
+];
 
 const FlowMode = lazy(() => import('./components/FlowMode'));
 const Compare = lazy(() => import('./components/Compare'));
@@ -540,6 +556,12 @@ export default function App() {
   );
   const [themeMode, setThemeMode] = usePersistedState<ThemeMode>('agentDirector.themeMode', 'studio');
   const [motionMode, setMotionMode] = usePersistedState<MotionMode>('agentDirector.motionMode', 'balanced');
+  const [workspaceId, setWorkspaceId] = usePersistedState('agentDirector.workspaceId.v1', WORKSPACE_OPTIONS[0].id);
+  const [workspaceRole, setWorkspaceRole] = usePersistedState<SaaSRole>('agentDirector.workspaceRole.v1', 'operator');
+  const [sessionExpiresAt, setSessionExpiresAt] = usePersistedState(
+    'agentDirector.sessionExpiresAt.v1',
+    Date.now() + 1000 * 60 * 60 * 4
+  );
   const [laneStrategy, setLaneStrategy] = usePersistedState<LaneStrategy>(
     'agentDirector.timelineLaneStrategy',
     'type'
@@ -616,6 +638,7 @@ export default function App() {
   const [activeSessions, setActiveSessions] = useState(1);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [handoffStatus, setHandoffStatus] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<Array<AppNotification & { expiresAt: number }>>([]);
   const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
   const [sharedAnnotations, setSharedAnnotations] = useState<SharedAnnotation[]>([]);
   const [activityFeed, setActivityFeed] = useState<ActivityEntry[]>([]);
@@ -629,6 +652,10 @@ export default function App() {
   const applyingRemoteCursorRef = useRef(false);
   const gameplayFunnelFlagsRef = useRef<Record<string, boolean>>({});
   const gamepadPressedRef = useRef<Record<string, boolean>>({});
+  const initialUrlStateRef = useRef(
+    typeof window === 'undefined' ? parseUrlAppState('') : parseUrlAppState(window.location.search)
+  );
+  const urlStateAppliedRef = useRef(false);
 
   const textFilteredSteps = useMemo(() => {
     if (!trace) return [];
@@ -716,6 +743,120 @@ export default function App() {
     if (mode === 'gameplay') return 'G / S / Cmd+K';
     return 'C / F / Space';
   }, [mode]);
+  const sessionState = useMemo(() => {
+    const remainingMs = sessionExpiresAt - Date.now();
+    const remainingMinutes = Math.max(0, Math.ceil(remainingMs / 60000));
+    return {
+      expired: remainingMs <= 0,
+      remainingMinutes,
+      label: remainingMs <= 0 ? 'Expired' : `${remainingMinutes}m left`,
+    };
+  }, [sessionExpiresAt]);
+  const addNotification = useCallback((message: string, level: NotificationLevel = 'info') => {
+    const normalized = message.trim();
+    if (!normalized) return;
+    const now = Date.now();
+    setNotifications((prev) => {
+      if (prev.some((item) => item.message === normalized && item.level === level)) return prev;
+      const next = [...prev, { id: `notif-${now}-${Math.random().toString(36).slice(2, 8)}`, message: normalized, level, expiresAt: now + NOTIFICATION_TTL_MS }];
+      return next.slice(-6);
+    });
+  }, []);
+  const canMutate = workspaceRole !== 'viewer' && !sessionState.expired;
+  const requireMutationAccess = useCallback(
+    (intent: string) => {
+      if (canMutate) return true;
+      if (sessionState.expired) {
+        addNotification(`Session expired. Renew session to ${intent}.`, 'warning');
+      } else {
+        addNotification(`Viewer role cannot ${intent}. Switch role to operator or admin.`, 'warning');
+      }
+      return false;
+    },
+    [addNotification, canMutate, sessionState.expired]
+  );
+  const dismissNotification = useCallback((id: string) => {
+    setNotifications((prev) => prev.filter((item) => item.id !== id));
+  }, []);
+  const renewSession = useCallback(() => {
+    setSessionExpiresAt(Date.now() + 1000 * 60 * 60 * 4);
+    addNotification('Session renewed for 4 hours.', 'success');
+  }, [addNotification, setSessionExpiresAt]);
+
+  useEffect(() => {
+    if (urlStateAppliedRef.current) return;
+    const initialState = initialUrlStateRef.current;
+    if (!initialState.mode && !initialState.traceId && !initialState.stepId) {
+      urlStateAppliedRef.current = true;
+      return;
+    }
+    if (initialState.mode && initialState.mode !== mode) {
+      setMode(initialState.mode);
+    }
+    if (initialState.traceId) {
+      const traceExists = traces.some((item) => item.id === initialState.traceId);
+      if (!traceExists) return;
+      if (selectedTraceId !== initialState.traceId) {
+        setSelectedTraceId(initialState.traceId);
+        return;
+      }
+    }
+    if (initialState.stepId && trace?.steps.some((step) => step.id === initialState.stepId)) {
+      if (selectedStepId !== initialState.stepId) {
+        setSelectedStepId(initialState.stepId);
+      }
+    }
+    urlStateAppliedRef.current = true;
+  }, [mode, selectedStepId, selectedTraceId, setMode, setSelectedTraceId, trace?.steps, traces]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const nextHref = buildUrlAppState(window.location.href, {
+      mode,
+      traceId: selectedTraceId ?? undefined,
+      stepId: selectedStepId ?? undefined,
+    });
+    if (nextHref !== window.location.href) {
+      window.history.replaceState(null, '', nextHref);
+    }
+  }, [mode, selectedStepId, selectedTraceId]);
+
+  useEffect(() => {
+    if (!notifications.length) return;
+    const interval = window.setInterval(() => {
+      const now = Date.now();
+      setNotifications((prev) => prev.filter((item) => item.expiresAt > now));
+    }, 1000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [notifications.length]);
+
+  useEffect(() => {
+    if (shareStatus) addNotification(shareStatus, 'success');
+  }, [addNotification, shareStatus]);
+
+  useEffect(() => {
+    if (handoffStatus) addNotification(handoffStatus, 'success');
+  }, [addNotification, handoffStatus]);
+
+  useEffect(() => {
+    if (matrixError) addNotification(matrixError, 'error');
+  }, [addNotification, matrixError]);
+
+  useEffect(() => {
+    if (traceQueryError) addNotification(traceQueryError, 'warning');
+  }, [addNotification, traceQueryError]);
+
+  useEffect(() => {
+    if (gameplaySessionError) addNotification(gameplaySessionError, 'warning');
+  }, [addNotification, gameplaySessionError]);
+
+  useEffect(() => {
+    if (sessionState.expired) {
+      addNotification('Workspace session expired. Renew to continue write actions.', 'warning');
+    }
+  }, [addNotification, sessionState.expired]);
 
   useEffect(() => {
     if (!trace) return;
@@ -1099,6 +1240,7 @@ export default function App() {
   const handleReplay = useCallback(
     async (stepId: string) => {
       if (!trace) return;
+      if (!requireMutationAccess('run replay')) return;
       const newTrace = await replayFromStep(trace.id, stepId, 'hybrid', { note: 'UI replay' }, trace);
       if (newTrace) {
         setCompareTrace(newTrace);
@@ -1108,7 +1250,7 @@ export default function App() {
         appendActivity(`Created replay from ${stepId}`);
       }
     },
-    [appendActivity, setMissionProgress, trace, setCompareTrace, setMode, setOverlayEnabled]
+    [appendActivity, requireMutationAccess, setMissionProgress, trace, setCompareTrace, setMode, setOverlayEnabled]
   );
 
   const handleTraceQuery = useCallback(async () => {
@@ -1216,6 +1358,7 @@ export default function App() {
   const handleCreateGameplaySession = useCallback(
     async (name: string) => {
       if (!trace) return;
+      if (!requireMutationAccess('create gameplay sessions')) return;
       const session = await createGameplaySession({
         traceId: trace.id,
         hostPlayerId: gameplayPlayerId,
@@ -1230,11 +1373,12 @@ export default function App() {
       setGameplaySessionError(null);
       appendActivity(`Created gameplay session ${session.id}`);
     },
-    [appendActivity, gameplayPlayerId, setGameplaySessionId, trace]
+    [appendActivity, gameplayPlayerId, requireMutationAccess, setGameplaySessionId, trace]
   );
 
   const handleJoinGameplaySession = useCallback(
     async (sessionId: string, playerId: string, role: 'strategist' | 'operator' | 'analyst' | 'saboteur') => {
+      if (!requireMutationAccess('join gameplay sessions')) return;
       if (!sessionId.trim()) {
         setGameplaySessionError('Session id is required.');
         return;
@@ -1253,11 +1397,12 @@ export default function App() {
       setGameplaySessionError(null);
       appendActivity(`Joined gameplay session ${session.id} as ${playerId}`);
     },
-    [appendActivity, setGameplaySessionId]
+    [appendActivity, requireMutationAccess, setGameplaySessionId]
   );
 
   const handleLeaveGameplaySession = useCallback(async () => {
     if (!gameplaySessionId) return;
+    if (!requireMutationAccess('leave gameplay sessions')) return;
     const session = await leaveGameplaySession({ sessionId: gameplaySessionId, playerId: gameplayPlayerId });
     if (!session) {
       setGameplaySessionError('Failed to leave gameplay session.');
@@ -1267,7 +1412,7 @@ export default function App() {
     setGameplaySessionId('');
     setGameplaySessionError(null);
     appendActivity(`Left gameplay session ${gameplaySessionId}`);
-  }, [appendActivity, gameplayPlayerId, gameplaySessionId, setGameplaySessionId]);
+  }, [appendActivity, gameplayPlayerId, gameplaySessionId, requireMutationAccess, setGameplaySessionId]);
 
   const handleReconnectGameplaySession = useCallback(async () => {
     if (!gameplaySessionId) return;
@@ -1284,6 +1429,7 @@ export default function App() {
   const handleGameplayAction = useCallback(
     async (actionType: string, payload?: Record<string, unknown>) => {
       if (!gameplaySession?.id) return;
+      if (!requireMutationAccess(`run gameplay action ${actionType}`)) return;
       const result = await applyGameplayAction({
         sessionId: gameplaySession.id,
         playerId: gameplayPlayerId,
@@ -1305,11 +1451,12 @@ export default function App() {
       }
       setGameplaySessionError(result.error ?? 'Gameplay action failed.');
     },
-    [appendActivity, gameplayPlayerId, gameplaySession]
+    [appendActivity, gameplayPlayerId, gameplaySession, requireMutationAccess]
   );
 
   const handleCreateGameplayGuild = useCallback(
     async (guildId: string, name: string) => {
+      if (!requireMutationAccess('create guilds')) return;
       if (!guildId.trim() || !name.trim()) {
         setGameplaySessionError('Guild id and name are required.');
         return;
@@ -1337,11 +1484,12 @@ export default function App() {
       setGameplaySessionError(null);
       appendActivity(`Created guild ${guild.id}`);
     },
-    [appendActivity, gameplayPlayerId, gameplaySession]
+    [appendActivity, gameplayPlayerId, gameplaySession, requireMutationAccess]
   );
 
   const handleJoinGameplayGuild = useCallback(
     async (guildId: string, playerId: string) => {
+      if (!requireMutationAccess('join guilds')) return;
       if (!guildId.trim() || !playerId.trim()) {
         setGameplaySessionError('Guild id and player id are required.');
         return;
@@ -1355,11 +1503,12 @@ export default function App() {
       setGameplaySessionError(null);
       appendActivity(`Joined guild ${guild.id} as ${playerId}`);
     },
-    [appendActivity]
+    [appendActivity, requireMutationAccess]
   );
 
   const handleScheduleGameplayGuildEvent = useCallback(
     async (guildId: string, title: string, scheduledAt: string) => {
+      if (!requireMutationAccess('schedule guild events')) return;
       if (!guildId.trim() || !title.trim() || !scheduledAt.trim()) {
         setGameplaySessionError('Guild id, title, and schedule are required.');
         return;
@@ -1377,11 +1526,12 @@ export default function App() {
       setGameplaySessionError(null);
       appendActivity(`Scheduled guild event ${payload.event.id}`);
     },
-    [appendActivity]
+    [appendActivity, requireMutationAccess]
   );
 
   const handleCompleteGameplayGuildEvent = useCallback(
     async (guildId: string, eventId: string, impact: number) => {
+      if (!requireMutationAccess('complete guild events')) return;
       const guild = await completeGameplayGuildEvent(guildId, eventId, impact);
       if (!guild) {
         setGameplaySessionError('Failed to complete guild event.');
@@ -1391,11 +1541,12 @@ export default function App() {
       setGameplaySessionError(null);
       appendActivity(`Completed guild event ${eventId}`);
     },
-    [appendActivity]
+    [appendActivity, requireMutationAccess]
   );
 
   const handleInviteGameplayFriend = useCallback(
     async (toPlayerId: string) => {
+      if (!requireMutationAccess('send friend invites')) return;
       const payload = await inviteGameplayFriend({
         fromPlayerId: gameplayPlayerId,
         toPlayerId: toPlayerId.trim().toLowerCase(),
@@ -1408,11 +1559,12 @@ export default function App() {
       setGameplaySessionError(null);
       appendActivity(`Sent friend invite to ${toPlayerId}`);
     },
-    [appendActivity, gameplayPlayerId]
+    [appendActivity, gameplayPlayerId, requireMutationAccess]
   );
 
   const handleAcceptGameplayFriendInvite = useCallback(
     async (inviteId: string) => {
+      if (!requireMutationAccess('accept friend invites')) return;
       const social = await acceptGameplayFriendInvite({
         playerId: gameplayPlayerId,
         inviteId,
@@ -1425,7 +1577,7 @@ export default function App() {
       setGameplaySessionError(null);
       appendActivity(`Accepted friend invite ${inviteId}`);
     },
-    [appendActivity, gameplayPlayerId]
+    [appendActivity, gameplayPlayerId, requireMutationAccess]
   );
 
   const handleRetryConnectivity = useCallback(() => {
@@ -1560,53 +1712,55 @@ export default function App() {
   const runReplayMatrix = useCallback(
     async (scenarios: ReplayScenarioInput[]) => {
       if (!trace) return;
-    const stepId = matrixAnchorStepId || selectedStepId || trace.steps[0]?.id;
-    if (!stepId) {
-      setMatrixError('Select an anchor step before running the matrix.');
-      return;
-    }
-    try {
-      setMatrixLoading(true);
-      setMatrixError(null);
-      const created = await createReplayJob({
-        traceId: trace.id,
-        stepId,
-        scenarios,
-      });
-      if (!created) {
-        throw new Error('Failed to create replay job.');
+      if (!requireMutationAccess('run replay matrix')) return;
+      const stepId = matrixAnchorStepId || selectedStepId || trace.steps[0]?.id;
+      if (!stepId) {
+        setMatrixError('Select an anchor step before running the matrix.');
+        return;
       }
-      setReplayJob(created);
+      try {
+        setMatrixLoading(true);
+        setMatrixError(null);
+        const created = await createReplayJob({
+          traceId: trace.id,
+          stepId,
+          scenarios,
+        });
+        if (!created) {
+          throw new Error('Failed to create replay job.');
+        }
+        setReplayJob(created);
 
-      let latest = created;
-      for (let attempt = 0; attempt < 30; attempt += 1) {
-        if (latest.status !== 'queued' && latest.status !== 'running') break;
-        const delay = computePollDelay(attempt);
-        await new Promise((resolve) => window.setTimeout(resolve, delay));
-        const refreshed = await fetchReplayJob(created.id);
-        if (!refreshed) break;
-        latest = refreshed;
-        setReplayJob(refreshed);
-      }
+        let latest = created;
+        for (let attempt = 0; attempt < 30; attempt += 1) {
+          if (latest.status !== 'queued' && latest.status !== 'running') break;
+          const delay = computePollDelay(attempt);
+          await new Promise((resolve) => window.setTimeout(resolve, delay));
+          const refreshed = await fetchReplayJob(created.id);
+          if (!refreshed) break;
+          latest = refreshed;
+          setReplayJob(refreshed);
+        }
 
-      const matrix = await fetchReplayMatrix(created.id);
-      if (!matrix) {
-        throw new Error('Replay job finished but matrix summary is unavailable.');
+        const matrix = await fetchReplayMatrix(created.id);
+        if (!matrix) {
+          throw new Error('Replay job finished but matrix summary is unavailable.');
+        }
+        setReplayMatrix(matrix);
+        setMode('matrix');
+        appendActivity(`Ran matrix with ${scenarios.length} scenario(s) from ${stepId}`);
+      } catch (err) {
+        setMatrixError(err instanceof Error ? err.message : 'Failed to run replay matrix.');
+      } finally {
+        setMatrixLoading(false);
       }
-      setReplayMatrix(matrix);
-      setMode('matrix');
-      appendActivity(`Ran matrix with ${scenarios.length} scenario(s) from ${stepId}`);
-    } catch (err) {
-      setMatrixError(err instanceof Error ? err.message : 'Failed to run replay matrix.');
-    } finally {
-      setMatrixLoading(false);
-    }
     },
-    [appendActivity, matrixAnchorStepId, selectedStepId, trace, setMode]
+    [appendActivity, matrixAnchorStepId, requireMutationAccess, selectedStepId, trace, setMode]
   );
 
   const cancelMatrixRun = useCallback(async () => {
     if (!replayJob) return;
+    if (!requireMutationAccess('cancel replay matrix jobs')) return;
     setMatrixLoading(true);
     try {
       const canceled = await cancelReplayJob(replayJob.id);
@@ -1621,7 +1775,7 @@ export default function App() {
     } finally {
       setMatrixLoading(false);
     }
-  }, [appendActivity, replayJob]);
+  }, [appendActivity, replayJob, requireMutationAccess]);
 
   const openMatrixCompare = useCallback(
     async (traceId: string) => {
@@ -2721,39 +2875,72 @@ export default function App() {
   }, [emitGameplayFunnelOnce, gameplayState.seed, gameplayTraceId, setTourCompleted, trace?.id]);
 
   if (loading) {
-    return <div className="loading">Loading trace...</div>;
+    return (
+      <AppShellState
+        variant="loading"
+        title="Loading trace..."
+        message="Preparing timeline, graph, and replay context."
+      />
+    );
   }
 
   if (!error && !trace && traces.length === 0) {
     return (
-      <div className="error">
-        <h2>No traces yet</h2>
-        <p>Ingest your first trace, then reload to begin the Observe → Inspect → Direct workflow.</p>
-        <div className="error-actions">
-          <button className="primary-button" type="button" onClick={reload}>
-            Retry
-          </button>
-          <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
-            Open help
-          </a>
-        </div>
-      </div>
+      <AppShellState
+        variant="empty"
+        title="No traces yet"
+        message="Ingest your first trace, then reload to begin the Observe → Inspect → Direct workflow."
+        actions={[
+          {
+            id: 'retry',
+            label: 'Retry',
+            node: (
+              <button className="primary-button" type="button" onClick={reload}>
+                Retry
+              </button>
+            ),
+          },
+          {
+            id: 'help',
+            label: 'Open help',
+            node: (
+              <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
+                Open help
+              </a>
+            ),
+          },
+        ]}
+      />
     );
   }
 
   if (error || !trace) {
     return (
-      <div className="error">
-        <p>{error ?? 'Failed to load trace.'}</p>
-        <div className="error-actions">
-          <button className="primary-button" type="button" onClick={reload}>
-            Retry
-          </button>
-          <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
-            Open help
-          </a>
-        </div>
-      </div>
+      <AppShellState
+        variant="error"
+        title="Trace load failed"
+        message={error ?? 'Failed to load trace.'}
+        actions={[
+          {
+            id: 'retry',
+            label: 'Retry',
+            node: (
+              <button className="primary-button" type="button" onClick={reload}>
+                Retry
+              </button>
+            ),
+          },
+          {
+            id: 'help',
+            label: 'Open help',
+            node: (
+              <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
+                Open help
+              </a>
+            ),
+          },
+        ]}
+      />
     );
   }
 
@@ -2788,6 +2975,18 @@ export default function App() {
         missionCompletion={missionCompletion}
         runHealthScore={runHealthScore}
         modeHotkeys={modeHotkeys}
+        workspaces={WORKSPACE_OPTIONS}
+        workspaceId={workspaceId}
+        onWorkspaceChange={setWorkspaceId}
+        workspaceRole={workspaceRole}
+        onWorkspaceRoleChange={setWorkspaceRole}
+        sessionLabel={sessionState.label}
+        sessionExpired={sessionState.expired}
+        onRenewSession={renewSession}
+      />
+      <NotificationCenter
+        notifications={notifications.map(({ id, message, level }) => ({ id, message, level }))}
+        onDismiss={dismissNotification}
       />
       {!introDismissed && !skipIntro ? (
         <IntroOverlay
