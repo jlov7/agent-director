@@ -46,7 +46,7 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 6. `UX100-006` | Status: `DONE` | Collapse secondary actions behind contextual overflow. | DoD: primary/secondary split in all top surfaces. | Verify: visual + E2E. | Evidence: workspace secondary controls moved into `More actions` overflow menu in `ui/src/App.tsx` with coverage in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 7. `UX100-007` | Status: `DONE` | Enforce single primary CTA per major surface. | DoD: no competing primary CTAs. | Verify: UX audit check. | Evidence: workspace header now has one visible primary CTA (`workspacePrimaryAction`) and secondary actions in overflow (`ui/src/App.tsx`, `ui/tests/e2e/ux-audit-deep.spec.ts`).
 8. `UX100-008` | Status: `DONE` | Rewrite section labels to intent/action language. | DoD: updated copy across app shell. | Verify: copy lint/manual review. | Evidence: action-first workspace headings/navigation and guidance copy in `ui/src/App.tsx`.
-9. `UX100-009` | Status: `IN_PROGRESS` | Replace ambiguous nouns with action-first labels. | DoD: copy pass complete. | Verify: content checklist. | Evidence: operations feature toggles now use action labels (`Enable ...`) in `ui/src/App.tsx`; broader app-wide copy sweep pending.
+9. `UX100-009` | Status: `DONE` | Replace ambiguous nouns with action-first labels. | DoD: copy pass complete. | Verify: content checklist. | Evidence: action-first copy applied across workspace cards/toggles (for example `Track persona progress`, `Save and restore views`, `Assign ownership and handoff`, `Enable ...`) in `ui/src/App.tsx`.
 10. `UX100-010` | Status: `DONE` | Standardize breadcrumbs and orientation cues. | DoD: orientation layer exists across primary journeys. | Verify: E2E path assertions. | Evidence: `workspace-breadcrumb` orientation rail in `ui/src/App.tsx` with mode-sync assertions in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 11. `UX100-011` | Status: `DONE` | Add explicit “where am I / what next” headers per workspace area. | DoD: header pattern applied and tested. | Verify: Playwright + snapshot. | Evidence: `ui/src/App.tsx`, `ui/src/styles/main.css`.
 12. `UX100-012` | Status: `OPEN` | Run tree-test of IA and iterate. | DoD: >=90% success on internal test script/proxy. | Verify: scripted task-test artifact. | Evidence: pending.
@@ -162,14 +162,14 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 100. `UX100-100` | Status: `BLOCKED` | Conduct external red-team UX misuse review. | DoD: external red-team report complete and findings closed. | Verify: external artifact. | Evidence: blocked on external review.
 
 ## Current Closure Summary
-- `DONE`: 50
-- `IN_PROGRESS`: 4
+- `DONE`: 51
+- `IN_PROGRESS`: 3
 - `OPEN`: 39
 - `BLOCKED` (external dependencies): 7
 
 ## Next Execution Batch (B1)
-1. Close remaining IA/copy tasks `UX100-009`.
-2. Execute responsive/mobile navigation cleanup `UX100-061`, `UX100-062`, `UX100-065`, `UX100-066`.
-3. Complete accessibility quality items `UX100-053`, `UX100-057`.
+1. Execute responsive/mobile navigation cleanup `UX100-061`, `UX100-062`, `UX100-065`, `UX100-066`.
+2. Complete accessibility quality items `UX100-053`, `UX100-057`.
+3. Continue performance closure tasks `UX100-070`, `UX100-071`, `UX100-073`, `UX100-074`.
 4. Re-run verification: `make verify`, `make doctor`, `make scorecard`.
 5. Update this tracker and push.

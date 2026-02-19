@@ -4333,7 +4333,7 @@ export default function App() {
         {activeSection === 'journey' ? (
           <div className="workspace-context-grid">
             <article className="workspace-card">
-              <h3>Persona progression</h3>
+              <h3>Track persona progress</h3>
               <p>
                 {introPersona === 'executive'
                   ? 'Executive mission path'
@@ -4351,7 +4351,7 @@ export default function App() {
               </div>
             </article>
             <article className="workspace-card">
-              <h3>Saved views</h3>
+              <h3>Save and restore views</h3>
               <div className="workspace-inline-form">
                 <input
                   className="search-input"
@@ -4398,7 +4398,7 @@ export default function App() {
         {activeSection === 'analysis' ? (
           <div className="workspace-context-grid">
             <article className="workspace-card">
-              <h3>Async actions</h3>
+              <h3>Track async actions</h3>
               {asyncActions.length === 0 ? <p>No tracked async actions yet.</p> : null}
               {asyncActions.map((action) => (
                 <div key={action.id} className={`async-action-row status-${action.status}`}>
@@ -4422,7 +4422,7 @@ export default function App() {
               ))}
             </article>
             <article className="workspace-card">
-              <h3>Export center</h3>
+              <h3>Run exports</h3>
               {!featureFlags.exportCenterV1 ? <p>Export center is disabled by feature flag.</p> : null}
               <div className="workspace-inline-form">
                 <button
@@ -4475,14 +4475,14 @@ export default function App() {
           <div className="workspace-context-grid">
             {!featureFlags.ownershipPanelV1 ? (
               <article className="workspace-card">
-                <h3>Ownership panel disabled</h3>
+                <h3>Enable ownership to continue</h3>
                 <p>Enable the ownership panel feature flag in Operations to configure handoff ownership.</p>
               </article>
             ) : null}
             {featureFlags.ownershipPanelV1 ? (
               <>
                 <article className="workspace-card">
-                  <h3>Ownership and handoff</h3>
+                  <h3>Assign ownership and handoff</h3>
                   <div className="workspace-inline-form">
                     <input
                       className="search-input"
@@ -4509,7 +4509,7 @@ export default function App() {
                   </div>
                 </article>
                 <article className="workspace-card">
-                  <h3>Collaboration activity</h3>
+                  <h3>Review collaboration activity</h3>
                   {activityFeed.length === 0 ? <p>No collaboration activity yet.</p> : null}
                   <div className="workspace-feed">
                     {activityFeed.slice(0, 8).map((entry) => (
