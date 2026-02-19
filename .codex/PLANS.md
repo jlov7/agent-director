@@ -17,7 +17,7 @@ Deliver a public-facing, world-class documentation experience so both technical 
 - [x] Add user-journey documentation with visual flows for onboarding/demo/evaluation.
 - [x] Upgrade docs hub (`docs/index.md`) to a role-based map.
 - [x] Validate docs references and run verification gates.
-- [ ] Commit and push documentation upgrade.
+- [x] Commit and push documentation upgrade.
 
 ## Decision Log
 
@@ -32,7 +32,10 @@ Deliver a public-facing, world-class documentation experience so both technical 
 
 ## Outcomes & Retrospective
 
-In progress.
+Completed.
+- Rebuilt README as a world-class front door with role-based paths, diagrams, visuals, and clear onboarding.
+- Added dedicated technical/non-technical guides and user journey mapping docs.
+- Upgraded docs hub for role/lifecycle navigation and verified evidence gates (`make verify`, `make doctor`, `make scorecard`).
 
 ---
 

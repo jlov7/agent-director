@@ -19,7 +19,7 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] DOCX-006 Upgrade docs index to role-based + lifecycle-based navigation hub
 - [x] DOCX-007 Verify documentation accuracy against current commands/features
 - [x] DOCX-008 Run `make verify`, `make doctor`, `make scorecard`
-- [ ] DOCX-009 Commit + push documentation sweep
+- [x] DOCX-009 Commit + push documentation sweep
 
 ## Pre-Release Gate 40 Program (Active)
 - [x] RG-001 First-session funnel with guaranteed first win
