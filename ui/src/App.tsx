@@ -112,6 +112,7 @@ import {
   type ProductEventName,
   type SetupWizardDraft,
 } from './utils/saasUx';
+import { computeTimeToFirstSuccessMs, pruneToWindow, shouldTriggerRageClick } from './utils/usabilitySignals';
 import {
   DEFAULT_SHORTCUT_BINDINGS,
   normalizeShortcutBindings,
@@ -131,6 +132,11 @@ const COLLAB_ANNOTATION_STORAGE_KEY = 'agentDirector.collab.annotations.v1';
 const COLLAB_ACTIVITY_STORAGE_KEY = 'agentDirector.collab.activity.v1';
 const NOTIFICATION_TTL_MS = 6000;
 const GLOBAL_KILL_SWITCH = import.meta.env.VITE_GLOBAL_KILL_SWITCH === '1';
+const RAGE_CLICK_WINDOW_MS = 1600;
+const RAGE_CLICK_THRESHOLD = 4;
+const STUCK_SIGNAL_COOLDOWN_MS = 20000;
+const DEAD_END_WINDOW_MS = 120000;
+const DEAD_END_THRESHOLD = 3;
 
 type Mode = 'cinema' | 'flow' | 'compare' | 'matrix' | 'gameplay';
 type IntroPersona = 'builder' | 'executive' | 'operator';
@@ -193,6 +199,13 @@ type ExportTask = {
   detail: string;
   updatedAt: number;
   retryable: boolean;
+};
+type StuckSignalKind = 'rage_click' | 'dead_end_actions';
+type StuckSignal = {
+  id: string;
+  kind: StuckSignalKind;
+  detail: string;
+  at: number;
 };
 
 const WORKSPACE_SECTION_COPY: Record<WorkspaceSection, { title: string; description: string }> = {
@@ -775,6 +788,8 @@ export default function App() {
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string>('');
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportNote, setSupportNote] = useState('');
+  const [timeToFirstSuccessMs, setTimeToFirstSuccessMs] = useState<number | null>(null);
+  const [stuckSignals, setStuckSignals] = useState<StuckSignal[]>([]);
   const [runOwner, setRunOwner] = usePersistedState('agentDirector.runOwner.v1', 'on-call-operator');
   const [handoffOwner, setHandoffOwner] = usePersistedState('agentDirector.handoffOwner.v1', '');
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(DEFAULT_FEATURE_FLAGS);
@@ -803,6 +818,11 @@ export default function App() {
   const applyingRemoteCursorRef = useRef(false);
   const gameplayFunnelFlagsRef = useRef<Record<string, boolean>>({});
   const gamepadPressedRef = useRef<Record<string, boolean>>({});
+  const sessionStartedAtRef = useRef(Date.now());
+  const firstSuccessTrackedRef = useRef(false);
+  const clickBurstMapRef = useRef<Record<string, number[]>>({});
+  const deadEndErrorTimestampsRef = useRef<number[]>([]);
+  const stuckSignalCooldownRef = useRef<Record<string, number>>({});
   const asyncActionHandlersRef = useRef<Record<string, () => void>>({});
   const asyncActionResumeHandlersRef = useRef<Record<string, () => void>>({});
   const exportRetryHandlersRef = useRef<Record<string, () => void>>({});
@@ -942,8 +962,10 @@ export default function App() {
         notifications: notifications.map((item) => ({ message: item.message, level: item.level })),
         actions: asyncActions,
         stepCount: trace?.steps.length ?? 0,
+        timeToFirstSuccessMs,
+        stuckSignals: stuckSignals.map((signal) => ({ kind: signal.kind, detail: signal.detail, at: signal.at })),
       }),
-    [asyncActions, mode, notifications, safeExport, selectedStepId, trace, workspaceId, workspaceRole]
+    [asyncActions, mode, notifications, safeExport, selectedStepId, stuckSignals, timeToFirstSuccessMs, trace, workspaceId, workspaceRole]
   );
   const addNotification = useCallback((message: string, level: NotificationLevel = 'info') => {
     const normalized = message.trim();
@@ -966,6 +988,68 @@ export default function App() {
       // Non-blocking analytics queue.
     }
   }, []);
+  const registerStuckSignal = useCallback(
+    (kind: StuckSignalKind, detail: string, metadata: Record<string, unknown> = {}) => {
+      const now = Date.now();
+      const key = `${kind}:${String(metadata.target ?? 'global')}`;
+      const lastRaisedAt = stuckSignalCooldownRef.current[key] ?? 0;
+      if (now - lastRaisedAt < STUCK_SIGNAL_COOLDOWN_MS) return;
+      stuckSignalCooldownRef.current[key] = now;
+      setStuckSignals((prev) =>
+        [{ id: `stuck-${now}-${Math.random().toString(36).slice(2, 8)}`, kind, detail, at: now }, ...prev].slice(0, 8)
+      );
+      addNotification('Looks like you might be stuck. Use Need help now for guided recovery.', 'warning');
+      trackProductEvent('ux.error.window', { signal: kind, detail, ...metadata });
+    },
+    [addNotification, trackProductEvent]
+  );
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (!target) return;
+      const actionable = target.closest<HTMLElement>('button, a, [role="button"]');
+      if (!actionable) return;
+      const rawLabel =
+        actionable.getAttribute('aria-label') ??
+        actionable.getAttribute('data-help-title') ??
+        actionable.textContent ??
+        '';
+      const label = rawLabel.trim().replace(/\s+/g, ' ').slice(0, 60).toLowerCase();
+      if (!label) return;
+      const now = Date.now();
+      const key = `click:${label}`;
+      const previous = clickBurstMapRef.current[key] ?? [];
+      const next = [...pruneToWindow(previous, now, RAGE_CLICK_WINDOW_MS), now];
+      clickBurstMapRef.current[key] = next;
+      if (shouldTriggerRageClick(next, RAGE_CLICK_THRESHOLD)) {
+        registerStuckSignal('rage_click', `Rapid repeated clicks on "${label}".`, { target: label, count: next.length });
+      }
+    };
+    window.addEventListener('click', handleClick, true);
+    return () => window.removeEventListener('click', handleClick, true);
+  }, [registerStuckSignal]);
+  useEffect(() => {
+    const latest = notifications[notifications.length - 1];
+    if (!latest) return;
+    const now = Date.now();
+    if (!firstSuccessTrackedRef.current && latest.level === 'success') {
+      const elapsedMs = computeTimeToFirstSuccessMs(sessionStartedAtRef.current, now);
+      firstSuccessTrackedRef.current = true;
+      setTimeToFirstSuccessMs(elapsedMs);
+      trackProductEvent('ux.action.confirmed', {
+        source: 'time_to_first_success',
+        elapsedMs,
+        message: latest.message,
+      });
+    }
+    if (latest.level === 'error') {
+      const next = [...pruneToWindow(deadEndErrorTimestampsRef.current, now, DEAD_END_WINDOW_MS), now];
+      deadEndErrorTimestampsRef.current = next;
+      if (next.length >= DEAD_END_THRESHOLD) {
+        registerStuckSignal('dead_end_actions', 'Multiple error outcomes detected in a short period.', { count: next.length });
+      }
+    }
+  }, [notifications, registerStuckSignal, trackProductEvent]);
   const setAsyncAction = useCallback(
     (next: Omit<AsyncActionRecord, 'updatedAt'> & { updatedAt?: number }) => {
       setAsyncActions((prev) => mergeAsyncAction(prev, next));
@@ -2889,6 +2973,35 @@ export default function App() {
     });
   }, [addNotification, setupValidation.isValid, setupWizardDraft, trackProductEvent, setSetupWizardComplete]);
 
+  const openNeedHelpNow = useCallback(
+    (source: string) => {
+      const latestSignal = stuckSignals[0];
+      const fallbackStep = selectedStepId ?? 'none';
+      const fallbackTrace = trace?.id ?? 'none';
+      const guide = [
+        `Need-help escalation (${new Date().toISOString()})`,
+        `Trace: ${fallbackTrace}`,
+        `Mode: ${mode}`,
+        `Selected step: ${fallbackStep}`,
+        `Signal: ${latestSignal ? `${latestSignal.kind} - ${latestSignal.detail}` : 'manual escalation request'}`,
+        `Time to first success: ${timeToFirstSuccessMs ?? 'not yet achieved'} ms`,
+        'What happened: ',
+        'Expected outcome: ',
+        'What blocked progress: ',
+      ].join('\n');
+      setSupportNote((prev) => (prev.trim() ? prev : guide));
+      setSupportOpen(true);
+      addNotification('Guided support opened with contextual diagnostics.', 'info');
+      trackProductEvent('ux.support.opened', {
+        source,
+        escalated: true,
+        signal: latestSignal?.kind ?? null,
+        timeToFirstSuccessMs,
+      });
+    },
+    [addNotification, mode, selectedStepId, stuckSignals, timeToFirstSuccessMs, trace, trackProductEvent]
+  );
+
   const copySupportPayload = useCallback(async () => {
     const payload = JSON.stringify(
       {
@@ -3649,8 +3762,7 @@ export default function App() {
         description: 'Collect support payload and copy handoff diagnostics.',
         group: 'Workspace',
         onTrigger: () => {
-          setSupportOpen(true);
-          trackProductEvent('ux.support.opened', { source: 'command_palette' });
+          openNeedHelpNow('command_palette');
         },
         disabled: !featureFlags.supportPanelV1,
       },
@@ -3667,6 +3779,7 @@ export default function App() {
       createHandoffDigest,
       featureFlags.setupWizardV1,
       featureFlags.supportPanelV1,
+      openNeedHelpNow,
       storyActive,
       toggleStory,
       explainMode,
@@ -3685,7 +3798,6 @@ export default function App() {
       setOverlayEnabled,
       setSafeExport,
       setShowShortcuts,
-      setSupportOpen,
       setSetupWizardOpen,
       setTourOpen,
       setActiveSection,
@@ -3959,8 +4071,7 @@ export default function App() {
         onShareSession={shareSession}
         onCreateHandoffDigest={() => void createHandoffDigest()}
         onOpenSupport={() => {
-          setSupportOpen(true);
-          trackProductEvent('ux.support.opened', { source: 'header' });
+          openNeedHelpNow('header');
         }}
         onThemeChange={setThemeMode}
         onMotionChange={setMotionMode}
@@ -3990,6 +4101,26 @@ export default function App() {
         notifications={notifications.map(({ id, message, level }) => ({ id, message, level }))}
         onDismiss={dismissNotification}
       />
+      {stuckSignals.length > 0 || timeToFirstSuccessMs === null ? (
+        <section className="help-escalation-banner" aria-live="polite">
+          <div className="help-escalation-copy">
+            <strong>Need help now?</strong>
+            <p>
+              {stuckSignals.length > 0
+                ? `Detected ${stuckSignals.length} potential friction signal${stuckSignals.length === 1 ? '' : 's'} in this session.`
+                : 'No successful action recorded yet in this session. Start guided recovery to avoid guesswork.'}
+            </p>
+          </div>
+          <div className="help-escalation-actions">
+            <button className="primary-button" type="button" onClick={() => openNeedHelpNow('escalation_banner')}>
+              Need help now
+            </button>
+            <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
+              Open quick help
+            </a>
+          </div>
+        </section>
+      ) : null}
       {undoState ? (
         <div className="undo-banner" role="status" aria-live="polite">
           <span>{undoState.label}</span>
@@ -4157,11 +4288,23 @@ export default function App() {
             <div className="palette-header">
               <div>
                 <div className="palette-title">Support diagnostics</div>
-                <div className="palette-subtitle">Capture environment and handoff payload for support triage.</div>
+                <div className="palette-subtitle">Capture environment, friction signals, and handoff payload for rapid triage.</div>
               </div>
               <button className="ghost-button" type="button" onClick={() => setSupportOpen(false)}>
                 Close
               </button>
+            </div>
+            <div className="support-guided-recovery">
+              <strong>Guided recovery context</strong>
+              <p>
+                {stuckSignals.length
+                  ? `Latest signal: ${stuckSignals[0]?.kind.replace('_', ' ')}. ${stuckSignals[0]?.detail}`
+                  : 'No explicit friction signal detected. This panel still captures full context for proactive support.'}
+              </p>
+              <p>
+                Time to first success:{' '}
+                {timeToFirstSuccessMs === null ? 'not yet recorded in this session' : `${timeToFirstSuccessMs}ms`}
+              </p>
             </div>
             <label>
               Support note
@@ -4170,7 +4313,7 @@ export default function App() {
                 value={supportNote}
                 onChange={(event) => setSupportNote(event.target.value)}
                 rows={3}
-                placeholder="Describe the issue, reproduction, and expected behavior."
+                placeholder="Describe the issue, reproduction path, expected behavior, and where the user got stuck."
               />
             </label>
             <pre className="support-diagnostics-preview">{JSON.stringify(supportDiagnostics, null, 2)}</pre>
@@ -4606,8 +4749,7 @@ export default function App() {
                   className="ghost-button"
                   type="button"
                   onClick={() => {
-                    setSupportOpen(true);
-                    trackProductEvent('ux.support.opened', { source: 'operations_panel' });
+                    openNeedHelpNow('operations_panel');
                   }}
                   disabled={!featureFlags.supportPanelV1}
                 >

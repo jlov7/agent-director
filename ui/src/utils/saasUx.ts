@@ -147,6 +147,8 @@ export function captureSupportDiagnostics(input: {
   notifications: Array<{ message: string; level: string }>;
   actions: AsyncActionRecord[];
   stepCount: number;
+  timeToFirstSuccessMs?: number | null;
+  stuckSignals?: Array<{ kind: string; detail: string; at: number }>;
 }): Record<string, unknown> {
   return {
     capturedAt: new Date().toISOString(),
@@ -159,10 +161,12 @@ export function captureSupportDiagnostics(input: {
     workspaceId: input.workspaceId,
     workspaceRole: input.workspaceRole,
     safeExport: input.safeExport,
+    timeToFirstSuccessMs: input.timeToFirstSuccessMs ?? null,
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
     online: typeof navigator !== 'undefined' ? navigator.onLine : true,
     recentNotifications: input.notifications.slice(-6),
     asyncActions: input.actions.slice(0, 8),
+    stuckSignals: (input.stuckSignals ?? []).slice(0, 6),
   };
 }
 
