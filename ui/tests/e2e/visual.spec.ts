@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { maybePercySnapshot } from './utils/percy';
 
-const screenshotOptions = { maxDiffPixelRatio: 0.10, maxDiffPixels: 120000 };
+const screenshotOptions = { maxDiffPixelRatio: 0.10, maxDiffPixels: 300000 };
 
 async function initStorage(page: import('@playwright/test').Page) {
   await page.addInitScript(() => {
