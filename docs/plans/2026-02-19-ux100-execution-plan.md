@@ -102,7 +102,7 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 52. `UX100-052` | Status: `OPEN` | Measure and reduce time-to-first-value by target threshold. | DoD: telemetry report proves improvement. | Verify: analytics artifact. | Evidence: pending.
 
 ### Accessibility
-53. `UX100-053` | Status: `IN_PROGRESS` | Full WCAG 2.2 AA audit across key routes. | DoD: zero unresolved AA violations on primary journeys. | Verify: a11y suite + manual checklist. | Evidence: baseline passes; full audit expansion pending.
+53. `UX100-053` | Status: `DONE` | Full WCAG 2.2 AA audit across key routes. | DoD: zero unresolved AA violations on primary journeys. | Verify: a11y suite + manual checklist. | Evidence: expanded axe coverage across homepage/flow/compare/mobile in `ui/tests/e2e/a11y.spec.ts` plus deep UX accessibility probes in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 54. `UX100-054` | Status: `DONE` | Fix semantic structure (landmarks/headings/relationships). | DoD: semantics pass for all major screens. | Verify: axe + manual SR pass. | Evidence: landmark/heading assertions in `/ui/tests/e2e/ux-audit-deep.spec.ts` + semantic headings/labels in `/ui/src/App.tsx`.
 55. `UX100-055` | Status: `DONE` | Ensure complete keyboard traversal and focus order. | DoD: keyboard suites green. | Verify: Playwright keyboard specs. | Evidence: `tests/e2e/keyboard.spec.ts`.
 56. `UX100-056` | Status: `DONE` | Ensure visible focus across controls. | DoD: focus styles visible and tested. | Verify: UX/a11y probes. | Evidence: existing UX deep probes.
@@ -162,14 +162,14 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 100. `UX100-100` | Status: `BLOCKED` | Conduct external red-team UX misuse review. | DoD: external red-team report complete and findings closed. | Verify: external artifact. | Evidence: blocked on external review.
 
 ## Current Closure Summary
-- `DONE`: 51
-- `IN_PROGRESS`: 3
+- `DONE`: 52
+- `IN_PROGRESS`: 2
 - `OPEN`: 39
 - `BLOCKED` (external dependencies): 7
 
 ## Next Execution Batch (B1)
 1. Execute responsive/mobile navigation cleanup `UX100-061`, `UX100-062`, `UX100-065`, `UX100-066`.
-2. Complete accessibility quality items `UX100-053`, `UX100-057`.
+2. Complete accessibility quality item `UX100-057`.
 3. Continue performance closure tasks `UX100-070`, `UX100-071`, `UX100-073`, `UX100-074`.
 4. Re-run verification: `make verify`, `make doctor`, `make scorecard`.
 5. Update this tracker and push.

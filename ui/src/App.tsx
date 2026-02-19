@@ -3811,17 +3811,6 @@ export default function App() {
           disabled: false,
         };
       }
-      const firstHotspot =
-        trace.steps.find((step) => step.status === 'failed') ??
-        [...trace.steps].sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0))[0];
-      if (!selectedStepId && firstHotspot) {
-        return {
-          summary: 'Jump to the first hotspot and start triage from the highest-signal step.',
-          label: 'Jump to first hotspot',
-          onClick: () => setSelectedStepId(firstHotspot.id),
-          disabled: false,
-        };
-      }
       return {
         summary: 'Save this viewpoint so you can return to the exact context during handoff.',
         label: 'Save current view',
