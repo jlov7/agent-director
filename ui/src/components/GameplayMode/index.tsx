@@ -48,6 +48,7 @@ type GameplayModeProps = {
   playerId?: string;
   sessionError?: string | null;
   onCreateSession?: (name: string) => void;
+  onQuickMatchSession?: () => void;
   onJoinSession?: (sessionId: string, playerId: string, role: RaidRole) => void;
   onLeaveSession?: () => void;
   onDispatchAction?: (actionType: string, payload?: Record<string, unknown>) => void;
@@ -80,6 +81,7 @@ export default function GameplayMode({
   playerId,
   sessionError,
   onCreateSession,
+  onQuickMatchSession,
   onJoinSession,
   onLeaveSession,
   onDispatchAction,
@@ -204,6 +206,9 @@ export default function GameplayMode({
             />
             <button className="ghost-button" type="button" onClick={() => onCreateSession?.(sessionName)}>
               Create multiplayer session
+            </button>
+            <button className="ghost-button" type="button" onClick={() => onQuickMatchSession?.()}>
+              Quick matchmake
             </button>
             <input
               className="search-input"

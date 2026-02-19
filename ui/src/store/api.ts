@@ -638,6 +638,22 @@ export async function createGameplaySession(input: {
   return payload?.session ?? null;
 }
 
+export async function matchmakeGameplaySession(input: {
+  traceId: string;
+  playerId: string;
+  preferredRoles?: Array<'strategist' | 'operator' | 'analyst' | 'saboteur'>;
+}): Promise<{ session: GameplaySession; match: { type: 'existing' | 'created'; assigned_role: string } } | null> {
+  if (FORCE_DEMO) return null;
+  return safePostJson<{ session: GameplaySession; match: { type: 'existing' | 'created'; assigned_role: string } }>(
+    `${API_BASE}/api/gameplay/matchmaking`,
+    {
+      trace_id: input.traceId,
+      player_id: input.playerId,
+      preferred_roles: input.preferredRoles ?? [],
+    }
+  );
+}
+
 export async function getGameplaySession(sessionId: string): Promise<GameplaySession | null> {
   if (FORCE_DEMO) return null;
   const payload = await safeFetchJson<{ session: GameplaySession }>(

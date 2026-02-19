@@ -246,6 +246,20 @@ class ApiHandler(BaseHTTPRequestHandler):
         try:
             body = self._read_json()
             if path_parts[:2] == ["api", "gameplay"]:
+                if path_parts == ["api", "gameplay", "matchmaking"]:
+                    preferred_roles = body.get("preferred_roles")
+                    if preferred_roles is not None and not isinstance(preferred_roles, list):
+                        raise ValueError("preferred_roles must be a list when provided")
+                    session, match = self.gameplay_store.matchmake_session(
+                        trace_id=str(body.get("trace_id") or ""),
+                        player_id=str(body.get("player_id") or ""),
+                        preferred_roles=[
+                            str(role or "")
+                            for role in preferred_roles
+                        ] if isinstance(preferred_roles, list) else None,
+                    )
+                    self._send_json(200, {"session": session, "match": match})
+                    return
                 if path_parts == ["api", "gameplay", "sessions"]:
                     session = self.gameplay_store.create_session(
                         trace_id=str(body.get("trace_id") or ""),

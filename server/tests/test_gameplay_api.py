@@ -104,6 +104,26 @@ class TestGameplayApi(unittest.TestCase):
         self.assertEqual(len(data["session"]["players"]), 5)
         self.assertIn("obj-root-cause", [o["id"] for o in data["session"]["raid"]["objectives"]])
 
+    def test_matchmaking_joins_existing_session_or_creates_one(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/matchmaking",
+            {"trace_id": "trace-1", "player_id": "host", "preferred_roles": ["operator"]},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(data["match"]["type"], "created")
+        session_id = data["session"]["id"]
+
+        status, data = self._request(
+            "POST",
+            "/api/gameplay/matchmaking",
+            {"trace_id": "trace-1", "player_id": "ally", "preferred_roles": ["analyst"]},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(data["match"]["type"], "existing")
+        self.assertEqual(data["session"]["id"], session_id)
+        self.assertIn(data["match"]["assigned_role"], {"analyst", "operator", "strategist", "saboteur"})
+
     def test_conflict_safe_actions_require_matching_version(self) -> None:
         status, data = self._request(
             "POST",

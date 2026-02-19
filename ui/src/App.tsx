@@ -54,6 +54,7 @@ import {
   fetchReplayMatrix,
   fetchTrace as fetchTraceById,
   joinGameplaySession,
+  matchmakeGameplaySession,
   leaveGameplaySession,
   inviteGameplayFriend,
   acceptGameplayFriendInvite,
@@ -1712,6 +1713,26 @@ export default function App() {
     },
     [appendActivity, gameplayPlayerId, requireMutationAccess, setGameplaySessionId, trace]
   );
+
+  const handleQuickMatchGameplaySession = useCallback(async () => {
+    if (!trace) return;
+    if (!requireMutationAccess('matchmake gameplay sessions')) return;
+    const matched = await matchmakeGameplaySession({
+      traceId: trace.id,
+      playerId: gameplayPlayerId,
+      preferredRoles: ['operator', 'analyst', 'strategist', 'saboteur'],
+    });
+    if (!matched) {
+      setGameplaySessionError('Failed to matchmake gameplay session.');
+      return;
+    }
+    setGameplaySession(matched.session);
+    setGameplaySessionId(matched.session.id);
+    setGameplaySessionError(null);
+    appendActivity(
+      `${matched.match.type === 'created' ? 'Created' : 'Matched'} gameplay session ${matched.session.id} as ${matched.match.assigned_role}`
+    );
+  }, [appendActivity, gameplayPlayerId, requireMutationAccess, setGameplaySessionId, trace]);
 
   const handleJoinGameplaySession = useCallback(
     async (sessionId: string, playerId: string, role: 'strategist' | 'operator' | 'analyst' | 'saboteur') => {
@@ -4675,6 +4696,7 @@ export default function App() {
                   playerId={gameplayPlayerId}
                   sessionError={gameplaySessionError}
                   onCreateSession={handleCreateGameplaySession}
+                  onQuickMatchSession={handleQuickMatchGameplaySession}
                   onJoinSession={handleJoinGameplaySession}
                   onLeaveSession={handleLeaveGameplaySession}
                   onReconnectSession={handleReconnectGameplaySession}

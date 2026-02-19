@@ -9,11 +9,11 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] RG-004 Deterministic run-state integrity (pause/rewind/fork/merge)
 - [x] RG-005 Transparent post-run scoring model
 - [x] RG-006 Reward loop clarity (XP/credits/unlocks)
-- [ ] RG-007 Persistent cloud profile save/load + migration safety
+- [x] RG-007 Persistent cloud profile save/load + migration safety
 - [x] RG-008 Skill-tree respec + loadout presets
 - [x] RG-009 Economy balancing controls
 - [x] RG-010 Anti-exploit validation for progression/rewards
-- [ ] RG-011 Multiplayer matchmaking/lobby assignment
+- [x] RG-011 Multiplayer matchmaking/lobby assignment
 - [x] RG-012 Session reconnect + crash recovery
 - [x] RG-013 Conflict-safe co-op actions with rollback semantics
 - [x] RG-014 Collaboration ownership/handoff audit timeline

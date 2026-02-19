@@ -20,6 +20,8 @@ In Progress
 
 - Keep RG IDs as source-of-truth and execute in batch order.
 - Treat previously shipped WR/SWC work as existing evidence and focus coding on uncovered gaps.
+- Closed RG-007 via schema-versioned profile migrations and cloud-sync metadata contract.
+- Closed RG-011 via backend + frontend auto-matchmaking flow.
 
 ## Open Questions
 

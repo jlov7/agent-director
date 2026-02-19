@@ -31,11 +31,11 @@ Status legend: `verified` (implemented with current evidence), `gap` (needs impl
 | RG-004 | verified | Deterministic run-state integrity | Pause/rewind/fork/merge paths preserve deterministic state transitions. |
 | RG-005 | verified | Transparent post-run scoring model | Scoring dimensions are explicit and surfaced in UI/state. |
 | RG-006 | verified | Reward loop clarity | XP/credits/unlocks are connected to outcome UX and persistence. |
-| RG-007 | gap | Persistent cloud profile save/load + migrations | Durable profile storage contract with migration-safe reads/writes and failure recovery UX. |
+| RG-007 | verified | Persistent cloud profile save/load + migrations | Durable profile storage contract with migration-safe reads/writes and failure recovery UX. |
 | RG-008 | verified | Skill-tree respec + loadout presets | Users can tune build choices and loadouts under server validation rules. |
 | RG-009 | verified | Economy balancing controls | Source/sink constraints and anti-inflation controls are operationally adjustable. |
 | RG-010 | verified | Anti-exploit validation | Backend validates reward/progression writes against abuse vectors. |
-| RG-011 | gap | Multiplayer matchmaking/lobby assignment | Matchmaking queue or equivalent auto-assignment flow exists beyond manual invite only. |
+| RG-011 | verified | Multiplayer matchmaking/lobby assignment | Matchmaking queue or equivalent auto-assignment flow exists beyond manual invite only. |
 | RG-012 | verified | Reconnect + recovery | Session continuity after disconnects is supported and tested. |
 | RG-013 | verified | Conflict-safe co-op actions | Version-safe action application with mismatch handling exists. |
 | RG-014 | verified | Ownership/handoff audit trail | Collaboration ownership and handoff trail is visible and exportable. |

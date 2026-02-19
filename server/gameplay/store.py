@@ -155,6 +155,9 @@ NARRATIVE_NODES = {
     },
 }
 
+STATE_SCHEMA_VERSION = 2
+PROFILE_SCHEMA_VERSION = 2
+
 
 class ConflictError(ValueError):
     pass
@@ -173,26 +176,50 @@ class GameplayStore:
         self._subscribers: Dict[str, Dict[str, Queue[dict]]] = {}
         self._state = self._load()
 
-    def _load(self) -> Dict[str, Any]:
-        if not self._path.exists():
-            return {
-                "sessions": {},
-                "profiles": {},
-                "guilds": {},
-                "liveops": self._default_liveops(seed=2026, week=1),
-                "social": {"friends": {}, "invites": []},
-            }
-        with self._path.open("r", encoding="utf-8") as handle:
-            loaded = json.load(handle)
+    def _default_state(self) -> Dict[str, Any]:
+        return {
+            "schema_version": STATE_SCHEMA_VERSION,
+            "sessions": {},
+            "profiles": {},
+            "guilds": {},
+            "liveops": self._default_liveops(seed=2026, week=1),
+            "social": {"friends": {}, "invites": []},
+        }
+
+    def _migrate_state(self, loaded: Dict[str, Any]) -> Dict[str, Any]:
+        version = int(loaded.get("schema_version") or 1)
         loaded.setdefault("sessions", {})
         loaded.setdefault("profiles", {})
         loaded.setdefault("guilds", {})
         loaded.setdefault("liveops", self._default_liveops(seed=2026, week=1))
         loaded.setdefault("social", {"friends": {}, "invites": []})
+
+        if version < 2:
+            for profile in loaded["profiles"].values():
+                profile.setdefault("profile_version", PROFILE_SCHEMA_VERSION)
+                profile.setdefault(
+                    "cloud_sync",
+                    {"provider": "local-json", "last_synced_at": _utc_now(), "status": "ready"},
+                )
+                profile.setdefault("loadout_capacity", 3)
+                profile.setdefault("recent_teammates", [])
+                rewards = profile.setdefault("rewards", {})
+                rewards.setdefault("daily_streak", 0)
+                rewards.setdefault("last_daily_claim_date", None)
+
+        loaded["schema_version"] = STATE_SCHEMA_VERSION
+        return loaded
+
+    def _load(self) -> Dict[str, Any]:
+        if not self._path.exists():
+            return self._default_state()
+        with self._path.open("r", encoding="utf-8") as handle:
+            loaded = json.load(handle)
+        loaded = self._migrate_state(loaded)
         self._normalize_liveops(loaded["liveops"])
         self._normalize_social(loaded["social"])
         for profile in loaded["profiles"].values():
-            profile.setdefault("recent_teammates", [])
+            self._normalize_profile(profile)
         for session in loaded["sessions"].values():
             self._normalize_session(session, loaded["liveops"])
         return loaded
@@ -256,6 +283,18 @@ class GameplayStore:
             social["friends"] = {}
         if not isinstance(social["invites"], list):
             social["invites"] = []
+
+    def _normalize_profile(self, profile: Dict[str, Any]) -> None:
+        profile.setdefault("profile_version", PROFILE_SCHEMA_VERSION)
+        profile.setdefault("recent_teammates", [])
+        profile.setdefault("loadout_capacity", 3)
+        profile.setdefault(
+            "cloud_sync",
+            {"provider": "local-json", "last_synced_at": _utc_now(), "status": "ready"},
+        )
+        rewards = profile.setdefault("rewards", {})
+        rewards.setdefault("daily_streak", 0)
+        rewards.setdefault("last_daily_claim_date", None)
 
     def _normalize_session(self, session: Dict[str, Any], fallback_liveops: Dict[str, Any] | None = None) -> None:
         default_liveops = fallback_liveops or self._default_liveops(seed=int(session.get("seed", 2026) or 2026), week=1)
@@ -345,10 +384,7 @@ class GameplayStore:
         profile = self._state["profiles"].get(player_id)
         if profile is not None:
             profile.setdefault("milestones", [])
-            profile.setdefault("recent_teammates", [])
-            rewards = profile.setdefault("rewards", {})
-            rewards.setdefault("last_daily_claim_date", None)
-            rewards.setdefault("daily_streak", 0)
+            self._normalize_profile(profile)
             return profile
         profile = {
             "player_id": player_id,
@@ -363,6 +399,8 @@ class GameplayStore:
             "modifiers": {},
             "rewards": {"last_daily_claim_date": None, "daily_streak": 0},
             "recent_teammates": [],
+            "profile_version": PROFILE_SCHEMA_VERSION,
+            "cloud_sync": {"provider": "local-json", "last_synced_at": _utc_now(), "status": "ready"},
         }
         self._state["profiles"][player_id] = profile
         return profile
@@ -751,6 +789,93 @@ class GameplayStore:
             if session is None:
                 return None
             return self._serialize_session(session)
+
+    def _pick_matchmaking_role(self, session: Dict[str, Any], preferred_roles: list[str]) -> str:
+        counts = {role: 0 for role in ROLE_ABILITIES}
+        for player in session.get("players", []):
+            role = str(player.get("role") or "")
+            if role in counts:
+                counts[role] += 1
+
+        ordered_roles: list[str] = []
+        for role in preferred_roles:
+            normalized = role.strip().lower()
+            if normalized in ROLE_ABILITIES and normalized not in ordered_roles:
+                ordered_roles.append(normalized)
+        for role in ROLE_ABILITIES:
+            if role not in ordered_roles:
+                ordered_roles.append(role)
+
+        best = min(ordered_roles, key=lambda role: (counts.get(role, 0), ordered_roles.index(role)))
+        return best
+
+    def matchmake_session(
+        self,
+        trace_id: str,
+        player_id: str,
+        preferred_roles: list[str] | None = None,
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        normalized_trace_id = str(trace_id or "").strip()
+        normalized_player_id = str(player_id or "").strip().lower()
+        if not normalized_trace_id:
+            raise ValueError("trace_id must be non-empty")
+        if not normalized_player_id:
+            raise ValueError("player_id must be non-empty")
+
+        preferred = preferred_roles or []
+        with self._lock:
+            candidate_session: Dict[str, Any] | None = None
+            for session in self._state["sessions"].values():
+                if str(session.get("trace_id") or "") != normalized_trace_id:
+                    continue
+                if str(session.get("status") or "") not in {"lobby", "running"}:
+                    continue
+                players = session.get("players", [])
+                existing = next((entry for entry in players if entry.get("player_id") == normalized_player_id), None)
+                if existing is not None:
+                    existing["presence"] = "active"
+                    session["updated_at"] = _utc_now()
+                    self._save()
+                    public = self._serialize_session(session)
+                    return public, {"type": "existing", "assigned_role": existing.get("role", "operator")}
+                if len(players) >= 5:
+                    continue
+                candidate_session = session
+                break
+
+            if candidate_session is not None:
+                role = self._pick_matchmaking_role(candidate_session, preferred)
+                now = _utc_now()
+                candidate_session["players"].append(
+                    {
+                        "player_id": normalized_player_id,
+                        "role": role,
+                        "joined_at": now,
+                        "cooldowns": {},
+                        "presence": "active",
+                    }
+                )
+                self._session_profile(candidate_session, normalized_player_id)
+                self._refresh_recent_teammates(candidate_session)
+                candidate_session["version"] += 1
+                candidate_session["updated_at"] = now
+                if len(candidate_session["players"]) >= 2 and candidate_session["status"] == "lobby":
+                    candidate_session["status"] = "running"
+                self._save()
+                public = self._serialize_session(candidate_session)
+                self._publish(
+                    candidate_session["id"],
+                    "gameplay",
+                    {"session": public, "event": {"type": "session.join", "player_id": normalized_player_id}},
+                )
+                return public, {"type": "existing", "assigned_role": role}
+
+        created = self.create_session(
+            trace_id=normalized_trace_id,
+            host_player_id=normalized_player_id,
+            name="Auto Match",
+        )
+        return created, {"type": "created", "assigned_role": "strategist"}
 
     def create_session(self, trace_id: str, host_player_id: str, name: str | None = None) -> Dict[str, Any]:
         if not trace_id.strip():
