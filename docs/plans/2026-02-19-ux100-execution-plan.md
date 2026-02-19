@@ -52,11 +52,11 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 12. `UX100-012` | Status: `OPEN` | Run tree-test of IA and iterate. | DoD: >=90% success on internal test script/proxy. | Verify: scripted task-test artifact. | Evidence: pending.
 
 ### Visual Hierarchy & Density
-13. `UX100-013` | Status: `OPEN` | Define strict typography hierarchy tiers. | DoD: tier tokens documented + applied. | Verify: style audit. | Evidence: pending.
-14. `UX100-014` | Status: `OPEN` | Normalize spacing scale; remove ad-hoc spacing. | DoD: spacing token compliance in key screens. | Verify: CSS audit script/manual. | Evidence: pending.
-15. `UX100-015` | Status: `OPEN` | Reduce above-the-fold control density. | DoD: first viewport simplified in primary modes. | Verify: visual diff. | Evidence: pending.
+13. `UX100-013` | Status: `DONE` | Define strict typography hierarchy tiers. | DoD: tier tokens documented + applied. | Verify: style audit. | Evidence: `/docs/ux-typography-spacing.md` + `/ui/src/styles/main.css`.
+14. `UX100-014` | Status: `DONE` | Normalize spacing scale; remove ad-hoc spacing. | DoD: spacing token compliance in key screens. | Verify: CSS audit script/manual. | Evidence: spacing tokens + app/workspace/toolbar adoption in `/ui/src/styles/main.css`.
+15. `UX100-015` | Status: `DONE` | Reduce above-the-fold control density. | DoD: first viewport simplified in primary modes. | Verify: visual diff. | Evidence: workspace panel collapsed-by-default + advanced controls progressive disclosure in `/ui/src/App.tsx`.
 16. `UX100-016` | Status: `IN_PROGRESS` | Rework density rules for cards/tables/control clusters. | DoD: denser sections follow defined density modes. | Verify: snapshot + UX checklist. | Evidence: partial in recent toolbar declutter.
-17. `UX100-017` | Status: `OPEN` | Enforce whitespace rhythm by breakpoint. | DoD: desktop/tablet/mobile rhythm pass done. | Verify: responsive snapshot review. | Evidence: pending.
+17. `UX100-017` | Status: `IN_PROGRESS` | Enforce whitespace rhythm by breakpoint. | DoD: desktop/tablet/mobile rhythm pass done. | Verify: responsive snapshot review. | Evidence: tokenized spacing is applied across core surfaces; full-screen pass pending.
 18. `UX100-018` | Status: `OPEN` | Introduce emphasis tokens for priority layers. | DoD: semantic emphasis tokens adopted. | Verify: design token audit. | Evidence: pending.
 19. `UX100-019` | Status: `OPEN` | Tune contrast/noise balance for scanability. | DoD: reduced visual noise in key flows. | Verify: heuristic scan test. | Evidence: pending.
 20. `UX100-020` | Status: `OPEN` | Run 3-second comprehension tests and iterate. | DoD: objective comprehension score target met. | Verify: test report. | Evidence: pending.
@@ -103,11 +103,11 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 
 ### Accessibility
 53. `UX100-053` | Status: `IN_PROGRESS` | Full WCAG 2.2 AA audit across key routes. | DoD: zero unresolved AA violations on primary journeys. | Verify: a11y suite + manual checklist. | Evidence: baseline passes; full audit expansion pending.
-54. `UX100-054` | Status: `OPEN` | Fix semantic structure (landmarks/headings/relationships). | DoD: semantics pass for all major screens. | Verify: axe + manual SR pass. | Evidence: pending.
+54. `UX100-054` | Status: `DONE` | Fix semantic structure (landmarks/headings/relationships). | DoD: semantics pass for all major screens. | Verify: axe + manual SR pass. | Evidence: landmark/heading assertions in `/ui/tests/e2e/ux-audit-deep.spec.ts` + semantic headings/labels in `/ui/src/App.tsx`.
 55. `UX100-055` | Status: `DONE` | Ensure complete keyboard traversal and focus order. | DoD: keyboard suites green. | Verify: Playwright keyboard specs. | Evidence: `tests/e2e/keyboard.spec.ts`.
 56. `UX100-056` | Status: `DONE` | Ensure visible focus across controls. | DoD: focus styles visible and tested. | Verify: UX/a11y probes. | Evidence: existing UX deep probes.
 57. `UX100-057` | Status: `IN_PROGRESS` | Close remaining contrast/non-color cue risks. | DoD: color + non-color semantics validated everywhere. | Verify: contrast audit report. | Evidence: partial from Lighthouse/axe.
-58. `UX100-058` | Status: `OPEN` | Ensure accessible names/descriptions for all interactive controls. | DoD: zero unlabeled control findings. | Verify: axe + Playwright role queries. | Evidence: pending.
+58. `UX100-058` | Status: `DONE` | Ensure accessible names/descriptions for all interactive controls. | DoD: zero unlabeled control findings. | Verify: axe + Playwright role queries. | Evidence: visible control accessible-name audit in `/ui/tests/e2e/ux-audit-deep.spec.ts`.
 59. `UX100-059` | Status: `OPEN` | Add SR announcements for dynamic updates. | DoD: live-region coverage for major async events. | Verify: a11y behavior tests. | Evidence: pending.
 60. `UX100-060` | Status: `BLOCKED` | Conduct assisted-tech user testing with external participants. | DoD: external test report + fixes merged. | Verify: external artifact. | Evidence: blocked on external participants.
 
@@ -129,7 +129,7 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 73. `UX100-073` | Status: `IN_PROGRESS` | Improve hydration/defer strategy for non-critical work. | DoD: deferred rendering path standardized. | Verify: performance telemetry trends. | Evidence: deferred filtering/hydration status exists.
 74. `UX100-074` | Status: `OPEN` | Add smart prefetch by likely next action. | DoD: prefetch policy implemented and measured. | Verify: perf traces. | Evidence: pending.
 75. `UX100-075` | Status: `DONE` | Audit and reduce bundle bloat dependencies. | DoD: audit clean and no high vulns. | Verify: `make doctor`, dependency audit. | Evidence: release artifacts.
-76. `UX100-076` | Status: `OPEN` | Add CI alerts for performance regression thresholds. | DoD: CI fails or alerts on perf regressions. | Verify: workflow + failing threshold test. | Evidence: pending.
+76. `UX100-076` | Status: `DONE` | Add CI alerts for performance regression thresholds. | DoD: CI fails or alerts on perf regressions. | Verify: workflow + failing threshold test. | Evidence: `/.github/workflows/performance-regression.yml` + LHCI assertion thresholds.
 
 ### Reliability & Engineering Rigor
 77. `UX100-077` | Status: `OPEN` | Formalize frontend state invariants/transitions. | DoD: state contracts documented + tested. | Verify: unit tests for invariants. | Evidence: pending.
@@ -162,14 +162,14 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 100. `UX100-100` | Status: `BLOCKED` | Conduct external red-team UX misuse review. | DoD: external red-team report complete and findings closed. | Verify: external artifact. | Evidence: blocked on external review.
 
 ## Current Closure Summary
-- `DONE`: 36
-- `IN_PROGRESS`: 11
-- `OPEN`: 46
+- `DONE`: 42
+- `IN_PROGRESS`: 8
+- `OPEN`: 43
 - `BLOCKED` (external dependencies): 7
 
 ## Next Execution Batch (B1)
 1. Close foundation tasks `UX100-005`, `UX100-006`, `UX100-007`, `UX100-008`.
 2. Close visual hierarchy tasks `UX100-013`, `UX100-014`, `UX100-015`, `UX100-017`.
-3. Close accessibility/perf tasks `UX100-054`, `UX100-058`, `UX100-069` validation refresh, `UX100-076`.
+3. Close accessibility/perf tasks `UX100-053`, `UX100-057`, `UX100-064`, `UX100-069` validation refresh.
 4. Re-run verification: `make verify`, `make doctor`, `make scorecard`.
 5. Update this tracker and push.

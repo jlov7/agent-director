@@ -96,6 +96,100 @@ test.describe('Deep UX audit probes', () => {
     expect(tourResults.violations).toEqual([]);
   });
 
+  test('semantic landmark structure is present on app shell', async ({ page }) => {
+    await initExperienced(page);
+    await page.goto('/');
+
+    const landmarks = await page.evaluate(() => ({
+      hasHeader: Boolean(document.querySelector('header')),
+      hasMain: Boolean(document.querySelector('main')),
+      navCount: document.querySelectorAll('nav').length,
+      h1Count: document.querySelectorAll('h1').length,
+    }));
+
+    expect(landmarks.hasHeader).toBe(true);
+    expect(landmarks.hasMain).toBe(true);
+    expect(landmarks.navCount).toBeGreaterThan(0);
+    expect(landmarks.h1Count).toBeGreaterThan(0);
+  });
+
+  test('visible interactive controls expose accessible names', async ({ page }) => {
+    await initExperienced(page);
+    await page.goto('/');
+
+    const unnamedControls = await page.evaluate(() => {
+      const selector = [
+        'button',
+        'a[href]',
+        'input:not([type="hidden"])',
+        'select',
+        'textarea',
+        '[role="button"]',
+        '[role="link"]',
+        '[role="checkbox"]',
+        '[role="switch"]',
+        '[role="combobox"]',
+      ].join(',');
+
+      const isVisible = (element: HTMLElement) => {
+        const style = window.getComputedStyle(element);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      };
+
+      const getLabelledByText = (element: HTMLElement) => {
+        const ids = (element.getAttribute('aria-labelledby') ?? '')
+          .split(/\s+/)
+          .map((value) => value.trim())
+          .filter(Boolean);
+        return ids
+          .map((id) => document.getElementById(id)?.textContent?.trim() ?? '')
+          .join(' ')
+          .trim();
+      };
+
+      const getNativeLabelText = (element: HTMLElement) => {
+        if (
+          element instanceof HTMLInputElement ||
+          element instanceof HTMLSelectElement ||
+          element instanceof HTMLTextAreaElement
+        ) {
+          return Array.from(element.labels ?? [])
+            .map((label) => label.textContent?.trim() ?? '')
+            .join(' ')
+            .trim();
+        }
+        return '';
+      };
+
+      const controls = Array.from(document.querySelectorAll(selector)).filter((node) => node instanceof HTMLElement) as HTMLElement[];
+      const unnamed = controls
+        .filter((node) => node.closest('.app'))
+        .filter((node) => isVisible(node))
+        .map((node) => {
+          const text = (node.textContent ?? '').trim();
+          const ariaLabel = (node.getAttribute('aria-label') ?? '').trim();
+          const nativeLabel = getNativeLabelText(node);
+          const title = (node.getAttribute('title') ?? '').trim();
+          const placeholder = (node.getAttribute('placeholder') ?? '').trim();
+          const labelledByText = getLabelledByText(node);
+          const name = [ariaLabel, labelledByText, nativeLabel, text, title, placeholder].find((value) => value.length > 0) ?? '';
+          return {
+            tag: node.tagName.toLowerCase(),
+            className: node.className,
+            name,
+          };
+        })
+        .filter((control) => !control.name)
+        .slice(0, 20);
+
+      return unnamed;
+    });
+
+    expect(unnamedControls).toEqual([]);
+  });
+
   test('global C key switches from flow back to cinema', async ({ page }) => {
     await initExperienced(page);
     await page.goto('/');

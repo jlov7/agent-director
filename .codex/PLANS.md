@@ -432,7 +432,8 @@ Close all in-repo actionable tasks in the UX100 program and maintain explicit st
 - [x] Initialize exhaustive UX100 tracker with DoD + verification + evidence fields.
 - [x] Sync tracker entry points in `TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, and `.codex/SCRATCHPAD.md`.
 - [x] Ship first clarity/hierarchy slice (primary vs advanced toolbar, workspace contextual headers).
-- [ ] Execute Batch 1 open items from tracker.
+- [x] Ship second batch slice (semantic landmarks, accessible-name audit checks, density reduction, typography/spacing standards, CI performance regression workflow).
+- [ ] Execute remaining Batch 1 open items from tracker.
 
 ## Decision Log
 
@@ -448,3 +449,4 @@ Close all in-repo actionable tasks in the UX100 program and maintain explicit st
 ## Outcomes & Retrospective
 
 In progress.
+- Evidence refresh after second slice: `make verify`, `make doctor`, and `make scorecard` all pass.

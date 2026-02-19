@@ -1,0 +1,48 @@
+name: performance-regression
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ui/**'
+      - '.github/workflows/performance-regression.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ui/**'
+      - '.github/workflows/performance-regression.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: performance-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lhci-budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.3
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install UI deps
+        run: pnpm -C ui install
+
+      - name: Performance budget gate (LHCI)
+        run: pnpm -C ui lhci
+
+      - name: Upload Lighthouse artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lhci-artifacts
+          path: ui/.lighthouseci

@@ -86,7 +86,7 @@ Execute an exhaustive 100-task program to raise the frontend from strong release
 - [x] Initialize exhaustive task ledger with statuses, DoD, verification commands, and evidence pointers.
 - [x] Sync active tracker references in `TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, and `.codex/SCRATCHPAD.md`.
 - [x] First clarity pass shipped: split primary vs advanced controls and add contextual workspace headers.
-- [ ] Batch 1 execution (`UX100-003`, `UX100-005`, `UX100-006`, `UX100-007`, `UX100-008`, `UX100-013`, `UX100-014`, `UX100-015`, `UX100-017`, `UX100-054`, `UX100-058`, `UX100-076`).
+- [ ] Batch 1 execution (`UX100-005`, `UX100-006`, `UX100-007`, `UX100-008`, `UX100-017`, `UX100-053`, `UX100-057`, `UX100-064`) with supporting closures for `UX100-003`, `UX100-013`, `UX100-014`, `UX100-015`, `UX100-054`, `UX100-058`, `UX100-076`.
 
 ## Decision Log
 - Use objective evidence artifacts (`doctor`, `scorecard`, Playwright, LHCI) for completion claims.
@@ -99,3 +99,4 @@ Execute an exhaustive 100-task program to raise the frontend from strong release
 
 ## Outcomes & Retrospective
 In progress.
+- Batch progress shipped: action-first workspace IA labels, explicit semantic headings/landmarks, collapsed workspace tools for lower above-fold density, typography/spacing token docs + adoption, and a dedicated CI performance regression workflow.

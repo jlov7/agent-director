@@ -609,6 +609,10 @@ export default function App() {
     'agentDirector.workspaceSection.v1',
     'journey'
   );
+  const [workspacePanelOpen, setWorkspacePanelOpen] = usePersistedState(
+    'agentDirector.workspacePanelOpen.v1',
+    false
+  );
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [typeFilter, setTypeFilter] = useState<StepType | 'all'>('all');
@@ -3749,6 +3753,7 @@ export default function App() {
         mode === 'compare' ? 'mode-compare' : ''
       } ${mode === 'matrix' ? 'mode-matrix' : ''} ${mode === 'gameplay' ? 'mode-gameplay' : ''}`}
     >
+      <h1 className="sr-only">Workspace overview</h1>
       <Header
         trace={trace}
         traces={traces}
@@ -4100,10 +4105,19 @@ export default function App() {
       <div className="workspace-section-header">
         <div className="workspace-section-meta">
           <p className="workspace-section-eyebrow">Workspace</p>
-          <h2>{activeWorkspaceSection.title}</h2>
+          <h2 id="workspace-section-title">{activeWorkspaceSection.title}</h2>
           <p>{activeWorkspaceSection.description}</p>
         </div>
         <div className="workspace-section-actions">
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => setWorkspacePanelOpen((prev) => !prev)}
+            aria-expanded={workspacePanelOpen}
+            aria-controls="workspace-context-panel"
+          >
+            {workspacePanelOpen ? 'Hide workspace tools' : 'Show workspace tools'}
+          </button>
           <button
             className="primary-button workspace-primary-button"
             type="button"
@@ -4115,7 +4129,12 @@ export default function App() {
         </div>
       </div>
 
-      <section className="workspace-context-panel" aria-label="Contextual workspace tools">
+      {workspacePanelOpen ? (
+        <section
+          className="workspace-context-panel"
+          id="workspace-context-panel"
+          aria-labelledby="workspace-section-title"
+        >
         {activeSection === 'journey' ? (
           <div className="workspace-context-grid">
             <article className="workspace-card">
@@ -4476,9 +4495,14 @@ export default function App() {
             </article>
           </div>
         ) : null}
-      </section>
+        </section>
+      ) : (
+        <p className="workspace-panel-collapsed" id="workspace-context-panel">
+          Workspace tools are hidden to reduce clutter. Use “Show workspace tools” when you need deeper controls.
+        </p>
+      )}
 
-      <div
+      <section
         className="toolbar"
         data-help
         data-help-indicator
@@ -4486,7 +4510,11 @@ export default function App() {
         data-help-title="Search + filters"
         data-help-body="Core controls stay visible. Open Advanced controls for TraceQL and extension diagnostics."
         data-help-placement="bottom"
+        aria-labelledby="workspace-toolbar-heading"
       >
+        <h2 id="workspace-toolbar-heading" className="sr-only">
+          Workspace search and controls
+        </h2>
         <div className="toolbar-primary">
           <SearchBar query={query} typeFilter={typeFilter} onQueryChange={setQuery} onTypeFilterChange={setTypeFilter} />
           <div className="toolbar-mode-switcher">
@@ -4688,7 +4716,7 @@ export default function App() {
           </div>
         ) : null}
 
-      </div>
+      </section>
 
       {extensionOutput ? (
         <div className="inspector-section">
