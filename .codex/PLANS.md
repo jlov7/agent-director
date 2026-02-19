@@ -15,19 +15,20 @@ Upgrade the frontend experience from feature-rich demo quality to SaaS-grade pro
 - [x] SWC-002 deep-link URL state for mode/trace/step
 - [x] SWC-003 unified app shell states
 - [x] SWC-004 global notification center
-- [ ] SWC-005 async action resilience UX consistency
+- [x] SWC-005 async action resilience UX consistency
 - [x] SWC-006 SEO baseline
 - [x] SWC-007 PWA baseline
 - [x] SWC-008 keyboard/a11y parity
 - [x] SWC-009 session UX contract + expiry controls
 - [x] SWC-010 workspace switcher in header
 - [x] SWC-011 role-aware action gating
-- [ ] SWC-012..SWC-027 remaining SaaS UX program
+- [x] SWC-012..SWC-027 remaining SaaS UX program
 
 ## Decision Log
 
 - Execute highest-leverage foundational UX changes first because downstream journey work depends on reliable routing, state surfacing, and web metadata.
 - Keep first execution batch additive and low-risk to preserve existing release-gate stability.
+- Ship the remaining sweep as one cohesive SaaS control layer (setup/support/saved views/export/ownership/flags) to reduce UX fragmentation.
 
 ## Validation Plan
 
@@ -35,6 +36,18 @@ Upgrade the frontend experience from feature-rich demo quality to SaaS-grade pro
 - `pnpm -C ui test`
 - `pnpm -C ui test:e2e`
 - `make verify-ux`
+
+## Outcomes & Retrospective
+
+Done:
+- Added first-run setup wizard with validation and completion tracking.
+- Added workspace navigation with contextual Journey/Analysis/Collaboration/Operations surfaces.
+- Added async action resilience UX (status, retry/resume) and export queue with retry.
+- Added confirm + undo patterns for destructive matrix/session actions.
+- Added support diagnostics payload flow, ownership/handoff refinements, and saved views.
+- Added command palette intelligence v2 and feature-flag-ready UX toggles.
+- Added frontend analytics taxonomy + telemetry hooks and CI UX gate automation on PR/push.
+- Synced README and operations/UX documentation for the shipped UX contract.
 
 ---
 

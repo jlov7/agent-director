@@ -29,6 +29,7 @@ type HeaderProps = {
   modeHotkeys?: string;
   onMotionChange?: (mode: 'cinematic' | 'balanced' | 'minimal') => void;
   onCreateHandoffDigest?: () => void;
+  onOpenSupport?: () => void;
   workspaces?: Array<{ id: string; label: string }>;
   workspaceId?: string;
   onWorkspaceChange?: (workspaceId: string) => void;
@@ -64,6 +65,7 @@ export default function Header({
   runHealthScore = 100,
   modeHotkeys = 'C / F / Space',
   onCreateHandoffDigest,
+  onOpenSupport,
   workspaces = [],
   workspaceId,
   onWorkspaceChange,
@@ -308,6 +310,15 @@ export default function Header({
           title="Copy session handoff digest"
         >
           Handoff
+        </button>
+        <button
+          className="ghost-button"
+          type="button"
+          onClick={onOpenSupport}
+          aria-label="Open support diagnostics"
+          title="Open support diagnostics"
+        >
+          Support
         </button>
         <a
           className="ghost-button"

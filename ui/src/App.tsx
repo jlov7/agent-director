@@ -96,6 +96,19 @@ import {
 import { createInitialGameplayState, type GameplayState } from './utils/gameplayEngine';
 import type { GameplayLocale } from './utils/gameplayI18n';
 import { buildUrlAppState, parseUrlAppState } from './utils/urlState';
+import {
+  appendProductEvent,
+  captureSupportDiagnostics,
+  DEFAULT_FEATURE_FLAGS,
+  mergeAsyncAction,
+  readFeatureFlags,
+  validateSetupWizardDraft,
+  writeFeatureFlags,
+  type AsyncActionRecord,
+  type FeatureFlags,
+  type ProductEventName,
+  type SetupWizardDraft,
+} from './utils/saasUx';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
@@ -114,6 +127,9 @@ type MotionMode = 'cinematic' | 'balanced' | 'minimal';
 type LaunchPath = 'rapid_triage' | 'deep_diagnosis' | 'team_sync';
 type RecommendationTone = 'priority' | 'warning' | 'info';
 type SaaSRole = 'viewer' | 'operator' | 'admin';
+type WorkspaceSection = 'journey' | 'analysis' | 'collaboration' | 'operations';
+type SetupWizardStep = 'source' | 'import' | 'invite';
+type ExportTaskStatus = 'queued' | 'running' | 'success' | 'error';
 
 type Rect = { left: number; top: number; width: number; height: number };
 type DirectorRecommendation = {
@@ -142,6 +158,29 @@ type StoryBeat = {
 };
 
 type WorkspaceOption = { id: string; label: string };
+type SavedView = {
+  id: string;
+  name: string;
+  state: {
+    mode: Mode;
+    query: string;
+    typeFilter: StepType | 'all';
+    selectedStepId: string | null;
+    safeExport: boolean;
+    windowed: boolean;
+    syncPlayback: boolean;
+    explainMode: boolean;
+    section: WorkspaceSection;
+  };
+};
+type ExportTask = {
+  id: string;
+  label: string;
+  status: ExportTaskStatus;
+  detail: string;
+  updatedAt: number;
+  retryable: boolean;
+};
 
 const WORKSPACE_OPTIONS: WorkspaceOption[] = [
   { id: 'personal', label: 'Personal' },
@@ -518,6 +557,10 @@ function prunePresence(store: Record<string, number>, now = Date.now()) {
 export default function App() {
   const { trace, insights, loading, error, reload, traces, selectedTraceId, setSelectedTraceId } = useTrace();
   const [mode, setMode] = usePersistedState<Mode>('agentDirector.mode', 'cinema');
+  const [activeSection, setActiveSection] = usePersistedState<WorkspaceSection>(
+    'agentDirector.workspaceSection.v1',
+    'journey'
+  );
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [typeFilter, setTypeFilter] = useState<StepType | 'all'>('all');
@@ -584,6 +627,20 @@ export default function App() {
   );
   const skipIntro = import.meta.env.VITE_SKIP_INTRO === '1';
   const [introDismissed, setIntroDismissed] = usePersistedState('agentDirector.introDismissed', skipIntro);
+  const [setupWizardOpen, setSetupWizardOpen] = useState(false);
+  const [setupWizardStep, setSetupWizardStep] = useState<SetupWizardStep>('source');
+  const [setupWizardDraft, setSetupWizardDraft] = usePersistedState<SetupWizardDraft>(
+    'agentDirector.setupWizardDraft.v1',
+    { dataSource: '', importPath: '', inviteEmails: '' }
+  );
+  const [setupWizardComplete, setSetupWizardComplete] = usePersistedState(
+    'agentDirector.setupWizardComplete.v1',
+    false
+  );
+  const [setupWizardPrompted, setSetupWizardPrompted] = usePersistedState(
+    'agentDirector.setupWizardPrompted.v1',
+    false
+  );
   const [tourOpen, setTourOpen] = useState(false);
   const [storyState, setStoryState] = useState<{ active: boolean; step: number } | null>(null);
   const [storyPlan, setStoryPlan] = useState<StoryBeat[]>([]);
@@ -639,6 +696,18 @@ export default function App() {
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [handoffStatus, setHandoffStatus] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Array<AppNotification & { expiresAt: number }>>([]);
+  const [asyncActions, setAsyncActions] = useState<AsyncActionRecord[]>([]);
+  const [exportTasks, setExportTasks] = useState<ExportTask[]>([]);
+  const [savedViews, setSavedViews] = usePersistedState<SavedView[]>('agentDirector.savedViews.v1', []);
+  const [savedViewName, setSavedViewName] = useState('');
+  const [selectedSavedViewId, setSelectedSavedViewId] = useState<string>('');
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportNote, setSupportNote] = useState('');
+  const [runOwner, setRunOwner] = usePersistedState('agentDirector.runOwner.v1', 'on-call-operator');
+  const [handoffOwner, setHandoffOwner] = usePersistedState('agentDirector.handoffOwner.v1', '');
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(DEFAULT_FEATURE_FLAGS);
+  const [pendingConfirm, setPendingConfirm] = useState<null | { id: string; title: string; message: string }>(null);
+  const [undoState, setUndoState] = useState<null | { id: string; label: string }>(null);
   const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
   const [sharedAnnotations, setSharedAnnotations] = useState<SharedAnnotation[]>([]);
   const [activityFeed, setActivityFeed] = useState<ActivityEntry[]>([]);
@@ -652,6 +721,11 @@ export default function App() {
   const applyingRemoteCursorRef = useRef(false);
   const gameplayFunnelFlagsRef = useRef<Record<string, boolean>>({});
   const gamepadPressedRef = useRef<Record<string, boolean>>({});
+  const asyncActionHandlersRef = useRef<Record<string, () => void>>({});
+  const asyncActionResumeHandlersRef = useRef<Record<string, () => void>>({});
+  const exportRetryHandlersRef = useRef<Record<string, () => void>>({});
+  const confirmHandlersRef = useRef<Record<string, () => void>>({});
+  const undoHandlersRef = useRef<Record<string, () => void>>({});
   const initialUrlStateRef = useRef(
     typeof window === 'undefined' ? parseUrlAppState('') : parseUrlAppState(window.location.search)
   );
@@ -752,6 +826,27 @@ export default function App() {
       label: remainingMs <= 0 ? 'Expired' : `${remainingMinutes}m left`,
     };
   }, [sessionExpiresAt]);
+  const setupValidation = useMemo(() => validateSetupWizardDraft(setupWizardDraft), [setupWizardDraft]);
+  const savedViewNameError = useMemo(() => {
+    if (!savedViewName.trim()) return 'Saved view name is required.';
+    const exists = savedViews.some((view) => view.name.toLowerCase() === savedViewName.trim().toLowerCase());
+    return exists ? 'Saved view name already exists.' : null;
+  }, [savedViewName, savedViews]);
+  const supportDiagnostics = useMemo(
+    () =>
+      captureSupportDiagnostics({
+        trace,
+        selectedStepId,
+        mode,
+        workspaceId,
+        workspaceRole,
+        safeExport,
+        notifications: notifications.map((item) => ({ message: item.message, level: item.level })),
+        actions: asyncActions,
+        stepCount: trace?.steps.length ?? 0,
+      }),
+    [asyncActions, mode, notifications, safeExport, selectedStepId, trace, workspaceId, workspaceRole]
+  );
   const addNotification = useCallback((message: string, level: NotificationLevel = 'info') => {
     const normalized = message.trim();
     if (!normalized) return;
@@ -761,6 +856,89 @@ export default function App() {
       const next = [...prev, { id: `notif-${now}-${Math.random().toString(36).slice(2, 8)}`, message: normalized, level, expiresAt: now + NOTIFICATION_TTL_MS }];
       return next.slice(-6);
     });
+  }, []);
+  const trackProductEvent = useCallback((name: ProductEventName, metadata: Record<string, unknown> = {}) => {
+    try {
+      appendProductEvent(window.localStorage, {
+        name,
+        at: new Date().toISOString(),
+        metadata,
+      });
+    } catch {
+      // Non-blocking analytics queue.
+    }
+  }, []);
+  const setAsyncAction = useCallback(
+    (next: Omit<AsyncActionRecord, 'updatedAt'> & { updatedAt?: number }) => {
+      setAsyncActions((prev) => mergeAsyncAction(prev, next));
+    },
+    []
+  );
+  const runExportTask = useCallback(
+    async (task: { id: string; label: string; run: () => void }) => {
+      exportRetryHandlersRef.current[task.id] = () => {
+        void runExportTask(task);
+      };
+      setExportTasks((prev) => {
+        const existing = prev.find((item) => item.id === task.id);
+        const next: ExportTask = {
+          id: task.id,
+          label: task.label,
+          status: 'running',
+          detail: 'Running',
+          updatedAt: Date.now(),
+          retryable: false,
+        };
+        if (!existing) return [next, ...prev].slice(0, 8);
+        return [next, ...prev.filter((item) => item.id !== task.id)].slice(0, 8);
+      });
+      trackProductEvent('ux.export.queued', { taskId: task.id, label: task.label });
+      try {
+        task.run();
+        setExportTasks((prev) =>
+          prev.map((item) =>
+            item.id === task.id
+              ? {
+                  ...item,
+                  status: 'success',
+                  detail: 'Completed',
+                  updatedAt: Date.now(),
+                  retryable: false,
+                }
+              : item
+          )
+        );
+        trackProductEvent('ux.export.completed', { taskId: task.id, label: task.label });
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : 'Export failed';
+        setExportTasks((prev) =>
+          prev.map((item) =>
+            item.id === task.id
+              ? {
+                  ...item,
+                  status: 'error',
+                  detail,
+                  updatedAt: Date.now(),
+                  retryable: true,
+                }
+              : item
+          )
+        );
+        addNotification(`Export failed: ${task.label}`, 'error');
+        trackProductEvent('ux.export.failed', { taskId: task.id, label: task.label, detail });
+      }
+    },
+    [addNotification, trackProductEvent]
+  );
+  const requestConfirm = useCallback((title: string, message: string, onConfirm: () => void) => {
+    const id = `confirm-${Math.random().toString(36).slice(2, 9)}`;
+    confirmHandlersRef.current[id] = onConfirm;
+    setPendingConfirm({ id, title, message });
+  }, []);
+  const pushUndo = useCallback((label: string, onUndo: () => void) => {
+    const id = `undo-${Math.random().toString(36).slice(2, 9)}`;
+    undoHandlersRef.current[id] = onUndo;
+    setUndoState({ id, label });
   }, []);
   const canMutate = workspaceRole !== 'viewer' && !sessionState.expired;
   const requireMutationAccess = useCallback(
@@ -782,6 +960,55 @@ export default function App() {
     setSessionExpiresAt(Date.now() + 1000 * 60 * 60 * 4);
     addNotification('Session renewed for 4 hours.', 'success');
   }, [addNotification, setSessionExpiresAt]);
+
+  useEffect(() => {
+    setFeatureFlags(readFeatureFlags(window.localStorage));
+  }, []);
+
+  useEffect(() => {
+    if (!featureFlags.setupWizardV1) return;
+    if (window.localStorage.getItem('agentDirector.setupWizardAuto') !== '1') return;
+    if (!introDismissed || setupWizardComplete || setupWizardOpen || setupWizardPrompted) return;
+    setSetupWizardOpen(true);
+    setSetupWizardPrompted(true);
+    trackProductEvent('ux.setup.opened', { source: 'auto' });
+  }, [
+    featureFlags.setupWizardV1,
+    introDismissed,
+    setSetupWizardPrompted,
+    setupWizardComplete,
+    setupWizardOpen,
+    setupWizardPrompted,
+    trackProductEvent,
+  ]);
+
+  useEffect(() => {
+    if (!undoState) return;
+    const timeout = window.setTimeout(() => {
+      setUndoState(null);
+    }, 6000);
+    return () => window.clearTimeout(timeout);
+  }, [undoState]);
+
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      trackProductEvent('ux.error.window', {
+        message: event.message,
+        filename: event.filename,
+        line: event.lineno,
+      });
+    };
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason instanceof Error ? event.reason.message : String(event.reason ?? 'unknown');
+      trackProductEvent('ux.error.window', { kind: 'unhandledrejection', reason });
+    };
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleRejection);
+    };
+  }, [trackProductEvent]);
 
   useEffect(() => {
     if (urlStateAppliedRef.current) return;
@@ -835,6 +1062,11 @@ export default function App() {
   useEffect(() => {
     if (shareStatus) addNotification(shareStatus, 'success');
   }, [addNotification, shareStatus]);
+
+  useEffect(() => {
+    if (!showPalette) return;
+    trackProductEvent('ux.palette.opened', { section: activeSection, mode });
+  }, [activeSection, mode, showPalette, trackProductEvent]);
 
   useEffect(() => {
     if (handoffStatus) addNotification(handoffStatus, 'success');
@@ -1011,8 +1243,12 @@ export default function App() {
   }, [trace?.id]);
 
   useEffect(() => {
-    setFilterComputeMs(Math.round(filterMeasureRef.current));
-  }, [textFilteredSteps]);
+    const ms = Math.round(filterMeasureRef.current);
+    setFilterComputeMs(ms);
+    if (ms > 0) {
+      trackProductEvent('ux.perf.filter_ms', { ms, steps: textFilteredSteps.length });
+    }
+  }, [textFilteredSteps, trackProductEvent]);
 
   useEffect(() => {
     if (!trace) return;
@@ -1237,6 +1473,72 @@ export default function App() {
     []
   );
 
+  const executeTrackedAction = useCallback(
+    async function executeTrackedAction<T>(options: {
+      id: string;
+      label: string;
+      run: () => Promise<T>;
+      retry?: () => void;
+      resume?: () => void;
+      successDetail?: string;
+    }): Promise<T> {
+      if (options.retry) asyncActionHandlersRef.current[options.id] = options.retry;
+      if (options.resume) asyncActionResumeHandlersRef.current[options.id] = options.resume;
+      setAsyncAction({
+        id: options.id,
+        label: options.label,
+        status: 'running',
+        detail: 'Running',
+        retryable: false,
+        resumable: false,
+      });
+      try {
+        const result = await options.run();
+        setAsyncAction({
+          id: options.id,
+          label: options.label,
+          status: 'success',
+          detail: options.successDetail ?? 'Completed',
+          retryable: false,
+          resumable: false,
+        });
+        return result;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Action failed';
+        setAsyncAction({
+          id: options.id,
+          label: options.label,
+          status: 'error',
+          detail: message,
+          retryable: Boolean(options.retry),
+          resumable: Boolean(options.resume),
+        });
+        throw err;
+      }
+    },
+    [setAsyncAction]
+  );
+
+  const retryAsyncAction = useCallback(
+    (id: string) => {
+      const handler = asyncActionHandlersRef.current[id];
+      if (!handler) return;
+      trackProductEvent('ux.action.retry', { id });
+      handler();
+    },
+    [trackProductEvent]
+  );
+
+  const resumeAsyncAction = useCallback(
+    (id: string) => {
+      const handler = asyncActionResumeHandlersRef.current[id];
+      if (!handler) return;
+      trackProductEvent('ux.action.resume', { id });
+      handler();
+    },
+    [trackProductEvent]
+  );
+
   const handleReplay = useCallback(
     async (stepId: string) => {
       if (!trace) return;
@@ -1260,29 +1562,47 @@ export default function App() {
       setTraceQueryError(null);
       return;
     }
-    const result = await runTraceQuery(trace.id, traceQuery.trim());
-    if (!result) {
+    try {
+      const result = await executeTrackedAction({
+        id: 'trace-query',
+        label: 'TraceQL query',
+        run: async () => runTraceQuery(trace.id, traceQuery.trim()),
+        successDetail: 'Query complete',
+      });
+      if (!result) {
+        setTraceQueryError('TraceQL query failed');
+        setTraceQueryResult(null);
+        return;
+      }
+      setTraceQueryResult(result);
+      setTraceQueryError(null);
+      const firstMatch = result.matchedStepIds[0];
+      if (firstMatch) {
+        setSelectedStepId(firstMatch);
+        if (mode !== 'cinema') setMode('cinema');
+      }
+    } catch {
       setTraceQueryError('TraceQL query failed');
       setTraceQueryResult(null);
-      return;
     }
-    setTraceQueryResult(result);
-    setTraceQueryError(null);
-    const firstMatch = result.matchedStepIds[0];
-    if (firstMatch) {
-      setSelectedStepId(firstMatch);
-      if (mode !== 'cinema') setMode('cinema');
-    }
-  }, [mode, setMode, trace, traceQuery]);
+  }, [executeTrackedAction, mode, setMode, trace, traceQuery]);
 
   const handleRunExtension = useCallback(async () => {
     if (!trace || !selectedExtensionId) return;
     setExtensionRunning(true);
-    const output = await runExtension(selectedExtensionId, trace.id);
-    setExtensionRunning(false);
-    if (!output) return;
-    setExtensionOutput(output.result);
-  }, [selectedExtensionId, trace]);
+    try {
+      const output = await executeTrackedAction({
+        id: 'run-extension',
+        label: 'Run extension',
+        run: async () => runExtension(selectedExtensionId, trace.id),
+        successDetail: 'Extension output ready',
+      });
+      if (!output) return;
+      setExtensionOutput(output.result);
+    } finally {
+      setExtensionRunning(false);
+    }
+  }, [executeTrackedAction, selectedExtensionId, trace]);
 
   const jumpToBottleneck = useCallback(() => {
     if (!trace) return;
@@ -1403,16 +1723,29 @@ export default function App() {
   const handleLeaveGameplaySession = useCallback(async () => {
     if (!gameplaySessionId) return;
     if (!requireMutationAccess('leave gameplay sessions')) return;
-    const session = await leaveGameplaySession({ sessionId: gameplaySessionId, playerId: gameplayPlayerId });
-    if (!session) {
-      setGameplaySessionError('Failed to leave gameplay session.');
-      return;
-    }
-    setGameplaySession(null);
-    setGameplaySessionId('');
-    setGameplaySessionError(null);
-    appendActivity(`Left gameplay session ${gameplaySessionId}`);
-  }, [appendActivity, gameplayPlayerId, gameplaySessionId, requireMutationAccess, setGameplaySessionId]);
+    requestConfirm('Leave gameplay session', `Leave session ${gameplaySessionId}?`, () => {
+      void (async () => {
+        const session = await leaveGameplaySession({ sessionId: gameplaySessionId, playerId: gameplayPlayerId });
+        if (!session) {
+          setGameplaySessionError('Failed to leave gameplay session.');
+          return;
+        }
+        setGameplaySession(null);
+        setGameplaySessionId('');
+        setGameplaySessionError(null);
+        appendActivity(`Left gameplay session ${gameplaySessionId}`);
+        trackProductEvent('ux.action.confirmed', { action: 'leave_gameplay_session', sessionId: gameplaySessionId });
+      })();
+    });
+  }, [
+    appendActivity,
+    gameplayPlayerId,
+    gameplaySessionId,
+    requestConfirm,
+    requireMutationAccess,
+    setGameplaySessionId,
+    trackProductEvent,
+  ]);
 
   const handleReconnectGameplaySession = useCallback(async () => {
     if (!gameplaySessionId) return;
@@ -1581,24 +1914,33 @@ export default function App() {
   );
 
   const handleRetryConnectivity = useCallback(() => {
-    setGameplaySessionError(null);
-    void reload();
-    if (gameplaySessionId) {
-      void getGameplaySession(gameplaySessionId).then((session) => {
-        if (session) setGameplaySession(session);
-      });
-    }
-    void fetchGameplaySocialGraph(gameplayPlayerId).then((social) => {
-      if (social) setGameplaySocial(social);
+    void executeTrackedAction({
+      id: 'retry-connectivity',
+      label: 'Retry connectivity',
+      retry: () => handleRetryConnectivity(),
+      run: async () => {
+        setGameplaySessionError(null);
+        reload();
+        if (gameplaySessionId) {
+          const session = await getGameplaySession(gameplaySessionId);
+          if (session) setGameplaySession(session);
+        }
+        const [social, observability, analytics] = await Promise.all([
+          fetchGameplaySocialGraph(gameplayPlayerId),
+          fetchGameplayObservabilitySummary(),
+          fetchGameplayAnalyticsFunnels(),
+        ]);
+        if (social) setGameplaySocial(social);
+        if (observability) setGameplayObservability(observability);
+        if (analytics) setGameplayAnalytics(analytics);
+        appendActivity('Retried connectivity sync');
+        return true;
+      },
+      successDetail: 'Connectivity synced',
+    }).catch(() => {
+      setGameplaySessionError('Retry connectivity failed.');
     });
-    void fetchGameplayObservabilitySummary().then((observability) => {
-      if (observability) setGameplayObservability(observability);
-    });
-    void fetchGameplayAnalyticsFunnels().then((analytics) => {
-      if (analytics) setGameplayAnalytics(analytics);
-    });
-    appendActivity('Retried connectivity sync');
-  }, [appendActivity, gameplayPlayerId, gameplaySessionId, reload]);
+  }, [appendActivity, executeTrackedAction, gameplayPlayerId, gameplaySessionId, reload]);
 
   const moveLaneGroup = useCallback(
     (groupKey: string, direction: 'up' | 'down') => {
@@ -1674,11 +2016,28 @@ export default function App() {
   }, []);
 
   const removeMatrixScenario = useCallback((id: string) => {
-    setMatrixScenarios((prev) => {
-      if (prev.length <= 1) return prev;
-      return prev.filter((item) => item.id !== id);
+    if (matrixScenarios.length <= 1) return;
+    requestConfirm('Remove scenario', 'Remove this scenario from the matrix run?', () => {
+      let removed: MatrixScenarioDraft | null = null;
+      let removedIndex = -1;
+      setMatrixScenarios((prev) => {
+        removedIndex = prev.findIndex((item) => item.id === id);
+        if (removedIndex === -1 || prev.length <= 1) return prev;
+        removed = prev[removedIndex] ?? null;
+        return prev.filter((item) => item.id !== id);
+      });
+      if (!removed || removedIndex === -1) return;
+      pushUndo('Scenario removed', () => {
+        setMatrixScenarios((prev) => {
+          const next = [...prev];
+          next.splice(Math.min(removedIndex, next.length), 0, removed as MatrixScenarioDraft);
+          return next;
+        });
+        trackProductEvent('ux.action.undone', { action: 'matrix_scenario_remove', scenarioId: id });
+      });
+      trackProductEvent('ux.action.confirmed', { action: 'matrix_scenario_remove', scenarioId: id });
     });
-  }, []);
+  }, [matrixScenarios.length, pushUndo, requestConfirm, trackProductEvent]);
 
   const duplicateMatrixScenario = useCallback((id: string) => {
     setMatrixScenarios((prev) => {
@@ -1721,61 +2080,88 @@ export default function App() {
       try {
         setMatrixLoading(true);
         setMatrixError(null);
-        const created = await createReplayJob({
-          traceId: trace.id,
-          stepId,
-          scenarios,
+        await executeTrackedAction({
+          id: 'matrix-run',
+          label: 'Replay matrix run',
+          retry: () => {
+            void runReplayMatrix(scenarios);
+          },
+          resume: () => {
+            void runReplayMatrix(scenarios);
+          },
+          run: async () => {
+            const created = await createReplayJob({
+              traceId: trace.id,
+              stepId,
+              scenarios,
+            });
+            if (!created) {
+              throw new Error('Failed to create replay job.');
+            }
+            setReplayJob(created);
+
+            let latest = created;
+            for (let attempt = 0; attempt < 30; attempt += 1) {
+              if (latest.status !== 'queued' && latest.status !== 'running') break;
+              const delay = computePollDelay(attempt);
+              await new Promise((resolve) => window.setTimeout(resolve, delay));
+              const refreshed = await fetchReplayJob(created.id);
+              if (!refreshed) break;
+              latest = refreshed;
+              setReplayJob(refreshed);
+            }
+
+            const matrix = await fetchReplayMatrix(created.id);
+            if (!matrix) {
+              throw new Error('Replay job finished but matrix summary is unavailable.');
+            }
+            setReplayMatrix(matrix);
+            setMode('matrix');
+            appendActivity(`Ran matrix with ${scenarios.length} scenario(s) from ${stepId}`);
+            return matrix;
+          },
+          successDetail: `${scenarios.length} scenario(s) complete`,
         });
-        if (!created) {
-          throw new Error('Failed to create replay job.');
-        }
-        setReplayJob(created);
-
-        let latest = created;
-        for (let attempt = 0; attempt < 30; attempt += 1) {
-          if (latest.status !== 'queued' && latest.status !== 'running') break;
-          const delay = computePollDelay(attempt);
-          await new Promise((resolve) => window.setTimeout(resolve, delay));
-          const refreshed = await fetchReplayJob(created.id);
-          if (!refreshed) break;
-          latest = refreshed;
-          setReplayJob(refreshed);
-        }
-
-        const matrix = await fetchReplayMatrix(created.id);
-        if (!matrix) {
-          throw new Error('Replay job finished but matrix summary is unavailable.');
-        }
-        setReplayMatrix(matrix);
-        setMode('matrix');
-        appendActivity(`Ran matrix with ${scenarios.length} scenario(s) from ${stepId}`);
       } catch (err) {
         setMatrixError(err instanceof Error ? err.message : 'Failed to run replay matrix.');
       } finally {
         setMatrixLoading(false);
       }
     },
-    [appendActivity, matrixAnchorStepId, requireMutationAccess, selectedStepId, trace, setMode]
+    [appendActivity, executeTrackedAction, matrixAnchorStepId, requireMutationAccess, selectedStepId, trace, setMode]
   );
 
   const cancelMatrixRun = useCallback(async () => {
     if (!replayJob) return;
     if (!requireMutationAccess('cancel replay matrix jobs')) return;
-    setMatrixLoading(true);
-    try {
-      const canceled = await cancelReplayJob(replayJob.id);
-      if (!canceled) {
-        setMatrixError('Failed to cancel replay job.');
-        return;
-      }
-      setReplayJob(canceled);
-      const matrix = await fetchReplayMatrix(canceled.id);
-      if (matrix) setReplayMatrix(matrix);
-      appendActivity(`Canceled matrix job ${replayJob.id}`);
-    } finally {
-      setMatrixLoading(false);
-    }
-  }, [appendActivity, replayJob, requireMutationAccess]);
+    requestConfirm('Cancel matrix job', `Cancel replay job ${replayJob.id}?`, () => {
+      void (async () => {
+        setMatrixLoading(true);
+        try {
+          const canceled = await cancelReplayJob(replayJob.id);
+          if (!canceled) {
+            setMatrixError('Failed to cancel replay job.');
+            return;
+          }
+          setReplayJob(canceled);
+          setAsyncAction({
+            id: 'matrix-run',
+            label: 'Replay matrix run',
+            status: 'canceled',
+            detail: `Canceled ${replayJob.id}`,
+            resumable: true,
+            retryable: true,
+          });
+          const matrix = await fetchReplayMatrix(canceled.id);
+          if (matrix) setReplayMatrix(matrix);
+          appendActivity(`Canceled matrix job ${replayJob.id}`);
+          trackProductEvent('ux.action.cancel', { id: replayJob.id });
+        } finally {
+          setMatrixLoading(false);
+        }
+      })();
+    });
+  }, [appendActivity, replayJob, requestConfirm, requireMutationAccess, setAsyncAction, trackProductEvent]);
 
   const openMatrixCompare = useCallback(
     async (traceId: string) => {
@@ -2262,11 +2648,17 @@ export default function App() {
 
   const exportDirectorNarrative = useCallback(() => {
     if (!trace) return;
-    const markdown = `# Director Narrative\n\n${directorNarrative}\n\n## Recommended Actions\n${directorRecommendations
-      .map((item) => `- ${item.title}: ${item.body}`)
-      .join('\n')}`;
-    downloadText(`agent-director-narrative-${trace.id}.md`, markdown, 'text/markdown');
-  }, [directorNarrative, directorRecommendations, trace]);
+    void runExportTask({
+      id: 'export-director-narrative',
+      label: 'Director narrative markdown',
+      run: () => {
+        const markdown = `# Director Narrative\n\n${directorNarrative}\n\n## Recommended Actions\n${directorRecommendations
+          .map((item) => `- ${item.title}: ${item.body}`)
+          .join('\n')}`;
+        downloadText(`agent-director-narrative-${trace.id}.md`, markdown, 'text/markdown');
+      },
+    });
+  }, [directorNarrative, directorRecommendations, runExportTask, trace]);
 
   const createHandoffDigest = useCallback(async () => {
     if (!trace) return;
@@ -2275,6 +2667,8 @@ export default function App() {
     const digestLines = [
       `Session handoff (${new Date().toISOString()})`,
       `Trace: ${trace.id}`,
+      `Owner: ${runOwner}`,
+      `Handoff owner: ${handoffOwner || 'unassigned'}`,
       `Mode: ${mode}`,
       `Selected step: ${selectedStepId ?? 'none'}`,
       `Run health: ${runHealthScore}/100`,
@@ -2287,12 +2681,149 @@ export default function App() {
     try {
       await navigator.clipboard.writeText(digest);
       setHandoffStatus('Handoff digest copied');
+      trackProductEvent('ux.support.payload_copied', { kind: 'handoff_digest' });
     } catch {
       window.prompt('Copy handoff digest', digest);
       setHandoffStatus('Handoff digest ready');
     }
     window.setTimeout(() => setHandoffStatus(null), 2200);
-  }, [directorNarrative, directorRecommendations, mode, runHealthScore, selectedStepId, trace]);
+  }, [
+    directorNarrative,
+    directorRecommendations,
+    handoffOwner,
+    mode,
+    runHealthScore,
+    runOwner,
+    selectedStepId,
+    trace,
+    trackProductEvent,
+  ]);
+
+  const toggleFeatureFlag = useCallback(
+    (flag: keyof FeatureFlags) => {
+      setFeatureFlags((prev) => {
+        const next = { ...prev, [flag]: !prev[flag] };
+        writeFeatureFlags(window.localStorage, next);
+        trackProductEvent('ux.feature_flag.toggled', { flag, enabled: next[flag] });
+        return next;
+      });
+    },
+    [trackProductEvent]
+  );
+
+  const completeSetupWizard = useCallback(() => {
+    if (!setupValidation.isValid) return;
+    setSetupWizardComplete(true);
+    setSetupWizardOpen(false);
+    setSetupWizardStep('source');
+    addNotification('Workspace setup complete.', 'success');
+    trackProductEvent('ux.setup.completed', {
+      dataSource: setupWizardDraft.dataSource,
+      hasInvites: Boolean(setupWizardDraft.inviteEmails.trim()),
+    });
+  }, [addNotification, setupValidation.isValid, setupWizardDraft, trackProductEvent, setSetupWizardComplete]);
+
+  const copySupportPayload = useCallback(async () => {
+    const payload = JSON.stringify(
+      {
+        diagnostics: supportDiagnostics,
+        note: supportNote,
+        owner: runOwner,
+        handoffOwner: handoffOwner || null,
+      },
+      null,
+      2
+    );
+    try {
+      await navigator.clipboard.writeText(payload);
+      addNotification('Support payload copied.', 'success');
+      trackProductEvent('ux.support.payload_copied', { bytes: payload.length });
+    } catch {
+      window.prompt('Copy support payload', payload);
+    }
+  }, [addNotification, handoffOwner, runOwner, supportDiagnostics, supportNote, trackProductEvent]);
+
+  const saveCurrentView = useCallback(() => {
+    const name = savedViewName.trim();
+    if (!name || savedViewNameError) return;
+    const view: SavedView = {
+      id: `view-${Math.random().toString(36).slice(2, 9)}`,
+      name,
+      state: {
+        mode,
+        query,
+        typeFilter,
+        selectedStepId,
+        safeExport,
+        windowed,
+        syncPlayback,
+        explainMode,
+        section: activeSection,
+      },
+    };
+    setSavedViews((prev) => [view, ...prev].slice(0, 20));
+    setSavedViewName('');
+    setSelectedSavedViewId(view.id);
+    trackProductEvent('ux.saved_view.created', { viewId: view.id, name });
+    addNotification(`Saved view: ${name}`, 'success');
+  }, [
+    activeSection,
+    addNotification,
+    explainMode,
+    mode,
+    query,
+    safeExport,
+    savedViewName,
+    savedViewNameError,
+    selectedStepId,
+    setSavedViews,
+    syncPlayback,
+    trackProductEvent,
+    typeFilter,
+    windowed,
+  ]);
+
+  const applySavedView = useCallback(
+    (viewId: string) => {
+      const view = savedViews.find((item) => item.id === viewId);
+      if (!view) return;
+      setMode(view.state.mode);
+      setQuery(view.state.query);
+      setTypeFilter(view.state.typeFilter);
+      setSelectedStepId(view.state.selectedStepId);
+      setSafeExport(view.state.safeExport);
+      setWindowed(view.state.windowed);
+      setSyncPlayback(view.state.syncPlayback);
+      setExplainMode(view.state.explainMode);
+      setActiveSection(view.state.section);
+      setSelectedSavedViewId(view.id);
+      trackProductEvent('ux.saved_view.applied', { viewId: view.id, name: view.name });
+      addNotification(`Applied view: ${view.name}`, 'info');
+    },
+    [
+      addNotification,
+      savedViews,
+      setActiveSection,
+      setExplainMode,
+      setMode,
+      setSafeExport,
+      setSyncPlayback,
+      setWindowed,
+      trackProductEvent,
+    ]
+  );
+
+  const deleteSavedView = useCallback(() => {
+    if (!selectedSavedViewId) return;
+    const view = savedViews.find((item) => item.id === selectedSavedViewId);
+    if (!view) return;
+    requestConfirm('Delete saved view', `Delete saved view "${view.name}"?`, () => {
+      setSavedViews((prev) => prev.filter((item) => item.id !== selectedSavedViewId));
+      setSelectedSavedViewId('');
+      trackProductEvent('ux.saved_view.deleted', { viewId: view.id, name: view.name });
+      addNotification(`Deleted view: ${view.name}`, 'warning');
+    });
+  }, [addNotification, requestConfirm, savedViews, selectedSavedViewId, setSavedViews, trackProductEvent]);
 
   useEffect(() => {
     if (!trace) return;
@@ -2651,6 +3182,38 @@ export default function App() {
   const storyTotal = storyPlan.length;
   const isFilteringDeferred = query !== deferredQuery;
   const hydrationStatus = `${Math.min(textFilteredSteps.length, hydrationLimit)}/${textFilteredSteps.length}`;
+  const personaFocus = useMemo(() => {
+    if (introPersona === 'executive') {
+      return [
+        { label: 'Review run health', done: runHealthScore >= 80 },
+        { label: 'Inspect top risk', done: Boolean(selectedStepId) },
+        { label: 'Share handoff digest', done: Boolean(handoffStatus) },
+      ];
+    }
+    if (introPersona === 'operator') {
+      return [
+        { label: 'Open failed step', done: Boolean(selectedStepId) },
+        { label: 'Run replay', done: Boolean(compareTrace) },
+        { label: 'Use support diagnostics', done: supportOpen || Boolean(supportNote.trim()) },
+      ];
+    }
+    return [
+      { label: 'Open flow graph', done: mode === 'flow' },
+      { label: 'Run matrix scenario', done: Boolean(replayMatrix) },
+      { label: 'Save a reusable view', done: savedViews.length > 0 },
+    ];
+  }, [
+    compareTrace,
+    handoffStatus,
+    introPersona,
+    mode,
+    replayMatrix,
+    runHealthScore,
+    savedViews.length,
+    selectedStepId,
+    supportNote,
+    supportOpen,
+  ]);
 
   const commandActions = useMemo<CommandAction[]>(
     () => [
@@ -2814,9 +3377,69 @@ export default function App() {
           void createHandoffDigest();
         },
       },
+      {
+        id: 'section-journey',
+        label: 'Open journey workspace',
+        description: 'Show journey presets and persona progression.',
+        group: 'Workspace',
+        onTrigger: () => setActiveSection('journey'),
+      },
+      {
+        id: 'section-analysis',
+        label: 'Open analysis workspace',
+        description: 'Show async action health and export queue.',
+        group: 'Workspace',
+        onTrigger: () => setActiveSection('analysis'),
+      },
+      {
+        id: 'section-collaboration',
+        label: 'Open collaboration workspace',
+        description: 'Ownership, handoff, and activity timeline.',
+        group: 'Workspace',
+        onTrigger: () => setActiveSection('collaboration'),
+      },
+      {
+        id: 'section-operations',
+        label: 'Open operations workspace',
+        description: 'Setup, support, and feature flags.',
+        group: 'Workspace',
+        onTrigger: () => setActiveSection('operations'),
+      },
+      {
+        id: 'open-setup-wizard',
+        label: 'Open setup wizard',
+        description: 'Connect source, import context, and invite teammates.',
+        group: 'Workspace',
+        onTrigger: () => {
+          setSetupWizardOpen(true);
+          trackProductEvent('ux.setup.opened', { source: 'command_palette' });
+        },
+        disabled: !featureFlags.setupWizardV1,
+      },
+      {
+        id: 'open-support-panel',
+        label: 'Open support diagnostics',
+        description: 'Collect support payload and copy handoff diagnostics.',
+        group: 'Workspace',
+        onTrigger: () => {
+          setSupportOpen(true);
+          trackProductEvent('ux.support.opened', { source: 'command_palette' });
+        },
+        disabled: !featureFlags.supportPanelV1,
+      },
+      ...savedViews.slice(0, 5).map((view) => ({
+        id: `saved-view-${view.id}`,
+        label: `Apply saved view: ${view.name}`,
+        description: 'Restore a saved journey configuration.',
+        group: 'Workspace',
+        onTrigger: () => applySavedView(view.id),
+      })),
     ],
     [
+      applySavedView,
       createHandoffDigest,
+      featureFlags.setupWizardV1,
+      featureFlags.supportPanelV1,
       storyActive,
       toggleStory,
       explainMode,
@@ -2835,8 +3458,13 @@ export default function App() {
       setOverlayEnabled,
       setSafeExport,
       setShowShortcuts,
+      setSupportOpen,
+      setSetupWizardOpen,
       setTourOpen,
+      setActiveSection,
+      savedViews,
       startLaunchPath,
+      trackProductEvent,
     ]
   );
 
@@ -2962,6 +3590,10 @@ export default function App() {
         onToggleExplain={() => setExplainMode((prev) => !prev)}
         onShareSession={shareSession}
         onCreateHandoffDigest={() => void createHandoffDigest()}
+        onOpenSupport={() => {
+          setSupportOpen(true);
+          trackProductEvent('ux.support.opened', { source: 'header' });
+        }}
         onThemeChange={setThemeMode}
         onMotionChange={setMotionMode}
         themeMode={themeMode}
@@ -2988,6 +3620,201 @@ export default function App() {
         notifications={notifications.map(({ id, message, level }) => ({ id, message, level }))}
         onDismiss={dismissNotification}
       />
+      {undoState ? (
+        <div className="undo-banner" role="status" aria-live="polite">
+          <span>{undoState.label}</span>
+          <button
+            className="ghost-button"
+            type="button"
+            onClick={() => {
+              undoHandlersRef.current[undoState.id]?.();
+              setUndoState(null);
+            }}
+          >
+            Undo
+          </button>
+        </div>
+      ) : null}
+      {pendingConfirm ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Confirm action">
+          <div className="palette confirm-dialog">
+            <div className="palette-header">
+              <div>
+                <div className="palette-title">{pendingConfirm.title}</div>
+                <div className="palette-subtitle">{pendingConfirm.message}</div>
+              </div>
+            </div>
+            <div className="workspace-inline-form">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => setPendingConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => {
+                  const id = pendingConfirm.id;
+                  trackProductEvent('ux.action.confirmed', { confirmationId: id });
+                  confirmHandlersRef.current[id]?.();
+                  delete confirmHandlersRef.current[id];
+                  setPendingConfirm(null);
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {setupWizardOpen && featureFlags.setupWizardV1 ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="First-run setup wizard">
+          <div className="palette setup-wizard">
+            <div className="palette-header">
+              <div>
+                <div className="palette-title">First-run setup wizard</div>
+                <div className="palette-subtitle">Connect source, import context, invite teammates.</div>
+              </div>
+              <button className="ghost-button" type="button" onClick={() => setSetupWizardOpen(false)}>
+                Close
+              </button>
+            </div>
+            <div className="setup-stepper">
+              <span className={setupWizardStep === 'source' ? 'active' : ''}>1. Source</span>
+              <span className={setupWizardStep === 'import' ? 'active' : ''}>2. Import</span>
+              <span className={setupWizardStep === 'invite' ? 'active' : ''}>3. Invite</span>
+            </div>
+            {setupWizardStep === 'source' ? (
+              <div className="workspace-card">
+                <label>
+                  Data source
+                  <select
+                    className="search-select"
+                    value={setupWizardDraft.dataSource}
+                    onChange={(event) =>
+                      setSetupWizardDraft((prev) => ({ ...prev, dataSource: event.target.value }))
+                    }
+                  >
+                    <option value="">Select source</option>
+                    <option value="api">Live API</option>
+                    <option value="file">Trace file import</option>
+                    <option value="hybrid">Hybrid replay baseline</option>
+                  </select>
+                </label>
+                {setupValidation.dataSourceError ? (
+                  <p className="workspace-error">{setupValidation.dataSourceError}</p>
+                ) : null}
+              </div>
+            ) : null}
+            {setupWizardStep === 'import' ? (
+              <div className="workspace-card">
+                <label>
+                  Import path or URI
+                  <input
+                    className="search-input"
+                    value={setupWizardDraft.importPath}
+                    onChange={(event) =>
+                      setSetupWizardDraft((prev) => ({ ...prev, importPath: event.target.value }))
+                    }
+                    placeholder="/data/traces/latest.json"
+                  />
+                </label>
+                {setupValidation.importPathError ? (
+                  <p className="workspace-error">{setupValidation.importPathError}</p>
+                ) : null}
+              </div>
+            ) : null}
+            {setupWizardStep === 'invite' ? (
+              <div className="workspace-card">
+                <label>
+                  Invite emails (comma-separated)
+                  <input
+                    className="search-input"
+                    value={setupWizardDraft.inviteEmails}
+                    onChange={(event) =>
+                      setSetupWizardDraft((prev) => ({ ...prev, inviteEmails: event.target.value }))
+                    }
+                    placeholder="ops@example.com, qa@example.com"
+                  />
+                </label>
+                {setupValidation.inviteEmailsError ? (
+                  <p className="workspace-error">{setupValidation.inviteEmailsError}</p>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="workspace-inline-form">
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() =>
+                  setSetupWizardStep((prev) =>
+                    prev === 'invite' ? 'import' : prev === 'import' ? 'source' : 'source'
+                  )
+                }
+                disabled={setupWizardStep === 'source'}
+              >
+                Back
+              </button>
+              {setupWizardStep !== 'invite' ? (
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() =>
+                    setSetupWizardStep((prev) => (prev === 'source' ? 'import' : 'invite'))
+                  }
+                >
+                  Continue
+                </button>
+              ) : (
+                <button
+                  className="primary-button"
+                  type="button"
+                  disabled={!setupValidation.isValid}
+                  onClick={completeSetupWizard}
+                >
+                  Complete setup
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {supportOpen && featureFlags.supportPanelV1 ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Support diagnostics">
+          <div className="palette support-panel">
+            <div className="palette-header">
+              <div>
+                <div className="palette-title">Support diagnostics</div>
+                <div className="palette-subtitle">Capture environment and handoff payload for support triage.</div>
+              </div>
+              <button className="ghost-button" type="button" onClick={() => setSupportOpen(false)}>
+                Close
+              </button>
+            </div>
+            <label>
+              Support note
+              <textarea
+                className="search-input"
+                value={supportNote}
+                onChange={(event) => setSupportNote(event.target.value)}
+                rows={3}
+                placeholder="Describe the issue, reproduction, and expected behavior."
+              />
+            </label>
+            <pre className="support-diagnostics-preview">{JSON.stringify(supportDiagnostics, null, 2)}</pre>
+            <div className="workspace-inline-form">
+              <button className="primary-button" type="button" onClick={() => void copySupportPayload()}>
+                Copy diagnostics payload
+              </button>
+              <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
+                Open help
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {!introDismissed && !skipIntro ? (
         <IntroOverlay
           onComplete={handleIntroSkip}
@@ -3060,6 +3887,320 @@ export default function App() {
         onStartTour={() => setTourOpen(true)}
         priorityQueue={journeyPriorityQueue}
       />
+
+      <nav className="workspace-nav" aria-label="Workspace navigation">
+        <button
+          className={`ghost-button ${activeSection === 'journey' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setActiveSection('journey')}
+        >
+          Journey
+        </button>
+        <button
+          className={`ghost-button ${activeSection === 'analysis' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setActiveSection('analysis')}
+        >
+          Analysis
+        </button>
+        <button
+          className={`ghost-button ${activeSection === 'collaboration' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setActiveSection('collaboration')}
+        >
+          Collaboration
+        </button>
+        <button
+          className={`ghost-button ${activeSection === 'operations' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setActiveSection('operations')}
+        >
+          Operations
+        </button>
+      </nav>
+
+      <section className="workspace-context-panel" aria-label="Contextual workspace tools">
+        {activeSection === 'journey' ? (
+          <div className="workspace-context-grid">
+            <article className="workspace-card">
+              <h3>Persona progression</h3>
+              <p>
+                {introPersona === 'executive'
+                  ? 'Executive mission path'
+                  : introPersona === 'operator'
+                    ? 'Operator mission path'
+                    : 'Builder mission path'}
+              </p>
+              <div className="workspace-checklist">
+                {personaFocus.map((item) => (
+                  <div key={item.label} className={`workspace-check ${item.done ? 'done' : ''}`}>
+                    <span>{item.done ? '✓' : '○'}</span>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </article>
+            <article className="workspace-card">
+              <h3>Saved views</h3>
+              <div className="workspace-inline-form">
+                <input
+                  className="search-input"
+                  placeholder="Saved view name"
+                  value={savedViewName}
+                  onChange={(event) => setSavedViewName(event.target.value)}
+                  aria-label="Saved view name"
+                />
+                <button className="ghost-button" type="button" onClick={saveCurrentView} disabled={Boolean(savedViewNameError)}>
+                  Save view
+                </button>
+              </div>
+              {savedViewNameError && savedViewName.trim() ? <p className="workspace-error">{savedViewNameError}</p> : null}
+              <div className="workspace-inline-form">
+                <select
+                  className="search-select"
+                  value={selectedSavedViewId}
+                  onChange={(event) => setSelectedSavedViewId(event.target.value)}
+                  aria-label="Saved views"
+                >
+                  <option value="">Select saved view</option>
+                  {savedViews.map((view) => (
+                    <option key={view.id} value={view.id}>
+                      {view.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => selectedSavedViewId && applySavedView(selectedSavedViewId)}
+                  disabled={!selectedSavedViewId}
+                >
+                  Apply
+                </button>
+                <button className="ghost-button" type="button" onClick={deleteSavedView} disabled={!selectedSavedViewId}>
+                  Delete
+                </button>
+              </div>
+            </article>
+          </div>
+        ) : null}
+
+        {activeSection === 'analysis' ? (
+          <div className="workspace-context-grid">
+            <article className="workspace-card">
+              <h3>Async actions</h3>
+              {asyncActions.length === 0 ? <p>No tracked async actions yet.</p> : null}
+              {asyncActions.map((action) => (
+                <div key={action.id} className={`async-action-row status-${action.status}`}>
+                  <div>
+                    <strong>{action.label}</strong>
+                    <p>{action.detail}</p>
+                  </div>
+                  <div className="async-action-actions">
+                    {action.retryable ? (
+                      <button className="ghost-button" type="button" onClick={() => retryAsyncAction(action.id)}>
+                        Retry
+                      </button>
+                    ) : null}
+                    {action.resumable ? (
+                      <button className="ghost-button" type="button" onClick={() => resumeAsyncAction(action.id)}>
+                        Resume
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </article>
+            <article className="workspace-card">
+              <h3>Export center</h3>
+              {!featureFlags.exportCenterV1 ? <p>Export center is disabled by feature flag.</p> : null}
+              <div className="workspace-inline-form">
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => exportDirectorNarrative()}
+                  disabled={!trace || !featureFlags.exportCenterV1}
+                >
+                  Queue narrative export
+                </button>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => {
+                    void runExportTask({
+                      id: 'export-support-diagnostics',
+                      label: 'Support diagnostics JSON',
+                      run: () => downloadText('agent-director-support-diagnostics.json', JSON.stringify(supportDiagnostics, null, 2), 'application/json'),
+                    });
+                  }}
+                  disabled={!featureFlags.exportCenterV1}
+                >
+                  Queue diagnostics export
+                </button>
+              </div>
+              {featureFlags.exportCenterV1 && exportTasks.length === 0 ? <p>No exports queued.</p> : null}
+              {exportTasks.map((task) => (
+                <div key={task.id} className={`export-task-row status-${task.status}`}>
+                  <span>{task.label}</span>
+                  <span>{task.detail}</span>
+                  {task.retryable ? (
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => {
+                        trackProductEvent('ux.export.retried', { taskId: task.id });
+                        exportRetryHandlersRef.current[task.id]?.();
+                      }}
+                    >
+                      Retry
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+            </article>
+          </div>
+        ) : null}
+
+        {activeSection === 'collaboration' ? (
+          <div className="workspace-context-grid">
+            {!featureFlags.ownershipPanelV1 ? (
+              <article className="workspace-card">
+                <h3>Ownership panel disabled</h3>
+                <p>Enable the ownership panel feature flag in Operations to configure handoff ownership.</p>
+              </article>
+            ) : null}
+            {featureFlags.ownershipPanelV1 ? (
+              <>
+                <article className="workspace-card">
+                  <h3>Ownership and handoff</h3>
+                  <div className="workspace-inline-form">
+                    <input
+                      className="search-input"
+                      value={runOwner}
+                      onChange={(event) => setRunOwner(event.target.value)}
+                      aria-label="Run owner"
+                      placeholder="Run owner"
+                    />
+                    <input
+                      className="search-input"
+                      value={handoffOwner}
+                      onChange={(event) => setHandoffOwner(event.target.value)}
+                      aria-label="Handoff owner"
+                      placeholder="Handoff owner"
+                    />
+                  </div>
+                  <div className="workspace-inline-form">
+                    <button className="ghost-button" type="button" onClick={() => void shareSession()}>
+                      Share live link
+                    </button>
+                    <button className="ghost-button" type="button" onClick={() => void createHandoffDigest()}>
+                      Copy handoff digest
+                    </button>
+                  </div>
+                </article>
+                <article className="workspace-card">
+                  <h3>Collaboration activity</h3>
+                  {activityFeed.length === 0 ? <p>No collaboration activity yet.</p> : null}
+                  <div className="workspace-feed">
+                    {activityFeed.slice(0, 8).map((entry) => (
+                      <div key={entry.id} className="workspace-feed-item">
+                        <span>{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                        <span>{entry.message}</span>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
+        {activeSection === 'operations' ? (
+          <div className="workspace-context-grid">
+            <article className="workspace-card">
+              <h3>Setup + support</h3>
+              <div className="workspace-inline-form">
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => {
+                    setSetupWizardOpen(true);
+                    trackProductEvent('ux.setup.opened', { source: 'operations_panel' });
+                  }}
+                  disabled={!featureFlags.setupWizardV1}
+                >
+                  Open setup wizard
+                </button>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => {
+                    setSupportOpen(true);
+                    trackProductEvent('ux.support.opened', { source: 'operations_panel' });
+                  }}
+                  disabled={!featureFlags.supportPanelV1}
+                >
+                  Open support panel
+                </button>
+              </div>
+              <div className="workspace-inline-form">
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={featureFlags.setupWizardV1}
+                    onChange={() => toggleFeatureFlag('setupWizardV1')}
+                  />
+                  Setup wizard flag
+                </label>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={featureFlags.supportPanelV1}
+                    onChange={() => toggleFeatureFlag('supportPanelV1')}
+                  />
+                  Support panel flag
+                </label>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={featureFlags.exportCenterV1}
+                    onChange={() => toggleFeatureFlag('exportCenterV1')}
+                  />
+                  Export center flag
+                </label>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={featureFlags.ownershipPanelV1}
+                    onChange={() => toggleFeatureFlag('ownershipPanelV1')}
+                  />
+                  Ownership panel flag
+                </label>
+              </div>
+            </article>
+            <article className="workspace-card">
+              <h3>Telemetry summary</h3>
+              <p>Product events are captured in local analytics queue for pre-release UX audits.</p>
+              <div className="workspace-inline-form">
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => {
+                    const eventsRaw = window.localStorage.getItem('agentDirector.analytics.events.v1') ?? '[]';
+                    void runExportTask({
+                      id: 'export-analytics-events',
+                      label: 'Frontend analytics events',
+                      run: () => downloadText('agent-director-frontend-events.json', eventsRaw, 'application/json'),
+                    });
+                  }}
+                >
+                  Export event queue
+                </button>
+              </div>
+            </article>
+          </div>
+        ) : null}
+      </section>
 
       <div
         className="toolbar"
@@ -3496,7 +4637,13 @@ export default function App() {
         onToggleExplain={() => setExplainMode((prev) => !prev)}
         onJumpToBottleneck={jumpToBottleneck}
       />
-      <CommandPalette open={showPalette} onClose={() => setShowPalette(false)} actions={commandActions} />
+      <CommandPalette
+        open={showPalette}
+        onClose={() => setShowPalette(false)}
+        actions={commandActions}
+        context={{ section: activeSection, mode, persona: introPersona }}
+        onActionRun={(action) => trackProductEvent('ux.palette.command_run', { id: action.id, group: action.group ?? null })}
+      />
       <ShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );

@@ -7,6 +7,8 @@ export type CommandAction = {
   description?: string;
   group?: string;
   keys?: string;
+  keywords?: string[];
+  priority?: number;
   disabled?: boolean;
   onTrigger: () => void;
 };
@@ -15,6 +17,12 @@ type CommandPaletteProps = {
   open: boolean;
   onClose: () => void;
   actions: CommandAction[];
+  context?: {
+    section?: string;
+    mode?: string;
+    persona?: string;
+  };
+  onActionRun?: (action: CommandAction) => void;
 };
 
 type DecoratedAction = CommandAction & {
@@ -27,6 +35,15 @@ const MAX_RECENT = 8;
 const MAX_PINNED = 12;
 
 const normalize = (value: string) => value.trim().toLowerCase();
+const boostIfMatch = (value: string, query: string) => {
+  if (!query) return 0;
+  const normalized = normalize(value);
+  if (!normalized) return 0;
+  if (normalized === query) return 30;
+  if (normalized.startsWith(query)) return 18;
+  if (normalized.includes(query)) return 8;
+  return 0;
+};
 
 function readStoredIds(storageKey: string) {
   try {
@@ -62,7 +79,7 @@ function findNextEnabledIndex(actions: DecoratedAction[], start: number, directi
   return start;
 }
 
-export default function CommandPalette({ open, onClose, actions }: CommandPaletteProps) {
+export default function CommandPalette({ open, onClose, actions, context, onActionRun }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const [recentIds, setRecentIds] = useState<string[]>([]);
@@ -72,12 +89,34 @@ export default function CommandPalette({ open, onClose, actions }: CommandPalett
 
   const filtered = useMemo(() => {
     const q = normalize(query);
-    if (!q) return actions;
-    return actions.filter((action) => {
-      const haystack = [action.label, action.description, action.group, action.keys].filter(Boolean).join(' ').toLowerCase();
-      return haystack.includes(q);
-    });
-  }, [actions, query]);
+    const recentSet = new Set(recentIds);
+    const pinnedSet = new Set(pinnedIds);
+    const scored = actions
+      .map((action, index) => {
+        const keywordSpace = [action.label, action.description, action.group, action.keys, ...(action.keywords ?? [])]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (q && !keywordSpace.includes(q)) return null;
+        let score = action.priority ?? 0;
+        score += boostIfMatch(action.label, q);
+        score += boostIfMatch(action.group ?? '', q);
+        (action.keywords ?? []).forEach((keyword) => {
+          score += boostIfMatch(keyword, q);
+        });
+        if (recentSet.has(action.id)) score += 6;
+        if (pinnedSet.has(action.id)) score += 12;
+        if (context?.section && action.group?.toLowerCase() === context.section.toLowerCase()) score += 8;
+        if (context?.mode && action.id.includes(`mode-${context.mode}`)) score += 8;
+        return { action, score, index };
+      })
+      .filter((item): item is { action: CommandAction; score: number; index: number } => Boolean(item))
+      .sort((left, right) => {
+        if (right.score === left.score) return left.index - right.index;
+        return right.score - left.score;
+      });
+    return scored.map((item) => item.action);
+  }, [actions, context?.mode, context?.section, pinnedIds, query, recentIds]);
 
   const displayedActions = useMemo(() => {
     const visibleById = new Map(filtered.map((action) => [action.id, action]));
@@ -94,8 +133,17 @@ export default function CommandPalette({ open, onClose, actions }: CommandPalett
       .filter((action) => !pinned.some((item) => item.id === action.id))
       .filter((action) => !recent.some((item) => item.id === action.id))
       .map((action) => ({ ...action, section: action.group ?? 'General' }));
+    if (!query.trim() && context) {
+      const recommendations = base.slice(0, 4).map((action) => ({
+        ...action,
+        id: `recommended-${action.id}`,
+        label: `Recommended: ${action.label}`,
+        section: 'Recommended' as const,
+      }));
+      return [...pinned, ...recent, ...recommendations, ...base];
+    }
     return [...pinned, ...recent, ...base];
-  }, [filtered, pinnedIds, recentIds]);
+  }, [context, filtered, pinnedIds, recentIds, query]);
 
   const grouped = useMemo(() => buildGroupedActions(displayedActions), [displayedActions]);
 
@@ -136,6 +184,7 @@ export default function CommandPalette({ open, onClose, actions }: CommandPalett
   const runAction = (action: CommandAction) => {
     if (action.disabled) return;
     recordRecent(action.id);
+    onActionRun?.(action);
     action.onTrigger();
     onClose();
   };

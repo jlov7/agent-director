@@ -20,29 +20,29 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] SWC-002 Deep-link URL state (mode/trace/step) and shareable journey URLs
 - [x] SWC-003 Unified loading/empty/error/recovery app shell states
 - [x] SWC-004 Global notification center with deduped success/warn/error events
-- [ ] SWC-005 Async action resilience UX (retry/cancel/resume status consistency)
+- [x] SWC-005 Async action resilience UX (retry/cancel/resume status consistency)
 - [x] SWC-006 SEO baseline (`robots.txt`, `sitemap.xml`, canonical/OG/Twitter metadata)
 - [x] SWC-007 PWA baseline (manifest, icons, service worker, installability)
 - [x] SWC-008 Keyboard/a11y parity for new UX surfaces
 - [x] SWC-009 Auth/session UX contract and expiry handling
 - [x] SWC-010 Workspace/org switcher in global navigation
 - [x] SWC-011 Role-aware UI (viewer/operator/admin states)
-- [ ] SWC-012 First-run SaaS setup wizard (connect/import/invite)
-- [ ] SWC-013 Global IA navigation polish and contextual secondary nav
-- [ ] SWC-014 Confirm + undo UX for destructive/high-risk actions
-- [ ] SWC-015 In-app support flow with diagnostics/handoff payload
-- [ ] SWC-016 Persona-driven onboarding progression enhancements
-- [ ] SWC-017 Saved views and journey presets
-- [ ] SWC-018 Command palette intelligence v2
-- [ ] SWC-019 Collaboration ownership/handoff refinement
-- [ ] SWC-020 Export center UX and retry queue
-- [ ] SWC-021 Form validation/state consistency layer
-- [ ] SWC-022 Responsive + small-screen workflow polish
-- [ ] SWC-023 Product analytics taxonomy instrumentation pass
-- [ ] SWC-024 Frontend error/perf telemetry integration
-- [ ] SWC-025 Experiment/feature-flag-ready UX hooks
-- [ ] SWC-026 CI UX gates (SEO/PWA/a11y/visual)
-- [ ] SWC-027 Documentation and ops runbook sync for SaaS UX
+- [x] SWC-012 First-run SaaS setup wizard (connect/import/invite)
+- [x] SWC-013 Global IA navigation polish and contextual secondary nav
+- [x] SWC-014 Confirm + undo UX for destructive/high-risk actions
+- [x] SWC-015 In-app support flow with diagnostics/handoff payload
+- [x] SWC-016 Persona-driven onboarding progression enhancements
+- [x] SWC-017 Saved views and journey presets
+- [x] SWC-018 Command palette intelligence v2
+- [x] SWC-019 Collaboration ownership/handoff refinement
+- [x] SWC-020 Export center UX and retry queue
+- [x] SWC-021 Form validation/state consistency layer
+- [x] SWC-022 Responsive + small-screen workflow polish
+- [x] SWC-023 Product analytics taxonomy instrumentation pass
+- [x] SWC-024 Frontend error/perf telemetry integration
+- [x] SWC-025 Experiment/feature-flag-ready UX hooks
+- [x] SWC-026 CI UX gates (SEO/PWA/a11y/visual)
+- [x] SWC-027 Documentation and ops runbook sync for SaaS UX
 
 ## P0 — Must‑Have Excellence (UX + Correctness + Scale)
 - [x] UX audit pass across Cinema / Flow / Compare / Inspector (spacing, hierarchy, zero dead‑zones)

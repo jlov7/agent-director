@@ -18,8 +18,17 @@
 ## Story mode + command palette
 - **Story mode** auto-runs a guided walkthrough for demos and onboarding.
 - **Command palette** (Cmd/Ctrl + K) exposes every action, mode, and safety toggle.
+- **Command palette intelligence v2** ranks commands by context, recency, pin state, and query intent.
 - **Quick actions dock** keeps critical controls within reach during live demos (and can collapse to a single button).
 - **Explain mode** adds contextual callouts on hover for every major control.
+
+## SaaS workspace control layer
+- **Global workspace nav** adds four contextual lanes: Journey, Analysis, Collaboration, and Operations.
+- **Saved views** persist mode/search/filter/safety context for one-click return.
+- **Async action rail** keeps replay/matrix/query/extension actions status-consistent with retry/resume controls.
+- **Export center** queues artifacts (narrative, diagnostics, analytics) with retry affordances.
+- **Support diagnostics panel** captures run context + environment payload for rapid support handoff.
+- **Ownership handoff controls** track run owner and receiving owner for collaborative review accountability.
 
 ## Onboarding stack
 1. **Intro overlay** sets the three-act mental model (Observe → Inspect → Direct) and offers Tour or Story mode.
@@ -27,6 +36,7 @@
 3. **Guided tour** highlights the main controls in order.
 4. **Explain mode** offers just-in-time help on any element.
 5. **Story mode** runs the full demo hands-free.
+6. **First-run setup wizard** ensures source/import/invite steps are completed and validated.
 
 ```mermaid
 flowchart LR
@@ -103,3 +113,6 @@ Artifacts:
 - `ui/playwright-report/` — interactive report with step annotations
 - `ui/test-results/` — per-test traces, screenshots, and videos
 - `ui/.lighthouseci/` — Lighthouse budgets + metrics
+
+CI integration:
+- `.github/workflows/ux-review.yml` now runs on `push` + `pull_request` for UI-related paths, enforcing SEO/PWA/a11y/visual UX gates pre-merge.

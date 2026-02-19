@@ -11,6 +11,7 @@ Provide a consistent path for user support, incident communication, and issue tr
 - Product issue reports (bugs, data problems, replay mismatches)
 - Safety reports (abusive behavior, misuse)
 - Account/data requests (privacy, deletion, correction)
+- In-app support diagnostics payload (Operations -> Support panel / Header -> Support)
 
 ## Severity Levels
 
@@ -32,6 +33,20 @@ Provide a consistent path for user support, incident communication, and issue tr
 2. Reproduce and capture evidence.
 3. Route to code fix or policy action.
 4. Close with user-facing summary and mitigation.
+
+## In-App Support Payload Contract
+
+When available, request the in-app support payload copy from the user. It includes:
+- trace id/status, selected mode/step, safe export state
+- workspace id/role
+- browser environment (`userAgent`, online status)
+- recent notifications and async action outcomes
+- optional operator support note + ownership metadata
+
+Required triage behavior:
+1. Validate whether safe export is enabled before requesting any additional payload screenshots.
+2. Link ticket owner to `run owner` / `handoff owner` metadata when present.
+3. Attach payload JSON directly to incident timeline for reproducibility.
 
 ## Known Issues Process
 

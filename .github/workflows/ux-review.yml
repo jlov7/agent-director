@@ -1,7 +1,23 @@
 name: ux-review
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'ui/**'
+      - 'scripts/verify-ux.sh'
+      - '.github/workflows/ux-review.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ui/**'
+      - 'scripts/verify-ux.sh'
+      - '.github/workflows/ux-review.yml'
   workflow_dispatch:
+
+concurrency:
+  group: ux-review-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ux-review:

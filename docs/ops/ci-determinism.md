@@ -10,6 +10,7 @@ Keep CI signal stable and reproducible so release gates fail only for real regre
 
 - Unified verification entry points:
   - `make verify`
+  - `make verify-ux`
   - `make doctor`
   - `make scorecard`
 - Explicit quality gate artifacts under `artifacts/`.
@@ -22,6 +23,7 @@ Keep CI signal stable and reproducible so release gates fail only for real regre
 - Stable replay scenario constraints and strategy allowlist checks.
 - Focused regression tests for prior flaky areas (rate limits, redaction, onboarding focus flow).
 - Small, isolated test suites for gameplay and replay contracts.
+- Dedicated `ux-review` CI workflow on push/pull_request for UI paths (Playwright + Lighthouse + optional Percy).
 
 ## Operator Workflow
 

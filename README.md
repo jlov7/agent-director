@@ -39,11 +39,15 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 - Matrix presets, scenario import/export, and redacted matrix exports
 - Timeline studio bookmarks, clip ranges, and clip export artifacts
 - Live session presence + share link for collaborative review sessions
+- Workspace navigation (Journey/Analysis/Collaboration/Operations) with contextual secondary controls
 - Adaptive onboarding persona lenses and theme modes (studio/focus/contrast)
+- First-run setup wizard (source/import/invite) with validation and completion tracking
 - Insight Strip with critical path, concurrency heatmap, and IO/timing warnings
 - Story Mode autopilot, quick actions dock, and command palette for instant demos
 - Explain mode contextual overlays + guided tour for zero-guess onboarding
 - Director briefing hero with the 3‑act flow and instant Tour / Story entry points
+- Support diagnostics panel, ownership/handoff controls, async action resilience rail, and export retry queue
+- Frontend analytics taxonomy + telemetry hooks + feature-flag-ready UX toggles
 - CI + strict verification gates with mutation testing
 
 ## Product walkthrough (90 seconds)
@@ -61,6 +65,7 @@ Agent Director is a cinematic, chat-native trace debugger for AI agents. It turn
 - **Director briefing** offers Tour, Story, and Explain entry points.
 - **Guided tour** walks the interface end‑to‑end.
 - **Explain mode** provides just‑in‑time help for every control.
+- **First-run setup wizard** standardizes source setup, import path, and invite handoff.
 
 ## Screenshots + Demo
 ![Cinema mode](docs/screenshots/cinema.png)
@@ -281,6 +286,10 @@ Recent upgrades include:
 - Director Brief workspace tabs (Overview, Narrative, Collaboration) and action-plan completion state.
 - Session handoff digest copy flow for fast team context sharing.
 - Mobile sticky quick rail for story/tour/palette/handoff actions.
+- SaaS workspace control layer: setup wizard, support payload capture, saved views, and ownership handoff controls.
+- Async action resilience UX with retry/resume affordances and status consistency.
+- Command palette intelligence v2 with contextual ranking and recommendation surface.
+- UX CI gates now run on pull requests and pushes for UI path changes (`ux-review` workflow).
 
 ## Project hygiene
 - `CONTRIBUTING.md` — dev flow + tests
