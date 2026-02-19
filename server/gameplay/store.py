@@ -50,6 +50,209 @@ HAZARDS = [
     "dependency deadlock",
 ]
 
+LAUNCH_MISSION_PACK = [
+    {
+        "template_id": "pack-stability-bootstrap",
+        "title": "Stability Bootstrap",
+        "archetype": "stability",
+        "depth_min": 1,
+        "depth_max": 3,
+        "base_difficulty": 2,
+        "hazards": ["latency storm", "cache divergence"],
+        "reward_tokens": 78,
+        "reward_materials": 16,
+    },
+    {
+        "template_id": "pack-drift-containment",
+        "title": "Drift Containment",
+        "archetype": "containment",
+        "depth_min": 1,
+        "depth_max": 4,
+        "base_difficulty": 2,
+        "hazards": ["context drift", "schema mismatch surge"],
+        "reward_tokens": 82,
+        "reward_materials": 18,
+    },
+    {
+        "template_id": "pack-timeout-circuit-breaker",
+        "title": "Timeout Circuit Breaker",
+        "archetype": "resilience",
+        "depth_min": 2,
+        "depth_max": 5,
+        "base_difficulty": 3,
+        "hazards": ["tool timeout chain", "dependency deadlock"],
+        "reward_tokens": 90,
+        "reward_materials": 20,
+    },
+    {
+        "template_id": "pack-cache-realignment",
+        "title": "Cache Realignment",
+        "archetype": "forensics",
+        "depth_min": 2,
+        "depth_max": 6,
+        "base_difficulty": 3,
+        "hazards": ["cache divergence", "schema mismatch surge"],
+        "reward_tokens": 96,
+        "reward_materials": 22,
+    },
+    {
+        "template_id": "pack-pipeline-quarantine",
+        "title": "Pipeline Quarantine",
+        "archetype": "containment",
+        "depth_min": 3,
+        "depth_max": 7,
+        "base_difficulty": 4,
+        "hazards": ["context drift", "dependency deadlock"],
+        "reward_tokens": 102,
+        "reward_materials": 24,
+    },
+    {
+        "template_id": "pack-latency-decoupling",
+        "title": "Latency Decoupling",
+        "archetype": "throughput",
+        "depth_min": 3,
+        "depth_max": 8,
+        "base_difficulty": 4,
+        "hazards": ["latency storm", "tool timeout chain"],
+        "reward_tokens": 108,
+        "reward_materials": 25,
+    },
+    {
+        "template_id": "pack-spec-reconciliation",
+        "title": "Spec Reconciliation",
+        "archetype": "forensics",
+        "depth_min": 4,
+        "depth_max": 9,
+        "base_difficulty": 5,
+        "hazards": ["schema mismatch surge", "cache divergence"],
+        "reward_tokens": 114,
+        "reward_materials": 26,
+    },
+    {
+        "template_id": "pack-fault-isolation-grid",
+        "title": "Fault Isolation Grid",
+        "archetype": "diagnostics",
+        "depth_min": 4,
+        "depth_max": 10,
+        "base_difficulty": 5,
+        "hazards": ["dependency deadlock", "context drift"],
+        "reward_tokens": 120,
+        "reward_materials": 28,
+    },
+    {
+        "template_id": "pack-shadow-fork-audit",
+        "title": "Shadow Fork Audit",
+        "archetype": "timelines",
+        "depth_min": 5,
+        "depth_max": 11,
+        "base_difficulty": 6,
+        "hazards": ["context drift", "latency storm"],
+        "reward_tokens": 126,
+        "reward_materials": 30,
+    },
+    {
+        "template_id": "pack-signal-recovery-run",
+        "title": "Signal Recovery Run",
+        "archetype": "recovery",
+        "depth_min": 5,
+        "depth_max": 12,
+        "base_difficulty": 6,
+        "hazards": ["tool timeout chain", "cache divergence"],
+        "reward_tokens": 132,
+        "reward_materials": 31,
+    },
+    {
+        "template_id": "pack-entropy-firebreak",
+        "title": "Entropy Firebreak",
+        "archetype": "stability",
+        "depth_min": 6,
+        "depth_max": 13,
+        "base_difficulty": 7,
+        "hazards": ["schema mismatch surge", "dependency deadlock"],
+        "reward_tokens": 138,
+        "reward_materials": 32,
+    },
+    {
+        "template_id": "pack-pressure-release",
+        "title": "Pressure Release",
+        "archetype": "throughput",
+        "depth_min": 6,
+        "depth_max": 14,
+        "base_difficulty": 7,
+        "hazards": ["latency storm", "context drift"],
+        "reward_tokens": 144,
+        "reward_materials": 33,
+    },
+    {
+        "template_id": "pack-replay-integrity-probe",
+        "title": "Replay Integrity Probe",
+        "archetype": "diagnostics",
+        "depth_min": 7,
+        "depth_max": 15,
+        "base_difficulty": 8,
+        "hazards": ["cache divergence", "dependency deadlock"],
+        "reward_tokens": 150,
+        "reward_materials": 34,
+    },
+    {
+        "template_id": "pack-phased-countermeasure",
+        "title": "Phased Countermeasure",
+        "archetype": "boss",
+        "depth_min": 7,
+        "depth_max": 16,
+        "base_difficulty": 8,
+        "hazards": ["tool timeout chain", "schema mismatch surge"],
+        "reward_tokens": 156,
+        "reward_materials": 35,
+    },
+    {
+        "template_id": "pack-cascade-rollup",
+        "title": "Cascade Rollup",
+        "archetype": "recovery",
+        "depth_min": 8,
+        "depth_max": 18,
+        "base_difficulty": 9,
+        "hazards": ["dependency deadlock", "latency storm"],
+        "reward_tokens": 162,
+        "reward_materials": 36,
+    },
+    {
+        "template_id": "pack-hyperlane-retune",
+        "title": "Hyperlane Retune",
+        "archetype": "timelines",
+        "depth_min": 8,
+        "depth_max": 20,
+        "base_difficulty": 9,
+        "hazards": ["context drift", "cache divergence"],
+        "reward_tokens": 168,
+        "reward_materials": 37,
+    },
+    {
+        "template_id": "pack-guardian-gambit",
+        "title": "Guardian Gambit",
+        "archetype": "stability",
+        "depth_min": 9,
+        "depth_max": 24,
+        "base_difficulty": 10,
+        "hazards": ["schema mismatch surge", "latency storm"],
+        "reward_tokens": 176,
+        "reward_materials": 38,
+    },
+    {
+        "template_id": "pack-final-lockdown",
+        "title": "Final Lockdown",
+        "archetype": "boss",
+        "depth_min": 10,
+        "depth_max": 40,
+        "base_difficulty": 10,
+        "hazards": ["tool timeout chain", "dependency deadlock"],
+        "reward_tokens": 184,
+        "reward_materials": 40,
+    },
+]
+
+MISSION_HISTORY_WINDOW = 5
+
 ROLE_ABILITIES: Dict[str, Dict[str, int]] = {
     "strategist": {"focus_mark": 3},
     "operator": {"stability_shield": 2},
@@ -304,7 +507,36 @@ class GameplayStore:
         boss = session.setdefault("boss", {})
         boss.setdefault("phase_mechanic", "Phase 1: Shield lattice destabilization")
         boss.setdefault("vulnerability", "exploit")
-        campaign = session.get("campaign", {})
+        campaign = session.setdefault("campaign", {})
+        campaign.setdefault("depth", 1)
+        campaign.setdefault("lives", 3)
+        campaign.setdefault("permadeath", False)
+        campaign.setdefault("modifiers", ["baseline"])
+        campaign.setdefault("unlocked_modifiers", [])
+        campaign.setdefault("completed_missions", [])
+        history = campaign.setdefault("mission_history", [])
+        if not isinstance(history, list):
+            campaign["mission_history"] = []
+            history = campaign["mission_history"]
+        else:
+            normalized_history: list[Dict[str, Any]] = []
+            for entry in history:
+                if not isinstance(entry, dict):
+                    continue
+                normalized_history.append(
+                    {
+                        "mission_id": str(entry.get("mission_id") or "").strip(),
+                        "template_id": str(entry.get("template_id") or "").strip(),
+                        "archetype": str(entry.get("archetype") or "").strip(),
+                        "hazards": [str(hazard).strip() for hazard in entry.get("hazards", []) if str(hazard).strip()],
+                        "quality_score": int(entry.get("quality_score") or 0),
+                        "novelty_score": int(entry.get("novelty_score") or 0),
+                        "repetition_penalty": int(entry.get("repetition_penalty") or 0),
+                        "outcome": str(entry.get("outcome") or "unknown"),
+                        "at": str(entry.get("at") or _utc_now()),
+                    }
+                )
+            campaign["mission_history"] = normalized_history[-30:]
         current_mission = campaign.get("current_mission")
         if isinstance(current_mission, dict):
             mission_seed = int(current_mission.get("mission_seed") or _hash_seed(f"{session.get('seed', 0)}:{campaign.get('depth', 1)}"))
@@ -312,6 +544,19 @@ class GameplayStore:
             current_mission.setdefault(
                 "blueprint",
                 f"seed={mission_seed};depth={campaign.get('depth', 1)};mutators=legacy",
+            )
+            current_mission.setdefault("template_id", "legacy-mission")
+            current_mission.setdefault("archetype", "legacy")
+            current_mission.setdefault("quality_score", 50)
+            current_mission.setdefault("novelty_score", 50)
+            current_mission.setdefault("repetition_penalty", 0)
+            current_mission.setdefault("launch_pack_size", len(LAUNCH_MISSION_PACK))
+        else:
+            campaign["current_mission"] = self._mission(
+                int(session.get("seed", 0)),
+                int(campaign.get("depth", 1)),
+                list(campaign.get("modifiers", [])) + list(campaign.get("unlocked_modifiers", [])),
+                list(campaign.get("mission_history", [])),
             )
         session.setdefault(
             "safety",
@@ -364,20 +609,127 @@ class GameplayStore:
             policy.setdefault(key, value)
         economy.setdefault("inflation_index", 1.0)
 
-    def _mission(self, seed: int, depth: int, modifiers: list[str]) -> Dict[str, Any]:
+    def _mission_novelty_score(
+        self,
+        hazards: list[str],
+        template_id: str,
+        archetype: str,
+        history: list[Dict[str, Any]],
+    ) -> int:
+        if not history:
+            return 96
+        recent = history[-MISSION_HISTORY_WINDOW:]
+        recent_templates = {str(entry.get("template_id") or "") for entry in recent}
+        recent_archetypes = {str(entry.get("archetype") or "") for entry in recent}
+        recent_hazards = {
+            str(hazard).strip().lower()
+            for entry in recent
+            for hazard in entry.get("hazards", [])
+            if str(hazard).strip()
+        }
+        current_hazards = {str(hazard).strip().lower() for hazard in hazards if str(hazard).strip()}
+        new_hazards = len(current_hazards - recent_hazards)
+        score = 58 + new_hazards * 12
+        if template_id not in recent_templates:
+            score += 14
+        else:
+            score -= 10
+        if archetype not in recent_archetypes:
+            score += 10
+        return _clamp(score, 20, 100)
+
+    def _mission_repetition_penalty(
+        self,
+        hazards: list[str],
+        template_id: str,
+        archetype: str,
+        history: list[Dict[str, Any]],
+    ) -> int:
+        recent = history[-MISSION_HISTORY_WINDOW:]
+        if not recent:
+            return 0
+        hazard_set = {str(hazard).strip().lower() for hazard in hazards if str(hazard).strip()}
+        penalty = 0
+        for index, entry in enumerate(reversed(recent), start=1):
+            recency_weight = max(1, MISSION_HISTORY_WINDOW + 1 - index)
+            entry_hazards = {
+                str(hazard).strip().lower()
+                for hazard in entry.get("hazards", [])
+                if str(hazard).strip()
+            }
+            overlap = len(hazard_set.intersection(entry_hazards))
+            penalty += overlap * 4 * recency_weight
+            if str(entry.get("template_id") or "") == template_id:
+                penalty += 8 * recency_weight
+            if str(entry.get("archetype") or "") == archetype:
+                penalty += 4 * recency_weight
+        return _clamp(penalty, 0, 72)
+
+    def _mission(self, seed: int, depth: int, modifiers: list[str], history: list[Dict[str, Any]] | None = None) -> Dict[str, Any]:
         mission_seed = _hash_seed(f"{seed}:{depth}:{'|'.join(modifiers)}")
-        hazard_a = HAZARDS[mission_seed % len(HAZARDS)]
-        hazard_b = HAZARDS[(mission_seed // 7) % len(HAZARDS)]
-        normalized_modifiers = sorted(modifiers)[-2:]
+        normalized_modifiers = sorted({str(item).strip() for item in modifiers if str(item).strip()})[-2:]
+        history = list(history or [])
+        eligible_templates = [
+            item
+            for item in LAUNCH_MISSION_PACK
+            if int(item["depth_min"]) <= depth <= int(item["depth_max"])
+        ]
+        if not eligible_templates:
+            eligible_templates = list(LAUNCH_MISSION_PACK)
+
+        ranked: list[tuple[int, int, int, int, Dict[str, Any], list[str], int]] = []
+        for template in eligible_templates:
+            template_id = str(template["template_id"])
+            candidate_seed = _hash_seed(f"{mission_seed}:{template_id}")
+            hazard_bias = HAZARDS[candidate_seed % len(HAZARDS)]
+            hazards = list(dict.fromkeys(list(template["hazards"]) + [hazard_bias] + normalized_modifiers[-1:]))[:4]
+            novelty_score = self._mission_novelty_score(hazards, template_id, str(template["archetype"]), history)
+            repetition_penalty = self._mission_repetition_penalty(hazards, template_id, str(template["archetype"]), history)
+            difficulty = _clamp(int(template["base_difficulty"]) + depth // 4, 1, 10)
+            quality_score = _clamp(
+                int(round(46 + (novelty_score * 0.5) - (repetition_penalty * 0.45) + (difficulty * 3))),
+                0,
+                100,
+            )
+            tiebreaker = _hash_seed(f"{candidate_seed}:{len(history)}:{depth}")
+            ranked.append(
+                (
+                    quality_score,
+                    novelty_score,
+                    -repetition_penalty,
+                    tiebreaker,
+                    template,
+                    hazards,
+                    candidate_seed,
+                )
+            )
+
+        ranked.sort(key=lambda item: (item[0], item[1], item[2], item[3]))
+        quality_score, novelty_score, neg_penalty, _, selected_template, selected_hazards, selected_seed = ranked[-1]
+        repetition_penalty = abs(neg_penalty)
+        reward_scale = 1.0 + min(depth, 12) * 0.04
+        reward_tokens = int(round(int(selected_template["reward_tokens"]) * reward_scale))
+        reward_materials = int(round(int(selected_template["reward_materials"]) * (0.95 + min(depth, 12) * 0.03)))
+        template_id = str(selected_template["template_id"])
+        archetype = str(selected_template["archetype"])
         return {
-            "id": f"mission-{depth}-{(seed + depth) % 997}",
-            "title": f"Scenario Depth {depth}",
-            "difficulty": _clamp(1 + depth // 2, 1, 10),
-            "hazards": list(dict.fromkeys([hazard_a, hazard_b] + normalized_modifiers[-1:])),
-            "reward_tokens": 60 + depth * 15,
-            "reward_materials": 10 + depth * 4,
-            "mission_seed": mission_seed,
-            "blueprint": f"seed={mission_seed};depth={depth};mutators={','.join(normalized_modifiers) or 'none'}",
+            "id": f"mission-{depth}-{template_id.split('pack-')[-1]}-{(seed + depth) % 997}",
+            "title": str(selected_template["title"]),
+            "difficulty": _clamp(int(selected_template["base_difficulty"]) + depth // 4, 1, 10),
+            "hazards": selected_hazards,
+            "reward_tokens": reward_tokens,
+            "reward_materials": reward_materials,
+            "mission_seed": selected_seed,
+            "blueprint": (
+                f"seed={selected_seed};depth={depth};mutators={','.join(normalized_modifiers) or 'none'};"
+                f"template={template_id};archetype={archetype}"
+            ),
+            "template_id": template_id,
+            "archetype": archetype,
+            "quality_score": quality_score,
+            "novelty_score": novelty_score,
+            "repetition_penalty": repetition_penalty,
+            "launch_pack_size": len(LAUNCH_MISSION_PACK),
         }
 
     def _ensure_profile(self, player_id: str) -> Dict[str, Any]:
@@ -920,7 +1272,8 @@ class GameplayStore:
                     "modifiers": ["baseline"],
                     "unlocked_modifiers": [],
                     "completed_missions": [],
-                    "current_mission": self._mission(seed, 1, ["baseline"]),
+                    "mission_history": [],
+                    "current_mission": self._mission(seed, 1, ["baseline"], []),
                 },
                 "narrative": {
                     "current_node_id": "node-alpha",
@@ -1216,6 +1569,7 @@ class GameplayStore:
                 success = bool(payload.get("success", False))
                 campaign = session["campaign"]
                 mission = campaign["current_mission"]
+                mission_history = campaign.setdefault("mission_history", [])
                 if success:
                     campaign["depth"] += 1
                     campaign["completed_missions"].append(mission["id"])
@@ -1240,9 +1594,27 @@ class GameplayStore:
                         campaign["depth"] = 1
                         campaign["lives"] = 3
                         campaign["completed_missions"] = []
+                        campaign["mission_history"] = []
                         campaign["modifiers"] = ["baseline", "rebirth-tax"]
+                mission_history.append(
+                    {
+                        "mission_id": str(mission.get("id") or ""),
+                        "template_id": str(mission.get("template_id") or ""),
+                        "archetype": str(mission.get("archetype") or ""),
+                        "hazards": [str(hazard).strip() for hazard in mission.get("hazards", []) if str(hazard).strip()],
+                        "quality_score": int(mission.get("quality_score") or 0),
+                        "novelty_score": int(mission.get("novelty_score") or 0),
+                        "repetition_penalty": int(mission.get("repetition_penalty") or 0),
+                        "outcome": "success" if success else "failure",
+                        "at": _utc_now(),
+                    }
+                )
+                campaign["mission_history"] = mission_history[-30:]
                 campaign["current_mission"] = self._mission(
-                    session["seed"], campaign["depth"], campaign["modifiers"] + campaign["unlocked_modifiers"]
+                    session["seed"],
+                    campaign["depth"],
+                    campaign["modifiers"] + campaign["unlocked_modifiers"],
+                    campaign["mission_history"],
                 )
             elif action_type == "narrative.choose":
                 choice_id = str(payload.get("choice_id") or "")

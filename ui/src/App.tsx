@@ -96,6 +96,7 @@ import {
 } from './utils/collaboration';
 import { createInitialGameplayState, type GameplayState } from './utils/gameplayEngine';
 import type { GameplayLocale } from './utils/gameplayI18n';
+import { APP_LOCALE_OPTIONS, appLabel, normalizeAppLocale, type AppLocale } from './utils/appI18n';
 import { buildUrlAppState, parseUrlAppState } from './utils/urlState';
 import {
   appendProductEvent,
@@ -343,8 +344,26 @@ function mapGameplaySessionToState(
           session.campaign.current_mission.blueprint ??
           fallback.campaign.currentMission.blueprint ??
           `seed=${session.seed};depth=${session.campaign.depth}`,
+        templateId: session.campaign.current_mission.template_id ?? fallback.campaign.currentMission.templateId,
+        archetype: session.campaign.current_mission.archetype ?? fallback.campaign.currentMission.archetype,
+        qualityScore: session.campaign.current_mission.quality_score ?? fallback.campaign.currentMission.qualityScore,
+        noveltyScore: session.campaign.current_mission.novelty_score ?? fallback.campaign.currentMission.noveltyScore,
+        repetitionPenalty:
+          session.campaign.current_mission.repetition_penalty ?? fallback.campaign.currentMission.repetitionPenalty,
+        launchPackSize: session.campaign.current_mission.launch_pack_size ?? fallback.campaign.currentMission.launchPackSize,
       },
       completedMissionIds: session.campaign.completed_missions,
+      missionHistory:
+        session.campaign.mission_history?.map((entry) => ({
+          missionId: entry.mission_id,
+          templateId: entry.template_id ?? 'legacy-template',
+          archetype: entry.archetype ?? 'legacy',
+          hazards: entry.hazards ?? [],
+          qualityScore: entry.quality_score ?? 50,
+          noveltyScore: entry.novelty_score ?? 50,
+          repetitionPenalty: entry.repetition_penalty ?? 0,
+          outcome: entry.outcome === 'success' || entry.outcome === 'failure' ? entry.outcome : 'unknown',
+        })) ?? fallback.campaign.missionHistory,
       mutators: [...session.campaign.modifiers, ...session.campaign.unlocked_modifiers],
     },
     narrative: {
@@ -693,6 +712,7 @@ export default function App() {
   const [gameplaySessionError, setGameplaySessionError] = useState<string | null>(null);
   const [gameplayGuild, setGameplayGuild] = useState<GameplayGuild | null>(null);
   const [gameplaySocial, setGameplaySocial] = useState<GameplaySocialGraph | null>(null);
+  const [appLocale, setAppLocale] = usePersistedState<AppLocale>('agentDirector.locale.v1', 'en');
   const [gameplayLocale, setGameplayLocale] = usePersistedState<GameplayLocale>('agentDirector.gameplayLocale.v1', 'en');
   const [gamepadEnabled, setGamepadEnabled] = usePersistedState('agentDirector.gamepad.enabled.v1', true);
   const [gamepadPreset, setGamepadPreset] = usePersistedState<'standard' | 'lefty'>(
@@ -748,6 +768,8 @@ export default function App() {
     () => normalizeShortcutBindings(shortcutBindings),
     [shortcutBindings]
   );
+  const normalizedAppLocale = useMemo(() => normalizeAppLocale(appLocale), [appLocale]);
+  const t = useCallback((key: Parameters<typeof appLabel>[1]) => appLabel(normalizedAppLocale, key), [normalizedAppLocale]);
 
   const textFilteredSteps = useMemo(() => {
     if (!trace) return [];
@@ -4208,7 +4230,7 @@ export default function App() {
         {activeSection === 'operations' ? (
           <div className="workspace-context-grid">
             <article className="workspace-card">
-              <h3>Setup + support</h3>
+              <h3>{t('setup_support_title')}</h3>
               <div className="workspace-inline-form">
                 <button
                   className="ghost-button"
@@ -4219,7 +4241,7 @@ export default function App() {
                   }}
                   disabled={!featureFlags.setupWizardV1}
                 >
-                  Open setup wizard
+                  {t('open_setup_wizard')}
                 </button>
                 <button
                   className="ghost-button"
@@ -4230,7 +4252,7 @@ export default function App() {
                   }}
                   disabled={!featureFlags.supportPanelV1}
                 >
-                  Open support panel
+                  {t('open_support_panel')}
                 </button>
               </div>
               <div className="workspace-inline-form">
@@ -4269,8 +4291,8 @@ export default function App() {
               </div>
             </article>
             <article className="workspace-card">
-              <h3>Telemetry summary</h3>
-              <p>Product events are captured in local analytics queue for pre-release UX audits.</p>
+              <h3>{t('telemetry_summary_title')}</h3>
+              <p>{t('telemetry_summary_body')}</p>
               <div className="workspace-inline-form">
                 <button
                   className="ghost-button"
@@ -4284,30 +4306,30 @@ export default function App() {
                     });
                   }}
                 >
-                  Export event queue
+                  {t('export_event_queue')}
                 </button>
               </div>
             </article>
             <article className="workspace-card">
-              <h3>Settings center</h3>
-              <p>Centralized controls for input, UX behavior, and safe sharing defaults.</p>
+              <h3>{t('settings_center_title')}</h3>
+              <p>{t('settings_center_body')}</p>
               <div className="workspace-inline-form">
                 <label className="toggle">
                   <input type="checkbox" checked={safeExport} onChange={() => setSafeExport((prev) => !prev)} />
-                  Safe export
+                  {t('safe_export')}
                 </label>
                 <label className="toggle">
                   <input type="checkbox" checked={gamepadEnabled} onChange={() => setGamepadEnabled((prev) => !prev)} />
-                  Gamepad enabled
+                  {t('gamepad_enabled')}
                 </label>
                 <label className="toggle">
                   <input type="checkbox" checked={windowed} onChange={() => setWindowed((prev) => !prev)} />
-                  Timeline windowing
+                  {t('timeline_windowing')}
                 </label>
               </div>
               <div className="workspace-inline-form">
                 <label>
-                  Theme
+                  {t('theme_label')}
                   <select className="search-select" value={themeMode} onChange={(event) => setThemeMode(event.target.value as ThemeMode)}>
                     <option value="studio">Studio</option>
                     <option value="focus">Focus</option>
@@ -4315,7 +4337,7 @@ export default function App() {
                   </select>
                 </label>
                 <label>
-                  Motion
+                  {t('motion_label')}
                   <select className="search-select" value={motionMode} onChange={(event) => setMotionMode(event.target.value as MotionMode)}>
                     <option value="cinematic">Cinematic</option>
                     <option value="balanced">Balanced</option>
@@ -4323,7 +4345,21 @@ export default function App() {
                   </select>
                 </label>
                 <label>
-                  Gameplay locale
+                  {t('app_language_label')}
+                  <select
+                    className="search-select"
+                    value={normalizedAppLocale}
+                    onChange={(event) => setAppLocale(normalizeAppLocale(event.target.value))}
+                  >
+                    {APP_LOCALE_OPTIONS.map((localeOption) => (
+                      <option key={localeOption.value} value={localeOption.value}>
+                        {localeOption.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  {t('gameplay_locale_label')}
                   <select
                     className="search-select"
                     value={gameplayLocale}
@@ -4373,11 +4409,11 @@ export default function App() {
             className="search-input"
             value={traceQuery}
             onChange={(event) => setTraceQuery(event.target.value)}
-            placeholder='TraceQL (example: type=tool_call and duration_ms>800)'
+            placeholder={t('traceql_placeholder')}
             aria-label="TraceQL query"
           />
           <button className="ghost-button" type="button" onClick={() => void handleTraceQuery()}>
-            Run TraceQL
+            {t('run_traceql')}
           </button>
           {traceQueryResult ? <span className="status-badge">{traceQueryResult.matchCount} match(es)</span> : null}
           {isFilteringDeferred ? <span className="status-badge">Filtering...</span> : null}
@@ -4393,7 +4429,7 @@ export default function App() {
                 setTraceQueryError(null);
               }}
             >
-              Clear TraceQL
+              {t('clear_traceql')}
             </button>
           ) : null}
           {traceQueryError ? <span className="status-badge warn">{traceQueryError}</span> : null}
@@ -4403,7 +4439,7 @@ export default function App() {
             onChange={(event) => setSelectedExtensionId(event.target.value)}
             aria-label="Extension selector"
           >
-            <option value="">Select extension</option>
+            <option value="">{t('select_extension')}</option>
             {extensions.map((extension) => (
               <option key={extension.id} value={extension.id}>
                 {extension.name}
@@ -4416,7 +4452,7 @@ export default function App() {
             onClick={() => void handleRunExtension()}
             disabled={!trace || !selectedExtensionId || extensionRunning}
           >
-            {extensionRunning ? 'Running extension...' : 'Run extension'}
+            {extensionRunning ? t('running_extension') : t('run_extension')}
           </button>
           <button
             className={`ghost-button ${mode === 'cinema' ? 'active' : ''}`}
@@ -4429,7 +4465,7 @@ export default function App() {
             data-help-body="Timeline view with step cards ordered by time."
             data-help-placement="bottom"
           >
-            Cinema
+            {t('mode_cinema')}
           </button>
           <button
             className={`ghost-button ${mode === 'flow' ? 'active' : ''}`}
@@ -4442,7 +4478,7 @@ export default function App() {
             data-help-body="Dependency graph of steps and tool calls."
             data-help-placement="bottom"
           >
-            Flow
+            {t('mode_flow')}
           </button>
           <button
             className={`ghost-button ${mode === 'compare' ? 'active' : ''}`}
@@ -4457,7 +4493,7 @@ export default function App() {
             data-help-body="Side-by-side view after a replay. Enabled once you replay."
             data-help-placement="bottom"
           >
-            Compare
+            {t('mode_compare')}
           </button>
           <button
             className={`ghost-button ${mode === 'matrix' ? 'active' : ''}`}
@@ -4470,7 +4506,7 @@ export default function App() {
             data-help-body="Run multiple replay scenarios and rank likely causal factors."
             data-help-placement="bottom"
           >
-            Matrix
+            {t('mode_matrix')}
           </button>
           <button
             className={`ghost-button ${mode === 'gameplay' ? 'active' : ''}`}
@@ -4483,7 +4519,7 @@ export default function App() {
             data-help-body="Command raids, campaign, pvp, time forks, boss runs, economy, and liveops."
             data-help-placement="bottom"
           >
-            Gameplay
+            {t('mode_gameplay')}
           </button>
           <label
             className="toggle"
@@ -4494,7 +4530,7 @@ export default function App() {
             data-help-placement="bottom"
           >
             <input type="checkbox" checked={safeExport} onChange={() => setSafeExport((prev) => !prev)} />
-            Safe export
+            {t('safe_export')}
           </label>
           {trace.steps.length > 200 || windowed ? (
             <label
@@ -4506,7 +4542,7 @@ export default function App() {
               data-help-placement="bottom"
             >
               <input type="checkbox" checked={windowed} onChange={() => setWindowed((prev) => !prev)} />
-              Windowed
+              {t('windowed')}
             </label>
           ) : null}
           {compareTrace ? (
@@ -4523,7 +4559,7 @@ export default function App() {
                 checked={overlayEnabled}
                 onChange={() => setOverlayEnabled((prev) => !prev)}
               />
-              Overlay
+              {t('overlay')}
             </label>
           ) : null}
           <label
@@ -4535,7 +4571,7 @@ export default function App() {
               checked={syncPlayback}
               onChange={() => setSyncPlayback((prev) => !prev)}
             />
-            Sync playback
+            {t('sync_playback')}
           </label>
         </div>
       </div>
@@ -4621,7 +4657,7 @@ export default function App() {
           data-help-placement="top"
         >
           <MorphOrchestrator morph={morphState} onComplete={handleMorphComplete}>
-            <Suspense fallback={<div className="loading">Loading view...</div>}>
+            <Suspense fallback={<div className="loading">{t('loading_view')}</div>}>
               {mode === 'cinema' ? (
                 <CinemaMode
                   trace={trace}
@@ -4725,7 +4761,7 @@ export default function App() {
           </MorphOrchestrator>
         </div>
 
-        <Suspense fallback={<div className="loading">Loading panel...</div>}>
+        <Suspense fallback={<div className="loading">{t('loading_panel')}</div>}>
           {mode === 'compare' || mode === 'matrix' || mode === 'gameplay' ? null : selectedStep ? (
             <Inspector
               traceId={trace.id}

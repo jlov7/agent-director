@@ -269,6 +269,12 @@ export interface GameplayMission {
   reward_materials: number;
   mission_seed?: number;
   blueprint?: string;
+  template_id?: string;
+  archetype?: string;
+  quality_score?: number;
+  novelty_score?: number;
+  repetition_penalty?: number;
+  launch_pack_size?: number;
 }
 
 export interface GameplayProfile {
@@ -305,6 +311,17 @@ export interface GameplaySession {
     modifiers: string[];
     unlocked_modifiers: string[];
     completed_missions: string[];
+    mission_history?: Array<{
+      mission_id: string;
+      template_id: string;
+      archetype: string;
+      hazards: string[];
+      quality_score: number;
+      novelty_score: number;
+      repetition_penalty: number;
+      outcome: 'success' | 'failure' | 'unknown';
+      at: string;
+    }>;
     current_mission: GameplayMission;
   };
   narrative: {

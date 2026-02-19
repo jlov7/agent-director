@@ -26,10 +26,10 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] RG-021 Keybind remapping + controller support baseline
 - [x] RG-022 Unified settings center (input/motion/accessibility/privacy)
 - [x] RG-023 In-app help/support center with diagnostics payload export
-- [ ] RG-024 Global localization infrastructure
+- [x] RG-024 Global localization infrastructure
 - [x] RG-025 Mission/content authoring pipeline with validation/versioning
-- [ ] RG-026 Launch content pack depth target
-- [ ] RG-027 Procedural mission quality controls (novelty/repetition)
+- [x] RG-026 Launch content pack depth target
+- [x] RG-027 Procedural mission quality controls (novelty/repetition)
 - [x] RG-028 Branching campaign consequences persistence
 - [x] RG-029 Narrative recap engine (what happened/why/what next)
 - [x] RG-030 Seasonal liveops framework
@@ -48,8 +48,8 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] RG-042 Execute Batch A (RG-021, RG-022)
 - [x] RG-043 Execute Batch B (RG-032, RG-034)
 - [x] RG-044 Execute Batch C (RG-038)
-- [ ] RG-045 Execute Batch D (RG-026, RG-027)
-- [ ] RG-046 Execute Batch E (RG-024)
+- [x] RG-045 Execute Batch D (RG-026, RG-027)
+- [x] RG-046 Execute Batch E (RG-024)
 
 ## Pre-Release World-Class Launch Program (Active)
 - [x] Master tracker: `WORLD_CLASS_RELEASE_TODO.md`

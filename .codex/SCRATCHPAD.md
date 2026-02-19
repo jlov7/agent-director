@@ -12,8 +12,8 @@ In Progress
 2. [x] RG-042 Batch A: close RG-021 + RG-022 (keybind remap + unified settings center)
 3. [x] RG-043 Batch B: close RG-032 + RG-034 (startup perf gate + reliability drills)
 4. [x] RG-044 Batch C: close RG-038 (one-command canary/rollback/kill-switch ops)
-5. [ ] RG-045 Batch D: close RG-026 + RG-027 (content depth + procedural quality controls)
-6. [ ] RG-046 Batch E: close RG-024 (global localization infrastructure)
+5. [x] RG-045 Batch D: close RG-026 + RG-027 (content depth + procedural quality controls)
+6. [x] RG-046 Batch E: close RG-024 (global localization infrastructure)
 7. [ ] Final release verification and evidence refresh
 
 ## Decisions Made
@@ -22,6 +22,9 @@ In Progress
 - Treat previously shipped WR/SWC work as existing evidence and focus coding on uncovered gaps.
 - Closed RG-007 via schema-versioned profile migrations and cloud-sync metadata contract.
 - Closed RG-011 via backend + frontend auto-matchmaking flow.
+- Closed RG-026 via launch mission pack library expansion (18 templates across archetypes/depth bands).
+- Closed RG-027 via mission novelty/repetition scoring guardrails with quality scoring + mission history telemetry.
+- Closed RG-024 via app-level localization catalogs, persisted locale switching, and locale fallback tests.
 
 ## Open Questions
 
@@ -30,4 +33,5 @@ In Progress
 ## Verification Gates
 
 - Batch A: `pnpm -C ui typecheck`, `pnpm -C ui test`
+- Current: `make verify` passes locally; `make doctor`/`make scorecard` blocked until latest commit is pushed and CI status refreshes.
 - Final closure: `make verify`, `make doctor`, `make scorecard`, `make vercel-check`

@@ -28,6 +28,23 @@ export type CampaignMission = {
   rewardCredits: number;
   missionSeed: number;
   blueprint: string;
+  templateId?: string;
+  archetype?: string;
+  qualityScore?: number;
+  noveltyScore?: number;
+  repetitionPenalty?: number;
+  launchPackSize?: number;
+};
+
+export type CampaignMissionHistoryEntry = {
+  missionId: string;
+  templateId: string;
+  archetype: string;
+  hazards: string[];
+  qualityScore: number;
+  noveltyScore: number;
+  repetitionPenalty: number;
+  outcome: 'success' | 'failure' | 'unknown';
 };
 
 export type CampaignState = {
@@ -35,6 +52,7 @@ export type CampaignState = {
   lives: number;
   currentMission: CampaignMission;
   completedMissionIds: string[];
+  missionHistory: CampaignMissionHistoryEntry[];
   mutators: string[];
 };
 
@@ -292,6 +310,191 @@ const HAZARD_POOL = [
   'schema mismatch surge',
 ];
 
+const LAUNCH_MISSION_PACK = [
+  {
+    templateId: 'pack-stability-bootstrap',
+    title: 'Stability Bootstrap',
+    archetype: 'stability',
+    depthMin: 1,
+    depthMax: 3,
+    baseDifficulty: 2,
+    hazards: ['latency storm', 'cache divergence'],
+    rewardCredits: 78,
+  },
+  {
+    templateId: 'pack-drift-containment',
+    title: 'Drift Containment',
+    archetype: 'containment',
+    depthMin: 1,
+    depthMax: 4,
+    baseDifficulty: 2,
+    hazards: ['stale prompt vector', 'schema mismatch surge'],
+    rewardCredits: 82,
+  },
+  {
+    templateId: 'pack-timeout-circuit-breaker',
+    title: 'Timeout Circuit Breaker',
+    archetype: 'resilience',
+    depthMin: 2,
+    depthMax: 5,
+    baseDifficulty: 3,
+    hazards: ['tool timeout chain', 'schema mismatch surge'],
+    rewardCredits: 90,
+  },
+  {
+    templateId: 'pack-cache-realignment',
+    title: 'Cache Realignment',
+    archetype: 'forensics',
+    depthMin: 2,
+    depthMax: 6,
+    baseDifficulty: 3,
+    hazards: ['cache divergence', 'schema mismatch surge'],
+    rewardCredits: 96,
+  },
+  {
+    templateId: 'pack-pipeline-quarantine',
+    title: 'Pipeline Quarantine',
+    archetype: 'containment',
+    depthMin: 3,
+    depthMax: 7,
+    baseDifficulty: 4,
+    hazards: ['stale prompt vector', 'tool timeout chain'],
+    rewardCredits: 102,
+  },
+  {
+    templateId: 'pack-latency-decoupling',
+    title: 'Latency Decoupling',
+    archetype: 'throughput',
+    depthMin: 3,
+    depthMax: 8,
+    baseDifficulty: 4,
+    hazards: ['latency storm', 'tool timeout chain'],
+    rewardCredits: 108,
+  },
+  {
+    templateId: 'pack-spec-reconciliation',
+    title: 'Spec Reconciliation',
+    archetype: 'forensics',
+    depthMin: 4,
+    depthMax: 9,
+    baseDifficulty: 5,
+    hazards: ['schema mismatch surge', 'cache divergence'],
+    rewardCredits: 114,
+  },
+  {
+    templateId: 'pack-fault-isolation-grid',
+    title: 'Fault Isolation Grid',
+    archetype: 'diagnostics',
+    depthMin: 4,
+    depthMax: 10,
+    baseDifficulty: 5,
+    hazards: ['schema mismatch surge', 'stale prompt vector'],
+    rewardCredits: 120,
+  },
+  {
+    templateId: 'pack-shadow-fork-audit',
+    title: 'Shadow Fork Audit',
+    archetype: 'timelines',
+    depthMin: 5,
+    depthMax: 11,
+    baseDifficulty: 6,
+    hazards: ['stale prompt vector', 'latency storm'],
+    rewardCredits: 126,
+  },
+  {
+    templateId: 'pack-signal-recovery-run',
+    title: 'Signal Recovery Run',
+    archetype: 'recovery',
+    depthMin: 5,
+    depthMax: 12,
+    baseDifficulty: 6,
+    hazards: ['tool timeout chain', 'cache divergence'],
+    rewardCredits: 132,
+  },
+  {
+    templateId: 'pack-entropy-firebreak',
+    title: 'Entropy Firebreak',
+    archetype: 'stability',
+    depthMin: 6,
+    depthMax: 13,
+    baseDifficulty: 7,
+    hazards: ['schema mismatch surge', 'tool timeout chain'],
+    rewardCredits: 138,
+  },
+  {
+    templateId: 'pack-pressure-release',
+    title: 'Pressure Release',
+    archetype: 'throughput',
+    depthMin: 6,
+    depthMax: 14,
+    baseDifficulty: 7,
+    hazards: ['latency storm', 'stale prompt vector'],
+    rewardCredits: 144,
+  },
+  {
+    templateId: 'pack-replay-integrity-probe',
+    title: 'Replay Integrity Probe',
+    archetype: 'diagnostics',
+    depthMin: 7,
+    depthMax: 15,
+    baseDifficulty: 8,
+    hazards: ['cache divergence', 'tool timeout chain'],
+    rewardCredits: 150,
+  },
+  {
+    templateId: 'pack-phased-countermeasure',
+    title: 'Phased Countermeasure',
+    archetype: 'boss',
+    depthMin: 7,
+    depthMax: 16,
+    baseDifficulty: 8,
+    hazards: ['tool timeout chain', 'schema mismatch surge'],
+    rewardCredits: 156,
+  },
+  {
+    templateId: 'pack-cascade-rollup',
+    title: 'Cascade Rollup',
+    archetype: 'recovery',
+    depthMin: 8,
+    depthMax: 18,
+    baseDifficulty: 9,
+    hazards: ['schema mismatch surge', 'latency storm'],
+    rewardCredits: 162,
+  },
+  {
+    templateId: 'pack-hyperlane-retune',
+    title: 'Hyperlane Retune',
+    archetype: 'timelines',
+    depthMin: 8,
+    depthMax: 20,
+    baseDifficulty: 9,
+    hazards: ['stale prompt vector', 'cache divergence'],
+    rewardCredits: 168,
+  },
+  {
+    templateId: 'pack-guardian-gambit',
+    title: 'Guardian Gambit',
+    archetype: 'stability',
+    depthMin: 9,
+    depthMax: 24,
+    baseDifficulty: 10,
+    hazards: ['schema mismatch surge', 'latency storm'],
+    rewardCredits: 176,
+  },
+  {
+    templateId: 'pack-final-lockdown',
+    title: 'Final Lockdown',
+    archetype: 'boss',
+    depthMin: 10,
+    depthMax: Number.MAX_SAFE_INTEGER,
+    baseDifficulty: 10,
+    hazards: ['tool timeout chain', 'cache divergence'],
+    rewardCredits: 184,
+  },
+] as const;
+
+const MISSION_HISTORY_WINDOW = 5;
+
 const LIVEOPS_CATALOG: Array<Omit<LiveOpsChallenge, 'progress' | 'completed'>> = [
   { id: 'seasonal-incident-sprint', title: 'Resolve 3 raid objectives', goal: 3, rewardCredits: 120 },
   { id: 'boss-shutdown', title: 'Defeat one boss encounter', goal: 1, rewardCredits: 200 },
@@ -318,25 +521,126 @@ function hashSeed(source: string) {
 }
 
 export function generateSeededMission(seed: number, depth: number, mutators: string[]): CampaignMission {
+  return generateSeededMissionWithHistory(seed, depth, mutators, []);
+}
+
+function missionNoveltyScore(
+  hazards: string[],
+  templateId: string,
+  archetype: string,
+  history: CampaignMissionHistoryEntry[]
+): number {
+  if (history.length === 0) return 96;
+  const recent = history.slice(-MISSION_HISTORY_WINDOW);
+  const recentTemplates = new Set(recent.map((entry) => entry.templateId));
+  const recentArchetypes = new Set(recent.map((entry) => entry.archetype));
+  const recentHazards = new Set(recent.flatMap((entry) => entry.hazards.map((hazard) => hazard.toLowerCase())));
+  const candidateHazards = new Set(hazards.map((hazard) => hazard.toLowerCase()));
+  const newHazardCount = [...candidateHazards].filter((hazard) => !recentHazards.has(hazard)).length;
+
+  let score = 58 + newHazardCount * 12;
+  if (!recentTemplates.has(templateId)) score += 14;
+  else score -= 10;
+  if (!recentArchetypes.has(archetype)) score += 10;
+  return clamp(score, 20, 100);
+}
+
+function missionRepetitionPenalty(
+  hazards: string[],
+  templateId: string,
+  archetype: string,
+  history: CampaignMissionHistoryEntry[]
+): number {
+  const recent = history.slice(-MISSION_HISTORY_WINDOW);
+  if (recent.length === 0) return 0;
+  const candidateHazards = new Set(hazards.map((hazard) => hazard.toLowerCase()));
+  let penalty = 0;
+
+  [...recent].reverse().forEach((entry, index) => {
+    const recencyWeight = Math.max(1, MISSION_HISTORY_WINDOW - index);
+    const overlap = entry.hazards.filter((hazard) => candidateHazards.has(hazard.toLowerCase())).length;
+    penalty += overlap * 4 * recencyWeight;
+    if (entry.templateId === templateId) penalty += 8 * recencyWeight;
+    if (entry.archetype === archetype) penalty += 4 * recencyWeight;
+  });
+
+  return clamp(penalty, 0, 72);
+}
+
+function generateSeededMissionWithHistory(
+  seed: number,
+  depth: number,
+  mutators: string[],
+  history: CampaignMissionHistoryEntry[]
+): CampaignMission {
   const missionSeed = hashSeed(`${seed}:${depth}:${mutators.join('|')}`);
-  const hazardA = HAZARD_POOL[missionSeed % HAZARD_POOL.length] as string;
-  const hazardB = HAZARD_POOL[Math.floor(missionSeed / 7) % HAZARD_POOL.length] as string;
-  const uniqueHazards = Array.from(new Set([hazardA, hazardB]));
-  const normalizedMutators = [...mutators].sort().slice(-2);
-  const blueprint = `seed=${missionSeed};depth=${depth};mutators=${normalizedMutators.join(',') || 'none'}`;
+  const normalizedMutators = [...new Set(mutators.map((item) => item.trim()).filter(Boolean))].sort().slice(-2);
+  const eligibleTemplates = LAUNCH_MISSION_PACK.filter((template) => depth >= template.depthMin && depth <= template.depthMax);
+  const templates = eligibleTemplates.length > 0 ? eligibleTemplates : LAUNCH_MISSION_PACK;
+
+  const scored = templates.map((template) => {
+    const candidateSeed = hashSeed(`${missionSeed}:${template.templateId}`);
+    const hazardBias = HAZARD_POOL[candidateSeed % HAZARD_POOL.length] as string;
+    const hazards = [...new Set([...template.hazards, hazardBias, ...normalizedMutators.slice(-1)])].slice(0, 4);
+    const noveltyScore = missionNoveltyScore(hazards, template.templateId, template.archetype, history);
+    const repetitionPenalty = missionRepetitionPenalty(hazards, template.templateId, template.archetype, history);
+    const difficulty = clamp(template.baseDifficulty + Math.floor(depth / 4), 1, 10);
+    const qualityScore = clamp(Math.round(46 + noveltyScore * 0.5 - repetitionPenalty * 0.45 + difficulty * 3), 0, 100);
+    const tieBreaker = hashSeed(`${candidateSeed}:${history.length}:${depth}`);
+    return {
+      template,
+      candidateSeed,
+      hazards,
+      noveltyScore,
+      repetitionPenalty,
+      qualityScore,
+      difficulty,
+      tieBreaker,
+    };
+  });
+
+  scored.sort((left, right) => {
+    if (left.qualityScore !== right.qualityScore) return left.qualityScore - right.qualityScore;
+    if (left.noveltyScore !== right.noveltyScore) return left.noveltyScore - right.noveltyScore;
+    if (left.repetitionPenalty !== right.repetitionPenalty) return right.repetitionPenalty - left.repetitionPenalty;
+    return left.tieBreaker - right.tieBreaker;
+  });
+
+  const selected = scored[scored.length - 1];
+  const rewardScale = 1 + Math.min(depth, 12) * 0.04;
+  const rewardCredits = Math.round(selected.template.rewardCredits * rewardScale);
+  const blueprint = [
+    `seed=${selected.candidateSeed}`,
+    `depth=${depth}`,
+    `mutators=${normalizedMutators.join(',') || 'none'}`,
+    `template=${selected.template.templateId}`,
+    `archetype=${selected.template.archetype}`,
+  ].join(';');
+
   return {
-    id: `mission-${depth}-${(seed + depth) % 997}`,
-    title: `Scenario Depth ${depth}`,
-    difficulty: difficultyForDepth(depth),
-    hazards: [...uniqueHazards, ...normalizedMutators.slice(-1)],
-    rewardCredits: 60 + depth * 15,
-    missionSeed,
+    id: `mission-${depth}-${selected.template.templateId.replace('pack-', '')}-${(seed + depth) % 997}`,
+    title: selected.template.title,
+    difficulty: selected.difficulty,
+    hazards: selected.hazards,
+    rewardCredits,
+    missionSeed: selected.candidateSeed,
     blueprint,
+    templateId: selected.template.templateId,
+    archetype: selected.template.archetype,
+    qualityScore: selected.qualityScore,
+    noveltyScore: selected.noveltyScore,
+    repetitionPenalty: selected.repetitionPenalty,
+    launchPackSize: LAUNCH_MISSION_PACK.length,
   };
 }
 
-function missionFromDepth(seed: number, depth: number, mutators: string[]): CampaignMission {
-  return generateSeededMission(seed, depth, mutators);
+function missionFromDepth(
+  seed: number,
+  depth: number,
+  mutators: string[],
+  history: CampaignMissionHistoryEntry[]
+): CampaignMission {
+  return generateSeededMissionWithHistory(seed, depth, mutators, history);
 }
 
 export function difficultyForDepth(depth: number): number {
@@ -431,14 +735,20 @@ function applyMissionMutator(mutators: string[], nextMutator: string): string[] 
   return Array.from(new Set(merged)).slice(-6);
 }
 
-function withCampaignMission(state: GameplayState, depth: number, mutators: string[]) {
+function withCampaignMission(
+  state: GameplayState,
+  depth: number,
+  mutators: string[],
+  missionHistory: CampaignMissionHistoryEntry[]
+) {
   return {
     ...state,
     campaign: {
       ...state.campaign,
       depth,
       mutators,
-      currentMission: missionFromDepth(state.seed, depth, mutators),
+      missionHistory,
+      currentMission: missionFromDepth(state.seed, depth, mutators, missionHistory),
     },
   };
 }
@@ -462,8 +772,9 @@ export function createInitialGameplayState(seedSource: string): GameplayState {
       depth: 1,
       lives: 3,
       completedMissionIds: [],
+      missionHistory: [],
       mutators,
-      currentMission: missionFromDepth(seed, 1, mutators),
+      currentMission: missionFromDepth(seed, 1, mutators, []),
     },
     narrative: {
       currentNodeId: 'node-alpha',
@@ -699,9 +1010,23 @@ export function advanceRaidObjective(state: GameplayState, objectiveId: string, 
 export function completeCampaignMission(state: GameplayState, success: boolean): GameplayState {
   const sandbox = readSandboxState(state);
   const current = state.campaign.currentMission;
+  const missionOutcome: CampaignMissionHistoryEntry['outcome'] = success ? 'success' : 'failure';
+  const nextMissionHistory: CampaignMissionHistoryEntry[] = [
+    ...state.campaign.missionHistory,
+    {
+      missionId: current.id,
+      templateId: current.templateId ?? 'legacy-template',
+      archetype: current.archetype ?? 'legacy',
+      hazards: current.hazards,
+      qualityScore: current.qualityScore ?? 50,
+      noveltyScore: current.noveltyScore ?? 50,
+      repetitionPenalty: current.repetitionPenalty ?? 0,
+      outcome: missionOutcome,
+    },
+  ].slice(-30);
   if (success) {
     const depth = state.campaign.depth + 1;
-    const withMission = withCampaignMission(state, depth, state.campaign.mutators);
+    const withMission = withCampaignMission(state, depth, state.campaign.mutators, nextMissionHistory);
     const outcome: OutcomeState =
       depth >= 5
         ? {
@@ -734,7 +1059,12 @@ export function completeCampaignMission(state: GameplayState, success: boolean):
   }
 
   const lives = sandbox.enabled ? state.campaign.lives : clamp(state.campaign.lives - 1, 0, 3);
-  const withMission = withCampaignMission(state, state.campaign.depth, applyMissionMutator(state.campaign.mutators, 'failure-loop'));
+  const withMission = withCampaignMission(
+    state,
+    state.campaign.depth,
+    applyMissionMutator(state.campaign.mutators, 'failure-loop'),
+    nextMissionHistory
+  );
   const outcome: OutcomeState =
     sandbox.enabled
       ? {
@@ -774,7 +1104,7 @@ export function applyNarrativeChoice(state: GameplayState, choiceId: string): Ga
   if (!node || !choice) return state;
   const tension = clamp(state.narrative.tension + choice.tensionDelta, 0, 100);
   const mutators = applyMissionMutator(state.campaign.mutators, choice.mutator);
-  const withMission = withCampaignMission(state, state.campaign.depth, mutators);
+  const withMission = withCampaignMission(state, state.campaign.depth, mutators, state.campaign.missionHistory);
   return {
     ...withMission,
     narrative: {

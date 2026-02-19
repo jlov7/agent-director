@@ -398,6 +398,17 @@ export default function GameplayMode({
           <p>Depth {state.campaign.depth} • Lives {state.campaign.lives}</p>
           <p>{state.campaign.currentMission.title} (difficulty {state.campaign.currentMission.difficulty})</p>
           <p>Mission seed {state.campaign.currentMission.missionSeed} • Hazards {state.campaign.currentMission.hazards.join(', ')}</p>
+          <p>
+            Pack {state.campaign.currentMission.templateId ?? 'legacy-template'} • Archetype{' '}
+            {state.campaign.currentMission.archetype ?? 'legacy'} • Library {state.campaign.currentMission.launchPackSize ?? 0} templates
+          </p>
+          <p>
+            Quality {state.campaign.currentMission.qualityScore ?? 0} • Novelty {state.campaign.currentMission.noveltyScore ?? 0} •
+            Repetition penalty {state.campaign.currentMission.repetitionPenalty ?? 0}
+          </p>
+          <p>
+            Mission history {state.campaign.missionHistory.length} • Distinct clears {new Set(state.campaign.completedMissionIds).size}
+          </p>
           <p>{state.campaign.currentMission.blueprint}</p>
           <p>Difficulty ramp bands: D1-1, D2-3, D4-5, D6-7, D8-9, D10+.</p>
           <div className="gameplay-inline">

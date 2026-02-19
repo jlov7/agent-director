@@ -16,8 +16,8 @@ Close the complete pre-release feature/polish/fix set required to ship as a worl
 - [x] Batch B: RG-032 and RG-034 (startup perf gate + reliability drills)
 - [x] Batch C: RG-038 (release safety one-command operations)
 - [x] Cross-cutting: RG-007 and RG-011 (profile migration contract + matchmaking flow)
-- [ ] Batch D: RG-026 and RG-027 (content depth + procedural quality controls)
-- [ ] Batch E: RG-024 (global localization infrastructure)
+- [x] Batch D: RG-026 and RG-027 (content depth + procedural quality controls)
+- [x] Batch E: RG-024 (global localization infrastructure)
 - [ ] Full closure verification and release evidence refresh
 
 ## Decision Log

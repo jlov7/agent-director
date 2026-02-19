@@ -123,6 +123,22 @@ describe('gameplayEngine', () => {
     const missionA = generateSeededMission(2026, 4, ['baseline', 'stability-first']);
     const missionB = generateSeededMission(2026, 4, ['baseline', 'stability-first']);
     expect(missionA).toEqual(missionB);
+    expect(missionA.launchPackSize).toBeGreaterThanOrEqual(18);
+    expect(missionA.templateId).toBeTruthy();
+    expect(missionA.qualityScore).toBeGreaterThanOrEqual(0);
+  });
+
+  it('tracks mission history with novelty and repetition metrics', () => {
+    let state = createInitialGameplayState('trace-1');
+    for (let index = 0; index < 7; index += 1) {
+      state = completeCampaignMission(state, true);
+    }
+    expect(state.campaign.missionHistory.length).toBe(7);
+    const latest = state.campaign.missionHistory[state.campaign.missionHistory.length - 1];
+    expect(latest?.qualityScore).toBeGreaterThanOrEqual(0);
+    expect(latest?.repetitionPenalty).toBeGreaterThanOrEqual(0);
+    const uniqueTemplates = new Set(state.campaign.missionHistory.map((entry) => entry.templateId));
+    expect(uniqueTemplates.size).toBeGreaterThanOrEqual(4);
   });
 
   it('supports time fork create, rewind, and merge', () => {

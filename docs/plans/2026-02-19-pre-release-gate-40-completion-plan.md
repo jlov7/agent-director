@@ -48,10 +48,10 @@ Status legend: `verified` (implemented with current evidence), `gap` (needs impl
 | RG-021 | verified | Keybind remapping + controller baseline | Keyboard shortcuts are remappable in-product; controller baseline remains usable. |
 | RG-022 | verified | Unified settings center | Input/accessibility/motion/notification/privacy controls are consolidated and persistent. |
 | RG-023 | verified | In-app support center + diagnostics export | Support panel and diagnostics payload export are available. |
-| RG-024 | gap | Localization infrastructure (global) | App-level strings are localizable with locale switching and structured catalogs. |
+| RG-024 | verified | Localization infrastructure (global) | App-level strings are localizable with locale switching and structured catalogs. |
 | RG-025 | verified | Content authoring pipeline | Authoring and validation workflow exists for missions/events/scenarios. |
-| RG-026 | gap | Launch content pack depth | Handcrafted mission library reaches release target size and variety. |
-| RG-027 | gap | Procedural quality controls | Repetition/novelty guardrails and quality scoring enforce mission variety. |
+| RG-026 | verified | Launch content pack depth | Handcrafted mission library reaches release target size and variety. |
+| RG-027 | verified | Procedural quality controls | Repetition/novelty guardrails and quality scoring enforce mission variety. |
 | RG-028 | verified | Branching campaign persistence | Campaign branch effects persist and influence subsequent runs. |
 | RG-029 | verified | Narrative recap engine | Run summary and next-step narrative artifacts are generated. |
 | RG-030 | verified | Seasonal liveops framework | Rotating challenge/reward cadence with tuning controls is implemented. |
@@ -82,12 +82,12 @@ Status legend: `verified` (implemented with current evidence), `gap` (needs impl
 
 - RG-038: promote release-safety runbook to one-command operational flow with kill-switch toggles.
 
-### Batch D: Gameplay Content Depth
+### Batch D (Complete): Gameplay Content Depth
 
 - RG-026: launch mission pack target completion.
 - RG-027: procedural novelty/repetition scoring guardrails.
 
-### Batch E: Global Localization
+### Batch E (Complete): Global Localization
 
 - RG-024: globalized UI strings + locale registry + fallback behavior + tests.
 
