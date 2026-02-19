@@ -73,6 +73,40 @@ Per milestone, run:
 
 ---
 
+# ExecPlan: Documentation Excellence Program
+
+## Purpose / Big Picture
+Upgrade repository documentation to world-class quality for both technical and non-technical audiences, with clear onboarding, architecture communication, and visual storytelling.
+
+## Scope
+- In scope: `README.md`, docs hub, role guides, and user journey docs.
+- Out of scope: runtime feature implementation.
+
+## Progress
+- [x] Documentation gaps audited and tracked.
+- [x] README refactored with role-based pathways, richer diagrams, and visual hierarchy.
+- [x] Non-technical guide added.
+- [x] Technical guide added.
+- [x] User journey map added.
+- [x] Docs hub upgraded for role/lifecycle navigation.
+- [x] Full verification + evidence refresh.
+- [ ] Commit/push closure.
+
+## Decision Log
+- Keep README as the front-door artifact while routing depth to focused docs.
+- Preserve ASCII brand block and legal disclaimer at README footer.
+- Reuse existing screenshots/GIF/illustrations and pair with stronger narrative structure.
+
+## Validation Plan
+- `make verify`
+- `make doctor`
+- `make scorecard`
+
+## Outcomes & Retrospective
+In progress.
+
+---
+
 # ExecPlan: UX100 World-Class Frontend Program
 
 ## Purpose / Big Picture

@@ -10,6 +10,17 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] UX100-B4 Execute Batch 4 (responsive/performance/reliability remaining items)
 - [x] UX100-B5 Execute Batch 5 (polish and trust/safety remaining items + external review prep)
 
+## Documentation Excellence Program (Active)
+- [x] DOCX-001 Inventory docs + README gaps across technical and non-technical audiences
+- [x] DOCX-002 World-class README refactor (IA, value narrative, role paths, diagrams, visuals)
+- [x] DOCX-003 Add non-technical explainer with use cases, outcomes, and demo path
+- [x] DOCX-004 Add technical explainer with architecture, contracts, and extensibility map
+- [x] DOCX-005 Add user-journey map doc with walkthrough flows and success criteria
+- [x] DOCX-006 Upgrade docs index to role-based + lifecycle-based navigation hub
+- [x] DOCX-007 Verify documentation accuracy against current commands/features
+- [x] DOCX-008 Run `make verify`, `make doctor`, `make scorecard`
+- [ ] DOCX-009 Commit + push documentation sweep
+
 ## Pre-Release Gate 40 Program (Active)
 - [x] RG-001 First-session funnel with guaranteed first win
 - [x] RG-002 Explicit mission objectives + fail reasons

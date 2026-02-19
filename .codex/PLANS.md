@@ -1,3 +1,41 @@
+# Documentation Excellence ExecPlan
+
+## Purpose / Big Picture
+
+Deliver a public-facing, world-class documentation experience so both technical and non-technical readers can understand, run, evaluate, and present Agent Director from the repository alone.
+
+## Scope
+
+- In scope: `README.md` and documentation hub/guide upgrades with richer structure, diagrams, visuals, and audience-specific onboarding paths.
+- Out of scope: feature implementation in application/runtime code.
+
+## Progress
+
+- [x] Audit current README/docs/media inventory and identify documentation gaps.
+- [x] Implement README world-class refresh (structure, audience paths, diagrams, media narrative).
+- [x] Add audience-specific explainers for technical and non-technical readers.
+- [x] Add user-journey documentation with visual flows for onboarding/demo/evaluation.
+- [x] Upgrade docs hub (`docs/index.md`) to a role-based map.
+- [x] Validate docs references and run verification gates.
+- [ ] Commit and push documentation upgrade.
+
+## Decision Log
+
+- Preserve existing ASCII logo and legal disclaimer while upgrading readability and information architecture.
+- Reuse existing screenshots/GIF/concept art and pair them with clearer journey context instead of adding decorative-only content.
+- Keep docs composable: README for first contact, docs hub for depth, role guides for fast alignment.
+
+## Validation Plan
+
+- Markdown link/reference sanity check via manual pass.
+- Full quality gates: `make verify`, `make doctor`, `make scorecard`.
+
+## Outcomes & Retrospective
+
+In progress.
+
+---
+
 # Pre-Release Gate 40 Completion ExecPlan
 
 ## Purpose / Big Picture

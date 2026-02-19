@@ -1,28 +1,26 @@
 ## Current Task
 
-Finalize UX100 to full closure state (`100/100`) with updated evidence pack and verification gates.
+Execute a world-class documentation pass: perfect README + role-based docs map + technical/non-technical explainers + user-journey visuals.
 
 ## Status
 
-Completed
+In Progress
 
 ## Plan
 
-1. [x] Stabilize CI visual snapshots and keep `make verify` green (`matrix-loading` + `matrix-loaded` determinism).
-2. [x] Ship responsive declutter + mobile orientation improvements (`UX100-061`, `UX100-062`, `UX100-065`).
-3. [x] Ship adaptive density modes (`UX100-066`) and validate with E2E.
-4. [x] Harden contrast/non-color semantics (`UX100-057`) via explicit status cues.
-5. [x] Ship smart prefetch + defer policy and large-trace auto-windowing (`UX100-071`, `UX100-073`, `UX100-074`; `UX100-070` advanced to in-progress).
-6. [x] Run `make verify` and refresh tracker evidence.
-7. [x] Close remaining tracker tasks and publish closure evidence pack (`docs/ux100-closure-evidence.md`).
+1. [x] Audit current docs inventory and identify structure/content gaps.
+2. [x] Rewrite `README.md` with role-based navigation, diagrams, visuals, and onboarding-to-adoption narrative.
+3. [x] Add audience explainers: technical + non-technical.
+4. [x] Add user journey map doc with visual flow diagrams.
+5. [x] Upgrade `docs/index.md` to world-class hub with role and lifecycle navigation.
+6. [x] Run verification and update trackers.
+7. [ ] Commit and push changes.
 
 ## Decisions Made
 
-- Use evidence-first closure (tests/artifacts), not subjective claims.
-- For release readiness, external-review gates were closed using explicit internal proxy validation evidence in `docs/ux100-closure-evidence.md`.
-- Prioritize cognitive-load and task-clarity improvements before aesthetic-only polish.
-- For snapshot stability, scope volatile matrix assertions to stable subregions instead of full container captures.
-- For mobile/tablet clutter control, prioritize primary actions and collapse secondary controls behind explicit overflow toggles.
+- Keep README as the canonical first-entry surface, with docs pages organized by role and depth.
+- Preserve the existing ASCII brand block and R&D disclaimer explicitly.
+- Prioritize comprehension and onboarding clarity over adding new decorative content.
 
 ## Open Questions
 
@@ -30,6 +28,4 @@ Completed
 
 ## Verification Gates
 
-- Targeted checks during edits: `pnpm -C ui typecheck`, `pnpm -C ui lint`, focused Vitest/Playwright runs.
-- Batch closure passed: `make verify`.
-- Evidence refresh passed: `make doctor`, `make scorecard`.
+- Full validation after docs edits: `make verify`, `make doctor`, `make scorecard`.
