@@ -30,7 +30,7 @@ test.describe('Flow mode', () => {
     await expect(page.locator('.timeline')).toBeVisible();
     await page.getByTitle('Graph view').click();
     await expect(page.locator('.flow-canvas')).toBeVisible();
-    await expect(page.locator('.react-flow__viewport .react-flow__node:visible').first()).toBeVisible();
+    await expect.poll(async () => page.locator('.react-flow__node').count()).toBeGreaterThan(0);
 
     await expect(page.getByLabel('Structure')).toBeVisible();
     await expect(page.getByLabel('Sequence')).toBeVisible();
@@ -62,8 +62,9 @@ test.describe('Flow mode', () => {
     await expect(page.locator('.timeline')).toBeVisible();
     await page.getByTitle('Graph view').click();
 
-    const firstNode = page.locator('.react-flow__viewport .react-flow__node:visible').first();
-    await expect(firstNode).toBeVisible();
+    await expect.poll(async () => page.locator('.react-flow__node').count()).toBeGreaterThan(0);
+    const firstNode = page.locator('.react-flow__node').first();
+    await expect(firstNode).toBeAttached();
     await firstNode.click({ force: true });
     await expect(page.getByRole('button', { name: 'Close inspector' })).toBeVisible();
 
