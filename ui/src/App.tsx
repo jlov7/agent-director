@@ -617,6 +617,7 @@ export default function App() {
     'agentDirector.workspaceSection.v1',
     'journey'
   );
+  const [workspaceActionsOpen, setWorkspaceActionsOpen] = useState(false);
   const [workspacePanelOpen, setWorkspacePanelOpen] = usePersistedState(
     'agentDirector.workspacePanelOpen.v1',
     false
@@ -762,6 +763,7 @@ export default function App() {
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [handoffStatus, setHandoffStatus] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Array<AppNotification & { expiresAt: number }>>([]);
+  const [liveAnnouncement, setLiveAnnouncement] = useState('');
   const [asyncActions, setAsyncActions] = useState<AsyncActionRecord[]>([]);
   const [exportTasks, setExportTasks] = useState<ExportTask[]>([]);
   const [savedViews, setSavedViews] = usePersistedState<SavedView[]>('agentDirector.savedViews.v1', []);
@@ -780,9 +782,12 @@ export default function App() {
   const [hydrationLimit, setHydrationLimit] = useState(800);
   const [filterComputeMs, setFilterComputeMs] = useState(0);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const workspaceActionsRef = useRef<HTMLDivElement>(null);
   const compareTraceRef = useRef<TraceSummary | null>(null);
   const sessionIdRef = useRef<string>(getOrCreateSessionId());
   const lastCursorWriteRef = useRef(0);
+  const lastNotificationAnnouncementRef = useRef<string | null>(null);
+  const asyncActionAnnouncementRef = useRef<Record<string, string>>({});
   const filterMeasureRef = useRef(0);
   const applyingRemoteCursorRef = useRef(false);
   const gameplayFunnelFlagsRef = useRef<Record<string, boolean>>({});
@@ -1130,6 +1135,46 @@ export default function App() {
       window.clearInterval(interval);
     };
   }, [notifications.length]);
+
+  useEffect(() => {
+    if (!workspaceActionsOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (workspaceActionsRef.current?.contains(event.target as Node)) return;
+      setWorkspaceActionsOpen(false);
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setWorkspaceActionsOpen(false);
+    };
+    window.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [workspaceActionsOpen]);
+
+  useEffect(() => {
+    setWorkspaceActionsOpen(false);
+  }, [activeSection, mode]);
+
+  useEffect(() => {
+    const latest = notifications[notifications.length - 1];
+    if (!latest) return;
+    if (latest.id === lastNotificationAnnouncementRef.current) return;
+    lastNotificationAnnouncementRef.current = latest.id;
+    setLiveAnnouncement(latest.message);
+  }, [notifications]);
+
+  useEffect(() => {
+    const latestAction = asyncActions[0];
+    if (!latestAction) return;
+    const previousStatus = asyncActionAnnouncementRef.current[latestAction.id];
+    if (previousStatus === latestAction.status) return;
+    asyncActionAnnouncementRef.current[latestAction.id] = latestAction.status;
+    const detail = latestAction.detail?.trim();
+    const statusLabel = latestAction.status === 'running' ? 'running' : latestAction.status;
+    setLiveAnnouncement(detail ? `${latestAction.label}: ${statusLabel}. ${detail}` : `${latestAction.label}: ${statusLabel}.`);
+  }, [asyncActions]);
 
   useEffect(() => {
     if (shareStatus) addNotification(shareStatus, 'success');
@@ -3839,6 +3884,9 @@ export default function App() {
       } ${mode === 'matrix' ? 'mode-matrix' : ''} ${mode === 'gameplay' ? 'mode-gameplay' : ''}`}
     >
       <h1 className="sr-only">Workspace</h1>
+      <div className="live-region" role="status" aria-live="polite" aria-atomic="true">
+        {liveAnnouncement}
+      </div>
       <Header
         trace={trace}
         traces={traces}
@@ -4227,15 +4275,6 @@ export default function App() {
         </div>
         <div className="workspace-section-actions">
           <button
-            className="ghost-button"
-            type="button"
-            onClick={() => setWorkspacePanelOpen((prev) => !prev)}
-            aria-expanded={workspacePanelOpen}
-            aria-controls="workspace-context-panel"
-          >
-            {workspacePanelOpen ? 'Hide workspace tools' : 'Show workspace tools'}
-          </button>
-          <button
             className="primary-button workspace-primary-button"
             type="button"
             onClick={workspacePrimaryAction.onClick}
@@ -4243,6 +4282,45 @@ export default function App() {
           >
             {workspacePrimaryAction.label}
           </button>
+          <div className="workspace-secondary-actions" ref={workspaceActionsRef}>
+            <button
+              className={`ghost-button ${workspaceActionsOpen ? 'active' : ''}`}
+              type="button"
+              onClick={() => setWorkspaceActionsOpen((prev) => !prev)}
+              aria-expanded={workspaceActionsOpen}
+              aria-controls="workspace-actions-menu"
+            >
+              More actions
+            </button>
+            {workspaceActionsOpen ? (
+              <div className="workspace-actions-menu" id="workspace-actions-menu" role="menu" aria-label="Workspace secondary actions">
+                <button
+                  className="ghost-button"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setWorkspacePanelOpen((prev) => !prev);
+                    setWorkspaceActionsOpen(false);
+                  }}
+                  aria-controls="workspace-context-panel"
+                  aria-expanded={workspacePanelOpen}
+                >
+                  {workspacePanelOpen ? 'Hide workspace tools' : 'Show workspace tools'}
+                </button>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setTourOpen(true);
+                    setWorkspaceActionsOpen(false);
+                  }}
+                >
+                  Open guide
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 

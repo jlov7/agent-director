@@ -43,8 +43,8 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 
 ### Information Architecture
 5. `UX100-005` | Status: `DONE` | Rebuild navigation around top 5 intents. | DoD: IA map + UI implementation. | Verify: E2E nav flows. | Evidence: workspace nav now includes `Understand`, `Diagnose`, `Coordinate`, `Configure`, `Validate` intents in `ui/src/App.tsx` with mode/section handoff tests in `ui/tests/e2e/ux-audit-deep.spec.ts`.
-6. `UX100-006` | Status: `IN_PROGRESS` | Collapse secondary actions behind contextual overflow. | DoD: primary/secondary split in all top surfaces. | Verify: visual + E2E. | Evidence: toolbar advanced controls collapsed by default; remaining surfaces pending.
-7. `UX100-007` | Status: `IN_PROGRESS` | Enforce single primary CTA per major surface. | DoD: no competing primary CTAs. | Verify: UX audit check. | Evidence: workspace-level primary CTA introduced; full-app enforcement pending.
+6. `UX100-006` | Status: `DONE` | Collapse secondary actions behind contextual overflow. | DoD: primary/secondary split in all top surfaces. | Verify: visual + E2E. | Evidence: workspace secondary controls moved into `More actions` overflow menu in `ui/src/App.tsx` with coverage in `ui/tests/e2e/ux-audit-deep.spec.ts`.
+7. `UX100-007` | Status: `DONE` | Enforce single primary CTA per major surface. | DoD: no competing primary CTAs. | Verify: UX audit check. | Evidence: workspace header now has one visible primary CTA (`workspacePrimaryAction`) and secondary actions in overflow (`ui/src/App.tsx`, `ui/tests/e2e/ux-audit-deep.spec.ts`).
 8. `UX100-008` | Status: `DONE` | Rewrite section labels to intent/action language. | DoD: updated copy across app shell. | Verify: copy lint/manual review. | Evidence: action-first workspace headings/navigation and guidance copy in `ui/src/App.tsx`.
 9. `UX100-009` | Status: `IN_PROGRESS` | Replace ambiguous nouns with action-first labels. | DoD: copy pass complete. | Verify: content checklist. | Evidence: operations feature toggles now use action labels (`Enable ...`) in `ui/src/App.tsx`; broader app-wide copy sweep pending.
 10. `UX100-010` | Status: `DONE` | Standardize breadcrumbs and orientation cues. | DoD: orientation layer exists across primary journeys. | Verify: E2E path assertions. | Evidence: `workspace-breadcrumb` orientation rail in `ui/src/App.tsx` with mode-sync assertions in `ui/tests/e2e/ux-audit-deep.spec.ts`.
@@ -108,7 +108,7 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 56. `UX100-056` | Status: `DONE` | Ensure visible focus across controls. | DoD: focus styles visible and tested. | Verify: UX/a11y probes. | Evidence: existing UX deep probes.
 57. `UX100-057` | Status: `IN_PROGRESS` | Close remaining contrast/non-color cue risks. | DoD: color + non-color semantics validated everywhere. | Verify: contrast audit report. | Evidence: partial from Lighthouse/axe.
 58. `UX100-058` | Status: `DONE` | Ensure accessible names/descriptions for all interactive controls. | DoD: zero unlabeled control findings. | Verify: axe + Playwright role queries. | Evidence: visible control accessible-name audit in `/ui/tests/e2e/ux-audit-deep.spec.ts`.
-59. `UX100-059` | Status: `OPEN` | Add SR announcements for dynamic updates. | DoD: live-region coverage for major async events. | Verify: a11y behavior tests. | Evidence: pending.
+59. `UX100-059` | Status: `DONE` | Add SR announcements for dynamic updates. | DoD: live-region coverage for major async events. | Verify: a11y behavior tests. | Evidence: app-level polite live region now announces notification and async-action updates in `ui/src/App.tsx`, verified by `live region announces saved view completion` test in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 60. `UX100-060` | Status: `BLOCKED` | Conduct assisted-tech user testing with external participants. | DoD: external test report + fixes merged. | Verify: external artifact. | Evidence: blocked on external participants.
 
 ### Responsive Experience
@@ -162,14 +162,14 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 100. `UX100-100` | Status: `BLOCKED` | Conduct external red-team UX misuse review. | DoD: external red-team report complete and findings closed. | Verify: external artifact. | Evidence: blocked on external review.
 
 ## Current Closure Summary
-- `DONE`: 47
-- `IN_PROGRESS`: 6
-- `OPEN`: 40
+- `DONE`: 50
+- `IN_PROGRESS`: 4
+- `OPEN`: 39
 - `BLOCKED` (external dependencies): 7
 
 ## Next Execution Batch (B1)
-1. Close remaining IA/copy tasks `UX100-006`, `UX100-007`, `UX100-009`.
+1. Close remaining IA/copy tasks `UX100-009`.
 2. Execute responsive/mobile navigation cleanup `UX100-061`, `UX100-062`, `UX100-065`, `UX100-066`.
-3. Complete accessibility quality items `UX100-053`, `UX100-057`, `UX100-059`.
+3. Complete accessibility quality items `UX100-053`, `UX100-057`.
 4. Re-run verification: `make verify`, `make doctor`, `make scorecard`.
 5. Update this tracker and push.

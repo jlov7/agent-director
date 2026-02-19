@@ -11,9 +11,9 @@ In Progress
 1. [x] Initialize exhaustive 100-task tracker with status, DoD, verification, and evidence fields.
 2. [x] Sync tracking artifacts (`TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, `.codex/SCRATCHPAD.md`).
 3. [x] Close `UX100-003` UX debt register.
-4. [ ] Close IA tasks: `UX100-006`, `UX100-007`, `UX100-009` (`UX100-005`, `UX100-008`, `UX100-010`, `UX100-039` completed).
+4. [ ] Close IA tasks: `UX100-009` (`UX100-005`, `UX100-006`, `UX100-007`, `UX100-008`, `UX100-010`, `UX100-039` completed).
 5. [x] Close hierarchy tasks: `UX100-013`, `UX100-014`, `UX100-015` (with `UX100-017` still in progress).
-6. [x] Close accessibility/perf tasks: `UX100-054`, `UX100-058`, `UX100-076`.
+6. [x] Close accessibility/perf tasks: `UX100-054`, `UX100-058`, `UX100-059`, `UX100-076`.
 7. [x] Run `make verify`, `make doctor`, `make scorecard` and refresh tracker statuses.
 
 ## Decisions Made

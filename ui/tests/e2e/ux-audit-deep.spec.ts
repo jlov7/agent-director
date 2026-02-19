@@ -213,6 +213,32 @@ test.describe('Deep UX audit probes', () => {
     await expect(page.locator('.flow-canvas')).toBeVisible();
   });
 
+  test('workspace secondary actions are collapsed behind More actions menu', async ({ page }) => {
+    await initExperienced(page);
+    await page.goto('/');
+
+    await expect(page.getByRole('button', { name: /Show workspace tools|Hide workspace tools/ })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'More actions' }).click();
+    await expect(page.getByRole('menu', { name: 'Workspace secondary actions' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /Show workspace tools|Hide workspace tools/ })).toBeVisible();
+  });
+
+  test('live region announces saved view completion', async ({ page }) => {
+    await initExperienced(page);
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'More actions' }).click();
+    const panelToggle = page.getByRole('menuitem', { name: /Show workspace tools|Hide workspace tools/ });
+    if ((await panelToggle.textContent())?.includes('Show workspace tools')) {
+      await panelToggle.click();
+    }
+
+    await page.getByLabel('Saved view name').fill('screen-reader-view');
+    await page.locator('.workspace-section-actions .primary-button').click();
+    await expect(page.locator('.live-region')).toContainText('Saved view: screen-reader-view');
+  });
+
   test('global C key switches from flow back to cinema', async ({ page }) => {
     await initExperienced(page);
     await page.goto('/');
