@@ -338,6 +338,8 @@ def gate_summary(index: dict[str, dict]) -> dict:
     verify = index["verify_strict"]["status"] == "pass"
     critical_specs = index["critical_specs"]["status"] == "pass"
     bundle_budget = index["bundle_budget"]["status"] == "pass"
+    cold_start_budget = index["cold_start_budget"]["status"] == "pass"
+    reliability_drills = index["reliability_drills"]["status"] == "pass"
     secrets = index["secret_scan"]["status"] == "pass"
     deps = index["dependency_audit"]["status"] == "pass"
     docs = index["docs_presence"]["status"] == "pass"
@@ -346,9 +348,9 @@ def gate_summary(index: dict[str, dict]) -> dict:
     return {
         "G1-core-journeys": verify and critical_specs,
         "G2-onboarding-help": critical_specs,
-        "G3-quality": verify,
+        "G3-quality": verify and reliability_drills,
         "G4-accessibility": critical_specs and verify,
-        "G5-performance": verify and bundle_budget,
+        "G5-performance": verify and bundle_budget and cold_start_budget,
         "G6-security": verify and secrets and deps,
         "G7-docs": docs,
         "G8-ci": ci,
@@ -363,6 +365,8 @@ def main() -> int:
         check_secret_scan(),
         check_docs_presence(),
         check_bundle_budget(),
+        run_command("cold_start_budget", "python3 ./scripts/cold_start_budget.py"),
+        run_command("reliability_drills", "python3 ./scripts/reliability_drills.py"),
         check_ci_status(),
     ]
 

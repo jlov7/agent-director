@@ -1,3 +1,40 @@
+# Pre-Release Gate 40 Completion ExecPlan
+
+## Purpose / Big Picture
+
+Close the complete pre-release feature/polish/fix set required to ship as a world-class public product, with evidence-backed completion rather than checklist-only claims.
+
+## Scope
+
+- In scope: `RG-001..RG-040` tracked in `docs/plans/2026-02-19-pre-release-gate-40-completion-plan.md`.
+- Out of scope: unscoped architecture rewrites not required to close open RG items.
+
+## Progress
+
+- [x] Initialize exhaustive RG tracker and batch plan
+- [x] Batch A: RG-021 and RG-022 (input remap + unified settings center)
+- [x] Batch B: RG-032 and RG-034 (startup perf gate + reliability drills)
+- [ ] Batch C: RG-038 (release safety one-command operations)
+- [ ] Batch D: RG-026 and RG-027 (content depth + procedural quality controls)
+- [ ] Batch E: RG-024 (global localization infrastructure)
+- [ ] Full closure verification and release evidence refresh
+
+## Decision Log
+
+- Treat existing completed WR/SWC work as evidence for already-implemented RG items, and focus engineering on true remaining gaps only.
+- Execute in minimal-risk, verification-backed slices so `main` remains releasable throughout.
+
+## Validation Plan
+
+- Per-batch targeted verification in changed domains.
+- Final gates: `make verify`, `make doctor`, `make scorecard`, `make vercel-check`.
+
+## Outcomes & Retrospective
+
+In progress.
+
+---
+
 # SaaS UX World-Class Sweep ExecPlan
 
 ## Purpose / Big Picture

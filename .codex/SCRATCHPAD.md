@@ -1,30 +1,25 @@
 ## Current Task
 
-Execute the SaaS UX world-class frontend sweep from `docs/plans/2026-02-18-saas-ux-world-class-sweep-plan.md` with exhaustive tracking and verification evidence.
+Execute the pre-release gate 40 completion program from `docs/plans/2026-02-19-pre-release-gate-40-completion-plan.md` with strict batch tracking.
 
 ## Status
 
-Completed
+In Progress
 
 ## Plan
 
-1. [x] SWC-001 Initialize exhaustive tracker + plan sync (`TASKS.md`, `.codex/PLANS.md`, `.codex/SCRATCHPAD.md`)
-2. [x] SWC-002 Implement deep-link URL state (`mode`, `trace`, `step`)
-3. [x] SWC-003 Implement unified loading/empty/error app shell states
-4. [x] SWC-004 Implement notification center and event surfacing
-5. [x] SWC-005 Harmonize async action resilience UX states
-6. [x] SWC-006 Implement SEO baseline assets and metadata
-7. [x] SWC-007 Implement PWA baseline assets and service worker registration
-8. [x] SWC-008 Run a11y + keyboard parity checks for new surfaces
-9. [x] SWC-009..SWC-011 session/workspace/role UX tranche
-10. [x] Continue SWC-012..SWC-027 in strict order
+1. [x] RG-041 Initialize exhaustive plan + task sync (`TASKS.md`, `.codex/PLANS.md`, `.codex/SCRATCHPAD.md`)
+2. [x] RG-042 Batch A: close RG-021 + RG-022 (keybind remap + unified settings center)
+3. [x] RG-043 Batch B: close RG-032 + RG-034 (startup perf gate + reliability drills)
+4. [ ] RG-044 Batch C: close RG-038 (one-command canary/rollback/kill-switch ops)
+5. [ ] RG-045 Batch D: close RG-026 + RG-027 (content depth + procedural quality controls)
+6. [ ] RG-046 Batch E: close RG-024 (global localization infrastructure)
+7. [ ] Final release verification and evidence refresh
 
 ## Decisions Made
 
-- Ship foundational UX platform changes first so later SaaS journey features build on stable routing, state handling, and reliability patterns.
-- Keep this batch additive and test-backed to avoid regressions in existing world-class flows.
-- Stabilize gameplay E2E by waiting for deterministic local-only or remote-session state after create-session action.
-- Consolidate remaining SaaS UX items into one cohesive workspace-control layer to keep journeys discoverable.
+- Keep RG IDs as source-of-truth and execute in batch order.
+- Treat previously shipped WR/SWC work as existing evidence and focus coding on uncovered gaps.
 
 ## Open Questions
 
@@ -32,7 +27,5 @@ Completed
 
 ## Verification Gates
 
-- `pnpm -C ui typecheck`
-- `pnpm -C ui test`
-- `pnpm -C ui test:e2e`
-- `make verify-ux`
+- Batch A: `pnpm -C ui typecheck`, `pnpm -C ui test`
+- Final closure: `make verify`, `make doctor`, `make scorecard`, `make vercel-check`

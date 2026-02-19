@@ -2,6 +2,55 @@
 
 Below is the complete, prioritized list of "perfecting" work. Each item is framed as a checkable task. We can tackle them in batches instead of one‑by‑one.
 
+## Pre-Release Gate 40 Program (Active)
+- [x] RG-001 First-session funnel with guaranteed first win
+- [x] RG-002 Explicit mission objectives + fail reasons
+- [x] RG-003 Adaptive difficulty director
+- [x] RG-004 Deterministic run-state integrity (pause/rewind/fork/merge)
+- [x] RG-005 Transparent post-run scoring model
+- [x] RG-006 Reward loop clarity (XP/credits/unlocks)
+- [ ] RG-007 Persistent cloud profile save/load + migration safety
+- [x] RG-008 Skill-tree respec + loadout presets
+- [x] RG-009 Economy balancing controls
+- [x] RG-010 Anti-exploit validation for progression/rewards
+- [ ] RG-011 Multiplayer matchmaking/lobby assignment
+- [x] RG-012 Session reconnect + crash recovery
+- [x] RG-013 Conflict-safe co-op actions with rollback semantics
+- [x] RG-014 Collaboration ownership/handoff audit timeline
+- [x] RG-015 Trust/safety controls (mute/block/report)
+- [x] RG-016 UX consistency sweep across core modes
+- [x] RG-017 Full async-state coverage on critical surfaces
+- [x] RG-018 Confirm + undo for destructive actions
+- [x] RG-019 WCAG 2.2 AA baseline closure
+- [x] RG-020 Mobile/tablet parity for critical paths
+- [x] RG-021 Keybind remapping + controller support baseline
+- [x] RG-022 Unified settings center (input/motion/accessibility/privacy)
+- [x] RG-023 In-app help/support center with diagnostics payload export
+- [ ] RG-024 Global localization infrastructure
+- [x] RG-025 Mission/content authoring pipeline with validation/versioning
+- [ ] RG-026 Launch content pack depth target
+- [ ] RG-027 Procedural mission quality controls (novelty/repetition)
+- [x] RG-028 Branching campaign consequences persistence
+- [x] RG-029 Narrative recap engine (what happened/why/what next)
+- [x] RG-030 Seasonal liveops framework
+- [x] RG-031 60fps usability guardrails for large traces
+- [x] RG-032 Cold-start performance budget + automation gate
+- [x] RG-033 Full observability stack (errors/perf/gameplay KPIs)
+- [x] RG-034 Reliability drills (disconnect/corruption/retry chaos checks)
+- [x] RG-035 Security hardening pass
+- [x] RG-036 Backup/restore + disaster-recovery runbook
+- [x] RG-037 Blocking release CI gates
+- [ ] RG-038 Canary + one-click rollback + runtime kill-switches
+- [x] RG-039 Public docs pack
+- [x] RG-040 Launch analytics dashboard
+
+- [x] RG-041 Create exhaustive master plan `docs/plans/2026-02-19-pre-release-gate-40-completion-plan.md`
+- [x] RG-042 Execute Batch A (RG-021, RG-022)
+- [x] RG-043 Execute Batch B (RG-032, RG-034)
+- [ ] RG-044 Execute Batch C (RG-038)
+- [ ] RG-045 Execute Batch D (RG-026, RG-027)
+- [ ] RG-046 Execute Batch E (RG-024)
+
 ## Pre-Release World-Class Launch Program (Active)
 - [x] Master tracker: `WORLD_CLASS_RELEASE_TODO.md`
 - [x] Batch A: WR-031, WR-036, WR-038, WR-039, WR-018

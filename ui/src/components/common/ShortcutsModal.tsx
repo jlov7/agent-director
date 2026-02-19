@@ -1,27 +1,31 @@
 import { useEffect, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
+import {
+  formatShortcutKey,
+  REMAPPABLE_SHORTCUTS,
+  type ShortcutBindings,
+} from '../../utils/shortcutBindings';
 
 type ShortcutsModalProps = {
   open: boolean;
   onClose: () => void;
+  bindings: ShortcutBindings;
 };
 
-const shortcuts = [
-  { keys: 'Space', action: 'Play / pause' },
-  { keys: '← / →', action: 'Step boundary back / forward' },
-  { keys: 'Shift + ← / →', action: 'Jump to start / end' },
-  { keys: 'F', action: 'Toggle Flow mode' },
-  { keys: 'I', action: 'Toggle Inspector' },
-  { keys: 'S', action: 'Story mode' },
-  { keys: 'E', action: 'Explain mode' },
-  { keys: 'T', action: 'Start tour' },
-  { keys: 'Cmd/Ctrl + K', action: 'Open command palette' },
-  { keys: '?', action: 'Show shortcuts' },
-  { keys: 'Esc', action: 'Close modal / inspector' },
-];
-
-export default function ShortcutsModal({ open, onClose }: ShortcutsModalProps) {
+export default function ShortcutsModal({ open, onClose, bindings }: ShortcutsModalProps) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
+  const shortcuts = [
+    { keys: 'Space', action: 'Play / pause' },
+    { keys: '← / →', action: 'Step boundary back / forward' },
+    { keys: 'Shift + ← / →', action: 'Jump to start / end' },
+    ...REMAPPABLE_SHORTCUTS.map((shortcut) => ({
+      keys: formatShortcutKey(bindings[shortcut.id]),
+      action: shortcut.label,
+    })),
+    { keys: 'Cmd/Ctrl + K', action: 'Open command palette' },
+    { keys: '?', action: 'Show shortcuts' },
+    { keys: 'Esc', action: 'Close modal / inspector' },
+  ];
 
   useEffect(() => {
     if (!open) return;

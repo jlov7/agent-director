@@ -109,6 +109,14 @@ import {
   type ProductEventName,
   type SetupWizardDraft,
 } from './utils/saasUx';
+import {
+  DEFAULT_SHORTCUT_BINDINGS,
+  normalizeShortcutBindings,
+  REMAPPABLE_SHORTCUTS,
+  setShortcutBinding,
+  SHORTCUT_KEY_OPTIONS,
+  type ShortcutBindings,
+} from './utils/shortcutBindings';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
@@ -689,6 +697,10 @@ export default function App() {
     'agentDirector.gamepad.preset.v1',
     'standard'
   );
+  const [shortcutBindings, setShortcutBindings] = usePersistedState<ShortcutBindings>(
+    'agentDirector.shortcuts.bindings.v1',
+    DEFAULT_SHORTCUT_BINDINGS
+  );
   const [isOnline, setIsOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [gameplayObservability, setGameplayObservability] = useState<GameplayObservabilitySummary | null>(null);
   const [gameplayAnalytics, setGameplayAnalytics] = useState<GameplayAnalyticsFunnelSummary | null>(null);
@@ -730,6 +742,10 @@ export default function App() {
     typeof window === 'undefined' ? parseUrlAppState('') : parseUrlAppState(window.location.search)
   );
   const urlStateAppliedRef = useRef(false);
+  const normalizedShortcutBindings = useMemo(
+    () => normalizeShortcutBindings(shortcutBindings),
+    [shortcutBindings]
+  );
 
   const textFilteredSteps = useMemo(() => {
     if (!trace) return [];
@@ -3046,7 +3062,28 @@ export default function App() {
   }, [trace, compareTrace, isPlaying, speed, mode]);
 
   useEffect(() => {
+    const persisted = JSON.stringify(shortcutBindings);
+    const normalized = JSON.stringify(normalizedShortcutBindings);
+    if (persisted !== normalized) {
+      setShortcutBindings(normalizedShortcutBindings);
+    }
+  }, [normalizedShortcutBindings, setShortcutBindings, shortcutBindings]);
+
+  const handleShortcutBindingChange = useCallback(
+    (id: keyof ShortcutBindings, nextKey: string) => {
+      setShortcutBindings((previous) => setShortcutBinding(previous, id, nextKey));
+      trackProductEvent('ux.settings.shortcut.updated', { shortcut: id, key: nextKey.toLowerCase() });
+    },
+    [setShortcutBindings, trackProductEvent]
+  );
+
+  useEffect(() => {
     const handler = (event: KeyboardEvent) => {
+      const isShortcutPressed = (id: keyof ShortcutBindings): boolean =>
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === normalizedShortcutBindings[id];
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName?.toLowerCase();
       const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || target?.isContentEditable;
@@ -3064,19 +3101,19 @@ export default function App() {
         return;
       }
 
-      if (event.key.toLowerCase() === 's') {
+      if (isShortcutPressed('toggleStory')) {
         event.preventDefault();
         toggleStory();
         return;
       }
 
-      if (event.key.toLowerCase() === 'e') {
+      if (isShortcutPressed('toggleExplain')) {
         event.preventDefault();
         setExplainMode((prev) => !prev);
         return;
       }
 
-      if (event.key.toLowerCase() === 't') {
+      if (isShortcutPressed('startTour')) {
         event.preventDefault();
         setTourOpen(true);
         return;
@@ -3100,26 +3137,26 @@ export default function App() {
         return;
       }
 
-      if (event.key.toLowerCase() === 'f') {
+      if (isShortcutPressed('toggleFlow')) {
         event.preventDefault();
         if (mode === 'flow') setMode('cinema');
         else if (mode === 'cinema') handleModeChange('flow');
         return;
       }
 
-      if (event.key.toLowerCase() === 'c') {
+      if (isShortcutPressed('toggleCinema')) {
         event.preventDefault();
         if (mode !== 'cinema') setMode('cinema');
         return;
       }
 
-      if (event.key.toLowerCase() === 'g') {
+      if (isShortcutPressed('toggleGameplay')) {
         event.preventDefault();
         handleModeChange('gameplay');
         return;
       }
 
-      if (event.key.toLowerCase() === 'i') {
+      if (isShortcutPressed('toggleInspector')) {
         event.preventDefault();
         if (selectedStepId) setSelectedStepId(null);
         else if (trace?.steps.length) setSelectedStepId(trace.steps[0].id);
@@ -3150,6 +3187,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   }, [
     mode,
+    normalizedShortcutBindings,
     selectedStepId,
     trace,
     playheadMs,
@@ -4198,6 +4236,72 @@ export default function App() {
                 </button>
               </div>
             </article>
+            <article className="workspace-card">
+              <h3>Settings center</h3>
+              <p>Centralized controls for input, UX behavior, and safe sharing defaults.</p>
+              <div className="workspace-inline-form">
+                <label className="toggle">
+                  <input type="checkbox" checked={safeExport} onChange={() => setSafeExport((prev) => !prev)} />
+                  Safe export
+                </label>
+                <label className="toggle">
+                  <input type="checkbox" checked={gamepadEnabled} onChange={() => setGamepadEnabled((prev) => !prev)} />
+                  Gamepad enabled
+                </label>
+                <label className="toggle">
+                  <input type="checkbox" checked={windowed} onChange={() => setWindowed((prev) => !prev)} />
+                  Timeline windowing
+                </label>
+              </div>
+              <div className="workspace-inline-form">
+                <label>
+                  Theme
+                  <select className="search-select" value={themeMode} onChange={(event) => setThemeMode(event.target.value as ThemeMode)}>
+                    <option value="studio">Studio</option>
+                    <option value="focus">Focus</option>
+                    <option value="contrast">Contrast</option>
+                  </select>
+                </label>
+                <label>
+                  Motion
+                  <select className="search-select" value={motionMode} onChange={(event) => setMotionMode(event.target.value as MotionMode)}>
+                    <option value="cinematic">Cinematic</option>
+                    <option value="balanced">Balanced</option>
+                    <option value="minimal">Minimal</option>
+                  </select>
+                </label>
+                <label>
+                  Gameplay locale
+                  <select
+                    className="search-select"
+                    value={gameplayLocale}
+                    onChange={(event) => setGameplayLocale(event.target.value as GameplayLocale)}
+                  >
+                    <option value="en">English</option>
+                    <option value="es">Espanol</option>
+                  </select>
+                </label>
+              </div>
+              <div className="workspace-feed">
+                {REMAPPABLE_SHORTCUTS.map((shortcut) => (
+                  <label key={shortcut.id} className="workspace-inline-form">
+                    <span>{shortcut.label}</span>
+                    <select
+                      className="search-select"
+                      value={normalizedShortcutBindings[shortcut.id]}
+                      onChange={(event) => handleShortcutBindingChange(shortcut.id, event.target.value)}
+                      aria-label={`${shortcut.label} shortcut`}
+                    >
+                      {SHORTCUT_KEY_OPTIONS.map((key) => (
+                        <option key={key} value={key}>
+                          {key.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            </article>
           </div>
         ) : null}
       </section>
@@ -4644,7 +4748,11 @@ export default function App() {
         context={{ section: activeSection, mode, persona: introPersona }}
         onActionRun={(action) => trackProductEvent('ux.palette.command_run', { id: action.id, group: action.group ?? null })}
       />
-      <ShortcutsModal open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <ShortcutsModal
+        open={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+        bindings={normalizedShortcutBindings}
+      />
     </div>
   );
 }

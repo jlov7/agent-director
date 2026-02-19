@@ -24,9 +24,9 @@ This emits `artifacts/scorecards.json` and requires every domain score to be `10
 |------|-------------|----------------------|
 | `G1-core-journeys` | Happy path + key failure journeys run end-to-end with no skipped critical specs. | `artifacts/doctor.json` shows `critical_specs=pass` and `verify_strict=pass`. |
 | `G2-onboarding-help` | First-run onboarding + help surface are present and tested. | `artifacts/doctor.json` shows `critical_specs=pass` (includes onboarding/help specs). |
-| `G3-quality` | Lint/typecheck/build/unit/E2E/server checks/evals/mutation all pass. | `artifacts/doctor.json` shows `verify_strict=pass`. |
+| `G3-quality` | Lint/typecheck/build/unit/E2E/server checks/evals/mutation and reliability drills all pass. | `artifacts/doctor.json` shows `verify_strict=pass` and `reliability_drills=pass`. |
 | `G4-accessibility` | A11y + keyboard primary-flow checks are enforced. | `artifacts/doctor.json` shows `critical_specs=pass` and required specs include `a11y.spec.ts` + `keyboard.spec.ts`. |
-| `G5-performance` | Build succeeds and main bundle size is within budget. | `artifacts/doctor.json` shows `bundle_budget=pass` and `verify_strict=pass`. |
+| `G5-performance` | Build succeeds, bundle is within budget, and startup performance stays within Lighthouse cold-start thresholds. | `artifacts/doctor.json` shows `bundle_budget=pass`, `cold_start_budget=pass`, and `verify_strict=pass`. |
 | `G6-security` | No obvious secret leakage and no high-severity dependency vulnerabilities. | `artifacts/doctor.json` shows `secret_scan=pass` and `dependency_audit=pass`. |
 | `G7-docs` | Launch docs and steering docs are present and complete. | `artifacts/doctor.json` shows `docs_presence=pass`. |
 | `G8-ci` | CI checks are green on active PR. | `artifacts/doctor.json` shows `ci_status=pass`. |

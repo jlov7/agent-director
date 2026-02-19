@@ -15,3 +15,9 @@ scorecard:
 
 vercel-check:
 	./scripts/vercel_release_check.sh
+
+cold-start-budget:
+	python3 ./scripts/cold_start_budget.py
+
+reliability-drills:
+	python3 ./scripts/reliability_drills.py

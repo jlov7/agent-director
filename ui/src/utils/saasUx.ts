@@ -44,6 +44,7 @@ export type ProductEventName =
   | 'ux.action.undone'
   | 'ux.palette.opened'
   | 'ux.palette.command_run'
+  | 'ux.settings.shortcut.updated'
   | 'ux.feature_flag.toggled'
   | 'ux.error.boundary'
   | 'ux.error.window'
