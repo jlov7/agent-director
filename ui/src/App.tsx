@@ -98,6 +98,7 @@ import { createInitialGameplayState, type GameplayState } from './utils/gameplay
 import type { GameplayLocale } from './utils/gameplayI18n';
 import { APP_LOCALE_OPTIONS, appLabel, normalizeAppLocale, type AppLocale } from './utils/appI18n';
 import { buildUrlAppState, parseUrlAppState } from './utils/urlState';
+import { buildLikelyStepPrefetchList, deriveLikelyMode } from './utils/prefetchPolicy';
 import {
   appendProductEvent,
   captureSupportDiagnostics,
@@ -135,6 +136,7 @@ type Mode = 'cinema' | 'flow' | 'compare' | 'matrix' | 'gameplay';
 type IntroPersona = 'builder' | 'executive' | 'operator';
 type ThemeMode = 'studio' | 'focus' | 'contrast';
 type MotionMode = 'cinematic' | 'balanced' | 'minimal';
+type DensityMode = 'auto' | 'comfortable' | 'compact';
 type LaunchPath = 'rapid_triage' | 'deep_diagnosis' | 'team_sync';
 type RecommendationTone = 'priority' | 'warning' | 'info';
 type SaaSRole = 'viewer' | 'operator' | 'admin';
@@ -661,6 +663,8 @@ export default function App() {
   );
   const [themeMode, setThemeMode] = usePersistedState<ThemeMode>('agentDirector.themeMode', 'studio');
   const [motionMode, setMotionMode] = usePersistedState<MotionMode>('agentDirector.motionMode', 'balanced');
+  const [densityMode, setDensityMode] = usePersistedState<DensityMode>('agentDirector.densityMode.v1', 'auto');
+  const [viewportWidth, setViewportWidth] = useState(typeof window === 'undefined' ? 1280 : window.innerWidth);
   const [workspaceId, setWorkspaceId] = usePersistedState('agentDirector.workspaceId.v1', WORKSPACE_OPTIONS[0].id);
   const [workspaceRole, setWorkspaceRole] = usePersistedState<SaaSRole>('agentDirector.workspaceRole.v1', 'operator');
   const [sessionExpiresAt, setSessionExpiresAt] = usePersistedState(
@@ -778,6 +782,13 @@ export default function App() {
   const [undoState, setUndoState] = useState<null | { id: string; label: string }>(null);
   const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
   const [sharedAnnotations, setSharedAnnotations] = useState<SharedAnnotation[]>([]);
+
+  useEffect(() => {
+    const syncViewport = () => setViewportWidth(window.innerWidth);
+    syncViewport();
+    window.addEventListener('resize', syncViewport);
+    return () => window.removeEventListener('resize', syncViewport);
+  }, []);
   const [activityFeed, setActivityFeed] = useState<ActivityEntry[]>([]);
   const [hydrationLimit, setHydrationLimit] = useState(800);
   const [filterComputeMs, setFilterComputeMs] = useState(0);
@@ -797,6 +808,7 @@ export default function App() {
   const exportRetryHandlersRef = useRef<Record<string, () => void>>({});
   const confirmHandlersRef = useRef<Record<string, () => void>>({});
   const undoHandlersRef = useRef<Record<string, () => void>>({});
+  const smartPrefetchSignatureRef = useRef<string>('');
   const initialUrlStateRef = useRef(
     typeof window === 'undefined' ? parseUrlAppState('') : parseUrlAppState(window.location.search)
   );
@@ -846,6 +858,15 @@ export default function App() {
     () => (trace ? trace.steps.find((step) => step.id === selectedStepId) ?? null : null),
     [trace, selectedStepId]
   );
+  const likelyPrefetchMode = useMemo(
+    () => deriveLikelyMode(activeSection, mode, Boolean(compareTrace)),
+    [activeSection, mode, compareTrace]
+  );
+  const likelyPrefetchStepIds = useMemo(
+    () => buildLikelyStepPrefetchList(trace?.steps ?? [], selectedStepId),
+    [trace?.steps, selectedStepId]
+  );
+  const likelyPrefetchStepKey = useMemo(() => likelyPrefetchStepIds.join('|'), [likelyPrefetchStepIds]);
   const laneGroups = useMemo(
     () => (trace ? deriveLaneGroups(trace.steps, laneStrategy) : []),
     [trace, laneStrategy]
@@ -1386,6 +1407,14 @@ export default function App() {
     }, 70);
     return () => window.clearInterval(interval);
   }, [textFilteredSteps.length, trace]);
+
+  useEffect(() => {
+    if (!trace) return;
+    if (trace.steps.length < 450 || windowed) return;
+    setWindowed(true);
+    setWindowSpanMs((prev) => Math.min(prev, 15000));
+    addNotification('Enabled windowed playback automatically for large traces.', 'info');
+  }, [addNotification, trace, windowed, setWindowed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3157,6 +3186,45 @@ export default function App() {
   }, [trace, playheadMs, safeExport]);
 
   useEffect(() => {
+    if (!trace) return;
+    if (!likelyPrefetchStepKey) return;
+    const signature = `${trace.id}:${likelyPrefetchMode}:${compareTrace?.id ?? 'none'}:${safeExport ? 'safe' : 'raw'}:${likelyPrefetchStepKey}`;
+    if (smartPrefetchSignatureRef.current === signature) return;
+    smartPrefetchSignatureRef.current = signature;
+
+    const timer = window.setTimeout(() => {
+      likelyPrefetchStepIds.forEach((stepId) => {
+        void prefetchStepDetails(trace.id, stepId, safeExport);
+      });
+
+      if (likelyPrefetchMode === 'compare' && compareTrace) {
+        likelyPrefetchStepIds.forEach((stepId) => {
+          void prefetchStepDetails(compareTrace.id, stepId, safeExport);
+        });
+      }
+
+      if (likelyPrefetchMode === 'flow') {
+        void import('./components/FlowMode');
+      } else if (likelyPrefetchMode === 'matrix') {
+        void import('./components/Matrix');
+      } else if (likelyPrefetchMode === 'compare' && compareTrace) {
+        void import('./components/Compare');
+      } else if (likelyPrefetchMode === 'gameplay') {
+        void import('./components/GameplayMode');
+      }
+    }, 160);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    compareTrace,
+    likelyPrefetchMode,
+    likelyPrefetchStepIds,
+    likelyPrefetchStepKey,
+    safeExport,
+    trace,
+  ]);
+
+  useEffect(() => {
     if (!trace || !isPlaying || (mode !== 'cinema' && mode !== 'compare')) return;
     const compareWall = compareTrace?.metadata.wallTimeMs ?? 0;
     const wallTimeMs =
@@ -3800,6 +3868,8 @@ export default function App() {
     }
   })();
   const modeOrientationLabel = MODE_ORIENTATION_COPY[mode];
+  const effectiveDensity: Exclude<DensityMode, 'auto'> =
+    densityMode === 'auto' ? (viewportWidth <= 980 ? 'compact' : 'comfortable') : densityMode;
   const workspaceTrail = `Workspace / ${activeWorkspaceSection.title} / ${modeOrientationLabel}`;
   const nextBestAction = (() => {
     if (activeSection === 'journey') {
@@ -3868,7 +3938,7 @@ export default function App() {
 
   return (
     <div
-      className={`app theme-${themeMode} ${explainMode ? 'explain-mode' : ''} ${
+      className={`app theme-${themeMode} density-${effectiveDensity} ${explainMode ? 'explain-mode' : ''} ${
         mode === 'compare' ? 'mode-compare' : ''
       } ${mode === 'matrix' ? 'mode-matrix' : ''} ${mode === 'gameplay' ? 'mode-gameplay' : ''}`}
     >
@@ -3894,6 +3964,8 @@ export default function App() {
         }}
         onThemeChange={setThemeMode}
         onMotionChange={setMotionMode}
+        densityMode={densityMode}
+        onDensityChange={setDensityMode}
         themeMode={themeMode}
         motionMode={motionMode}
         activeSessions={activeSessions}
@@ -4390,7 +4462,7 @@ export default function App() {
               <h3>Track async actions</h3>
               {asyncActions.length === 0 ? <p>No tracked async actions yet.</p> : null}
               {asyncActions.map((action) => (
-                <div key={action.id} className={`async-action-row status-${action.status}`}>
+                <div key={action.id} className={`async-action-row status-${action.status}`} data-status={action.status}>
                   <div>
                     <strong>{action.label}</strong>
                     <p>{action.detail}</p>
@@ -4439,7 +4511,7 @@ export default function App() {
               </div>
               {featureFlags.exportCenterV1 && exportTasks.length === 0 ? <p>No exports queued.</p> : null}
               {exportTasks.map((task) => (
-                <div key={task.id} className={`export-task-row status-${task.status}`}>
+                <div key={task.id} className={`export-task-row status-${task.status}`} data-status={task.status}>
                   <span>{task.label}</span>
                   <span>{task.detail}</span>
                   {task.retryable ? (
@@ -5122,21 +5194,41 @@ export default function App() {
       </main>
       <div className="mobile-quick-rail" aria-label="Mobile quick actions">
         <button
-          className={`ghost-button ${storyActive ? 'active' : ''}`}
+          className={`ghost-button ${mode === 'cinema' ? 'active' : ''}`}
           type="button"
-          onClick={toggleStory}
-          aria-label={storyActive ? 'Stop story mode' : 'Start story mode'}
+          onClick={() => handleModeChange('cinema')}
+          aria-label="Open timeline mode"
         >
-          {storyActive ? 'Stop Story' : 'Story'}
+          Timeline
+        </button>
+        <button
+          className={`ghost-button ${mode === 'flow' ? 'active' : ''}`}
+          type="button"
+          onClick={() => handleModeChange('flow')}
+          aria-label="Open flow graph mode"
+        >
+          Flow
+        </button>
+        <button
+          className={`ghost-button ${mode === 'compare' || mode === 'matrix' ? 'active' : ''}`}
+          type="button"
+          onClick={() => {
+            setActiveSection('analysis');
+            if (compareTrace) {
+              handleModeChange('compare');
+            } else {
+              handleModeChange('matrix');
+            }
+          }}
+          aria-label="Open validation mode"
+        >
+          Validate
         </button>
         <button className="ghost-button" type="button" onClick={() => setTourOpen(true)} aria-label="Start guided tour">
           Guide
         </button>
         <button className="ghost-button" type="button" onClick={() => setShowPalette(true)} aria-label="Open command palette">
           Command
-        </button>
-        <button className="ghost-button" type="button" onClick={() => void createHandoffDigest()} aria-label="Copy handoff digest">
-          Handoff
         </button>
       </div>
       <QuickActions

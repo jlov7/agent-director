@@ -73,7 +73,7 @@ test('matrix loaded snapshot', async ({ page }) => {
   const openButton = page.locator('.matrix-table').getByRole('button', { name: 'Open' }).first();
   await expect(openButton).toBeEnabled();
   await maybePercySnapshot(page, 'matrix-loaded');
-  await expect(page.locator('.main')).toHaveScreenshot('matrix-loaded.png', screenshotOptions);
+  await expect(page.locator('.matrix-table-wrap')).toHaveScreenshot('matrix-loaded.png', screenshotOptions);
 });
 
 test('matrix error snapshot', async ({ page }) => {

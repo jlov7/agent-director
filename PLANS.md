@@ -86,7 +86,8 @@ Execute an exhaustive 100-task program to raise the frontend from strong release
 - [x] Initialize exhaustive task ledger with statuses, DoD, verification commands, and evidence pointers.
 - [x] Sync active tracker references in `TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, and `.codex/SCRATCHPAD.md`.
 - [x] First clarity pass shipped: split primary vs advanced controls and add contextual workspace headers.
-- [ ] Batch 1 execution (`UX100-006`, `UX100-007`, `UX100-009`, `UX100-017`, `UX100-053`, `UX100-057`) with supporting closures for `UX100-003`, `UX100-005`, `UX100-008`, `UX100-010`, `UX100-013`, `UX100-014`, `UX100-015`, `UX100-039`, `UX100-054`, `UX100-058`, `UX100-064`, `UX100-076`.
+- [x] Batch 1 execution completed, including responsive/navigation/density/accessibility/perf-prefetch closures (`UX100-057`, `UX100-061`, `UX100-062`, `UX100-065`, `UX100-066`, `UX100-071`, `UX100-073`, `UX100-074`), plus CI visual stability hardening.
+- [ ] Batch 2 execution in progress (`UX100-016`, `UX100-017`, `UX100-018`, `UX100-019`, `UX100-020`, interaction-quality set, `UX100-070` profiling artifact).
 
 ## Decision Log
 - Use objective evidence artifacts (`doctor`, `scorecard`, Playwright, LHCI) for completion claims.
@@ -101,3 +102,4 @@ Execute an exhaustive 100-task program to raise the frontend from strong release
 In progress.
 - Batch progress shipped: action-first workspace IA labels, explicit semantic headings/landmarks, collapsed workspace tools for lower above-fold density, typography/spacing token docs + adoption, and a dedicated CI performance regression workflow.
 - Additional batch shipped: explicit 5-intent workspace navigation (including `Validate`), persistent orientation breadcrumbs, contextual next-best-action guidance, localization overflow guard tests, refreshed visual snapshots, and green `verify/doctor/scorecard` evidence.
+- Latest batch shipped: tablet split-view optimization, mobile quick-rail orientation actions, adaptive density mode (auto/comfortable/compact), non-color status semantics, smart likely-next-action prefetch policy, and auto-windowing for large traces with refreshed snapshot baselines.

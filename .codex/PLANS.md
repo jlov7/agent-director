@@ -53,7 +53,8 @@ Execute an exhaustive 100-task program to raise the frontend from strong release
 - [x] Sync tracker references in `TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, and `.codex/SCRATCHPAD.md`.
 - [x] Shipped IA clarity pass, semantic landmarks, density controls, and perf CI regression gate.
 - [x] Shipped orientation/intent pass: 5-intent navigation (`Validate` included), breadcrumbs, and next-best-action guidance.
-- [ ] Close remaining Batch 1 tasks (`UX100-006`, `UX100-007`, `UX100-009`, `UX100-017`, `UX100-053`, `UX100-057`).
+- [x] Closed responsive/navigation/density/accessibility/perf-prefetch batch (`UX100-057`, `UX100-061`, `UX100-062`, `UX100-065`, `UX100-066`, `UX100-071`, `UX100-073`, `UX100-074`) and advanced `UX100-070`.
+- [ ] Continue Batch 2 closures (`UX100-016`, `UX100-017`, `UX100-018`, `UX100-019`, `UX100-020`, interaction-quality set, `UX100-070` profiling artifact).
 
 ## Validation Plan
 
@@ -61,7 +62,7 @@ Execute an exhaustive 100-task program to raise the frontend from strong release
 
 ## Outcomes & Retrospective
 
-In progress. Latest evidence run is green for `make verify`, `make doctor`, and `make scorecard`.
+In progress. Latest evidence run is green for `make verify`, `make doctor`, and `make scorecard` after responsive/density/perf-prefetch closures.
 
 ---
 

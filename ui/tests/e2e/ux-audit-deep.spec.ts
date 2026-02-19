@@ -72,6 +72,24 @@ test.describe('Deep UX audit probes', () => {
     expect(inViewport).toBe(true);
   });
 
+  test('mobile quick rail supports fast orientation between timeline, flow, and validate', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await initExperienced(page);
+    await page.goto('/');
+
+    const rail = page.locator('.mobile-quick-rail');
+    await expect(rail).toBeVisible();
+
+    await rail.getByRole('button', { name: 'Open flow graph mode' }).click();
+    await expect(page.locator('.flow-canvas')).toBeVisible();
+
+    await rail.getByRole('button', { name: 'Open validation mode' }).click();
+    await expect(page.getByRole('heading', { name: 'Counterfactual Replay Matrix' })).toBeVisible();
+
+    await rail.getByRole('button', { name: 'Open timeline mode' }).click();
+    await expect(page.locator('.timeline')).toBeVisible();
+  });
+
   test('a11y scan for intro and guided tour surfaces', async ({ page }) => {
     await initFirstRun(page);
     await page.goto('/');
@@ -222,6 +240,44 @@ test.describe('Deep UX audit probes', () => {
     await page.getByRole('button', { name: 'More actions' }).click();
     await expect(page.getByRole('menu', { name: 'Workspace secondary actions' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /Show workspace tools|Hide workspace tools/ })).toBeVisible();
+  });
+
+  test('tablet viewport keeps split stage layout for faster side-by-side triage', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 1200 });
+    await initExperienced(page);
+    await page.goto('/');
+
+    const gridTemplateColumns = await page.locator('.stage').evaluate((node) =>
+      window.getComputedStyle(node).gridTemplateColumns
+    );
+    expect(gridTemplateColumns.split(' ').filter(Boolean).length).toBeGreaterThan(1);
+  });
+
+  test('tablet header secondary controls are collapsed behind More actions toggle', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 1200 });
+    await initExperienced(page);
+    await page.goto('/');
+
+    const toggle = page.locator('.header-actions-toggle');
+    await expect(toggle).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Refresh traces' })).toHaveCount(0);
+
+    await toggle.click();
+    await expect(page.getByRole('button', { name: 'Refresh traces' })).toBeVisible();
+  });
+
+  test('density mode auto compacts on mobile and can be overridden to comfortable', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(() => {
+      window.localStorage.setItem('agentDirector.densityMode.v1', JSON.stringify('auto'));
+    });
+    await initExperienced(page);
+    await page.goto('/');
+    await expect(page.locator('.app')).toHaveClass(/density-compact/);
+
+    await page.locator('.header-actions-toggle').click();
+    await page.getByLabel('Select density profile').selectOption('comfortable');
+    await expect(page.locator('.app')).toHaveClass(/density-comfortable/);
   });
 
   test('live region announces saved view completion', async ({ page }) => {

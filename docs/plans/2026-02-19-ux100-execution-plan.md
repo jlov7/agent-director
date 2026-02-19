@@ -106,28 +106,28 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 54. `UX100-054` | Status: `DONE` | Fix semantic structure (landmarks/headings/relationships). | DoD: semantics pass for all major screens. | Verify: axe + manual SR pass. | Evidence: landmark/heading assertions in `/ui/tests/e2e/ux-audit-deep.spec.ts` + semantic headings/labels in `/ui/src/App.tsx`.
 55. `UX100-055` | Status: `DONE` | Ensure complete keyboard traversal and focus order. | DoD: keyboard suites green. | Verify: Playwright keyboard specs. | Evidence: `tests/e2e/keyboard.spec.ts`.
 56. `UX100-056` | Status: `DONE` | Ensure visible focus across controls. | DoD: focus styles visible and tested. | Verify: UX/a11y probes. | Evidence: existing UX deep probes.
-57. `UX100-057` | Status: `IN_PROGRESS` | Close remaining contrast/non-color cue risks. | DoD: color + non-color semantics validated everywhere. | Verify: contrast audit report. | Evidence: partial from Lighthouse/axe.
+57. `UX100-057` | Status: `DONE` | Close remaining contrast/non-color cue risks. | DoD: color + non-color semantics validated everywhere. | Verify: contrast audit report. | Evidence: explicit non-color status semantics added in `ui/src/components/Header/index.tsx`, status cue styling hardening in `ui/src/styles/main.css`, and regression coverage in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 58. `UX100-058` | Status: `DONE` | Ensure accessible names/descriptions for all interactive controls. | DoD: zero unlabeled control findings. | Verify: axe + Playwright role queries. | Evidence: visible control accessible-name audit in `/ui/tests/e2e/ux-audit-deep.spec.ts`.
 59. `UX100-059` | Status: `DONE` | Add SR announcements for dynamic updates. | DoD: live-region coverage for major async events. | Verify: a11y behavior tests. | Evidence: app-level polite live region now announces notification and async-action updates in `ui/src/App.tsx`, verified by `live region announces saved view completion` test in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 60. `UX100-060` | Status: `BLOCKED` | Conduct assisted-tech user testing with external participants. | DoD: external test report + fixes merged. | Verify: external artifact. | Evidence: blocked on external participants.
 
 ### Responsive Experience
-61. `UX100-061` | Status: `OPEN` | Rework responsive layouts by task priority. | DoD: task-first responsive map applied. | Verify: responsive test matrix. | Evidence: pending.
-62. `UX100-062` | Status: `OPEN` | Optimize tablet split-view behavior. | DoD: tablet flows validated without regressions. | Verify: tablet E2E/snapshot. | Evidence: pending.
+61. `UX100-061` | Status: `DONE` | Rework responsive layouts by task priority. | DoD: task-first responsive map applied. | Verify: responsive test matrix. | Evidence: priority-first header action grouping/overflow and responsive nav updates in `ui/src/components/Header/index.tsx` + `ui/src/styles/main.css` with deep UX tests in `ui/tests/e2e/ux-audit-deep.spec.ts`.
+62. `UX100-062` | Status: `DONE` | Optimize tablet split-view behavior. | DoD: tablet flows validated without regressions. | Verify: tablet E2E/snapshot. | Evidence: tablet stage split behavior tuned in `ui/src/styles/main.css` and validated by tablet split-view probe in `ui/tests/e2e/ux-audit-deep.spec.ts` plus refreshed tablet snapshots in `ui/tests/e2e/ux-review.spec.ts-snapshots/`.
 63. `UX100-063` | Status: `OPEN` | Enforce touch target sizing and gesture tolerance. | DoD: key controls meet touch target guidelines. | Verify: style/a11y audit. | Evidence: pending.
 64. `UX100-064` | Status: `DONE` | Prevent overflow/truncation in localization expansion. | DoD: longest locale strings render safely in key screens. | Verify: locale visual tests. | Evidence: Spanish overflow regression tests in `ui/tests/e2e/localization-layout.spec.ts` and supporting header/layout CSS fixes in `ui/src/styles/main.css`.
-65. `UX100-065` | Status: `OPEN` | Refine mobile navigation for orientation and speed. | DoD: mobile nav journey times reduced. | Verify: mobile journey tests. | Evidence: pending.
-66. `UX100-066` | Status: `OPEN` | Add adaptive density modes for constrained viewports. | DoD: compact/comfortable modes available where needed. | Verify: responsive snapshot coverage. | Evidence: pending.
+65. `UX100-065` | Status: `DONE` | Refine mobile navigation for orientation and speed. | DoD: mobile nav journey times reduced. | Verify: mobile journey tests. | Evidence: mobile quick rail now prioritizes timeline/flow/validate orientation actions in `ui/src/App.tsx` with journey assertions in `ui/tests/e2e/ux-audit-deep.spec.ts`.
+66. `UX100-066` | Status: `DONE` | Add adaptive density modes for constrained viewports. | DoD: compact/comfortable modes available where needed. | Verify: responsive snapshot coverage. | Evidence: persisted density mode with auto compact behavior and UI selector in `ui/src/App.tsx` + `ui/src/components/Header/index.tsx`, styling in `ui/src/styles/main.css`, and e2e validation in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 67. `UX100-067` | Status: `OPEN` | Validate on real device/browser matrix. | DoD: matrix report with pass/fail and fixes. | Verify: test artifact. | Evidence: pending.
 68. `UX100-068` | Status: `DONE` | Add responsive snapshot coverage for critical states. | DoD: tablet/mobile snapshot suites pass. | Verify: `pnpm -C ui test:e2e`. | Evidence: `ux-review.spec.ts` snapshots.
 
 ### Performance
 69. `UX100-069` | Status: `DONE` | Set performance budgets (INP/LCP/CLS/TTI/payload). | DoD: budgets codified and enforced. | Verify: LHCI + budget scripts. | Evidence: `artifacts/cold_start_budget.json`, LHCI.
-70. `UX100-070` | Status: `OPEN` | Profile and optimize heavy render paths end-to-end. | DoD: profiling report + targeted fixes. | Verify: perf test delta. | Evidence: pending.
-71. `UX100-071` | Status: `IN_PROGRESS` | Expand virtualization/windowing for heavy datasets. | DoD: no major UX degradation at large scales. | Verify: perf tests for large traces. | Evidence: existing windowing + guardrails; expansion pending.
+70. `UX100-070` | Status: `IN_PROGRESS` | Profile and optimize heavy render paths end-to-end. | DoD: profiling report + targeted fixes. | Verify: perf test delta. | Evidence: targeted perf fixes landed (smart prefetch + auto windowing) in `ui/src/App.tsx`; formal profiling artifact still pending.
+71. `UX100-071` | Status: `DONE` | Expand virtualization/windowing for heavy datasets. | DoD: no major UX degradation at large scales. | Verify: perf tests for large traces. | Evidence: automatic large-trace windowing enablement in `ui/src/App.tsx` plus perf coverage in `ui/src/utils/perf.test.ts`.
 72. `UX100-072` | Status: `DONE` | Refine route/component code splitting. | DoD: heavy modules lazy-loaded. | Verify: bundle output + build. | Evidence: lazy imports in app.
-73. `UX100-073` | Status: `IN_PROGRESS` | Improve hydration/defer strategy for non-critical work. | DoD: deferred rendering path standardized. | Verify: performance telemetry trends. | Evidence: deferred filtering/hydration status exists.
-74. `UX100-074` | Status: `OPEN` | Add smart prefetch by likely next action. | DoD: prefetch policy implemented and measured. | Verify: perf traces. | Evidence: pending.
+73. `UX100-073` | Status: `DONE` | Improve hydration/defer strategy for non-critical work. | DoD: deferred rendering path standardized. | Verify: performance telemetry trends. | Evidence: deferred smart-prefetch scheduling by likely intent/mode in `ui/src/App.tsx` with policy logic in `ui/src/utils/prefetchPolicy.ts` and tests in `ui/src/utils/prefetchPolicy.test.ts`.
+74. `UX100-074` | Status: `DONE` | Add smart prefetch by likely next action. | DoD: prefetch policy implemented and measured. | Verify: perf traces. | Evidence: likely-next-action prefetch policy implemented via `deriveLikelyMode`/`buildLikelyStepPrefetchList` in `ui/src/utils/prefetchPolicy.ts` and integrated in app prefetch effects in `ui/src/App.tsx`.
 75. `UX100-075` | Status: `DONE` | Audit and reduce bundle bloat dependencies. | DoD: audit clean and no high vulns. | Verify: `make doctor`, dependency audit. | Evidence: release artifacts.
 76. `UX100-076` | Status: `DONE` | Add CI alerts for performance regression thresholds. | DoD: CI fails or alerts on perf regressions. | Verify: workflow + failing threshold test. | Evidence: `/.github/workflows/performance-regression.yml` + LHCI assertion thresholds.
 
@@ -162,14 +162,14 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 100. `UX100-100` | Status: `BLOCKED` | Conduct external red-team UX misuse review. | DoD: external red-team report complete and findings closed. | Verify: external artifact. | Evidence: blocked on external review.
 
 ## Current Closure Summary
-- `DONE`: 52
-- `IN_PROGRESS`: 2
-- `OPEN`: 39
-- `BLOCKED` (external dependencies): 7
+- `DONE`: 55
+- `IN_PROGRESS`: 4
+- `OPEN`: 36
+- `BLOCKED` (external dependencies): 5
 
-## Next Execution Batch (B1)
-1. Execute responsive/mobile navigation cleanup `UX100-061`, `UX100-062`, `UX100-065`, `UX100-066`.
-2. Complete accessibility quality item `UX100-057`.
-3. Continue performance closure tasks `UX100-070`, `UX100-071`, `UX100-073`, `UX100-074`.
+## Next Execution Batch (B2)
+1. Close remaining hierarchy rhythm items `UX100-016`, `UX100-017`, `UX100-018`, `UX100-019`, `UX100-020`.
+2. Build and verify interaction-quality items `UX100-031`, `UX100-032`, `UX100-033`, `UX100-034`.
+3. Complete performance evidence artifact for `UX100-070` (profiling report + delta proof).
 4. Re-run verification: `make verify`, `make doctor`, `make scorecard`.
 5. Update this tracker and push.
