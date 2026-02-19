@@ -195,20 +195,20 @@ type ExportTask = {
 
 const WORKSPACE_SECTION_COPY: Record<WorkspaceSection, { title: string; description: string }> = {
   journey: {
-    title: 'Journey tools',
-    description: 'Track persona progression and save the views you use most often.',
+    title: 'Understand this run',
+    description: 'Track progression and save the exact view you need to return to quickly.',
   },
   analysis: {
-    title: 'Analysis tools',
-    description: 'Run exports and async diagnostics without leaving your current trace context.',
+    title: 'Diagnose root cause',
+    description: 'Run exports and async diagnostics to isolate what changed and why.',
   },
   collaboration: {
-    title: 'Collaboration tools',
-    description: 'Manage ownership, handoffs, and team activity around this incident.',
+    title: 'Coordinate responders',
+    description: 'Set ownership, create handoffs, and keep the team aligned in real time.',
   },
   operations: {
-    title: 'Operations tools',
-    description: 'Configure setup, support access, feature flags, and workspace defaults.',
+    title: 'Configure workspace',
+    description: 'Manage setup, support access, and release-safe feature controls.',
   },
 };
 
@@ -3708,6 +3708,40 @@ export default function App() {
   const advancedControlsActive = Boolean(
     traceQuery.trim() || traceQueryResult || traceQueryError || selectedExtensionId || extensionRunning
   );
+  const workspacePrimaryAction = (() => {
+    switch (activeSection) {
+      case 'journey':
+        return {
+          label: 'Save current view',
+          onClick: () => saveCurrentView(),
+          disabled: Boolean(savedViewNameError),
+        };
+      case 'analysis':
+        return {
+          label: 'Queue narrative export',
+          onClick: () => exportDirectorNarrative(),
+          disabled: !trace || !featureFlags.exportCenterV1,
+        };
+      case 'collaboration':
+        return {
+          label: 'Share live link',
+          onClick: () => {
+            void shareSession();
+          },
+          disabled: !featureFlags.ownershipPanelV1,
+        };
+      case 'operations':
+      default:
+        return {
+          label: t('open_setup_wizard'),
+          onClick: () => {
+            setSetupWizardOpen(true);
+            trackProductEvent('ux.setup.opened', { source: 'workspace_primary' });
+          },
+          disabled: !featureFlags.setupWizardV1,
+        };
+    }
+  })();
 
   return (
     <div
@@ -4030,39 +4064,55 @@ export default function App() {
           className={`ghost-button ${activeSection === 'journey' ? 'active' : ''}`}
           type="button"
           aria-pressed={activeSection === 'journey'}
+          aria-label="Understand this run workspace section"
           onClick={() => setActiveSection('journey')}
         >
-          Journey
+          Understand
         </button>
         <button
           className={`ghost-button ${activeSection === 'analysis' ? 'active' : ''}`}
           type="button"
           aria-pressed={activeSection === 'analysis'}
+          aria-label="Diagnose root cause workspace section"
           onClick={() => setActiveSection('analysis')}
         >
-          Analysis
+          Diagnose
         </button>
         <button
           className={`ghost-button ${activeSection === 'collaboration' ? 'active' : ''}`}
           type="button"
           aria-pressed={activeSection === 'collaboration'}
+          aria-label="Coordinate responders workspace section"
           onClick={() => setActiveSection('collaboration')}
         >
-          Collaboration
+          Coordinate
         </button>
         <button
           className={`ghost-button ${activeSection === 'operations' ? 'active' : ''}`}
           type="button"
           aria-pressed={activeSection === 'operations'}
+          aria-label="Configure workspace section"
           onClick={() => setActiveSection('operations')}
         >
-          Operations
+          Configure
         </button>
       </nav>
       <div className="workspace-section-header">
-        <p className="workspace-section-eyebrow">Workspace</p>
-        <h2>{activeWorkspaceSection.title}</h2>
-        <p>{activeWorkspaceSection.description}</p>
+        <div className="workspace-section-meta">
+          <p className="workspace-section-eyebrow">Workspace</p>
+          <h2>{activeWorkspaceSection.title}</h2>
+          <p>{activeWorkspaceSection.description}</p>
+        </div>
+        <div className="workspace-section-actions">
+          <button
+            className="primary-button workspace-primary-button"
+            type="button"
+            onClick={workspacePrimaryAction.onClick}
+            disabled={workspacePrimaryAction.disabled}
+          >
+            {workspacePrimaryAction.label}
+          </button>
+        </div>
       </div>
 
       <section className="workspace-context-panel" aria-label="Contextual workspace tools">

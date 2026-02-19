@@ -4345,6 +4345,13 @@ textarea:focus-visible {
 
 .workspace-section-header {
   margin: 0 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.workspace-section-meta {
   display: grid;
   gap: 4px;
 }
@@ -4367,6 +4374,17 @@ textarea:focus-visible {
   margin: 0;
   font-size: 0.86rem;
   color: var(--text-muted);
+}
+
+.workspace-section-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.workspace-primary-button {
+  white-space: nowrap;
 }
 
 .workspace-context-panel {
@@ -4538,6 +4556,17 @@ textarea:focus-visible {
 
   .workspace-section-header {
     margin: 0 8px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .workspace-section-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .workspace-primary-button {
+    width: 100%;
   }
 
   .workspace-context-panel {

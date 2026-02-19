@@ -70,3 +70,32 @@ Per milestone, run:
 - CI closure shipped: PR #1 created and GitHub `verify` check confirmed green.
 - Final polish pass shipped: verification now enforces build by default, dependency audit reports no high vulnerabilities, and inspector unit tests no longer emit async `act` warning noise.
 - Final 10/10 pass shipped: backend timestamp/validation regressions closed, executable scorecards added (`make scorecard`), and LHCI runtime stabilized with robust retry/fallback behavior.
+
+---
+
+# ExecPlan: UX100 World-Class Frontend Program
+
+## Purpose / Big Picture
+Execute an exhaustive 100-task program to raise the frontend from strong release quality to a defensible world-class standard across IA, hierarchy, design consistency, interaction quality, journeys, onboarding, accessibility, responsiveness, performance, reliability, polish, and trust/safety UX.
+
+## Scope
+- In scope: `UX100-001..UX100-100` tracked in `docs/plans/2026-02-19-ux100-execution-plan.md`.
+- Out of scope: non-frontend platform rewrites not required for UX100 closure.
+
+## Progress
+- [x] Initialize exhaustive task ledger with statuses, DoD, verification commands, and evidence pointers.
+- [x] Sync active tracker references in `TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, and `.codex/SCRATCHPAD.md`.
+- [x] First clarity pass shipped: split primary vs advanced controls and add contextual workspace headers.
+- [ ] Batch 1 execution (`UX100-003`, `UX100-005`, `UX100-006`, `UX100-007`, `UX100-008`, `UX100-013`, `UX100-014`, `UX100-015`, `UX100-017`, `UX100-054`, `UX100-058`, `UX100-076`).
+
+## Decision Log
+- Use objective evidence artifacts (`doctor`, `scorecard`, Playwright, LHCI) for completion claims.
+- Keep external-review-dependent items explicitly marked `BLOCKED` until real external evidence exists.
+- Prioritize cognitive-load reduction and navigation clarity before deeper cosmetic polish.
+
+## Validation Plan
+- Per batch: targeted unit/E2E + snapshots for touched surfaces.
+- Program gates: `make verify`, `make doctor`, `make scorecard`.
+
+## Outcomes & Retrospective
+In progress.

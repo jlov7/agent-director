@@ -413,3 +413,38 @@ Done:
 
 Not done:
 - None.
+
+---
+
+# UX100 World-Class Frontend Program ExecPlan
+
+## Purpose / Big Picture
+
+Close all in-repo actionable tasks in the UX100 program and maintain explicit status for external-review-dependent items.
+
+## Scope
+
+- In scope: `UX100-001..UX100-100` in `docs/plans/2026-02-19-ux100-execution-plan.md`.
+- Out of scope: claims requiring external human panel validation without external evidence.
+
+## Progress
+
+- [x] Initialize exhaustive UX100 tracker with DoD + verification + evidence fields.
+- [x] Sync tracker entry points in `TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, and `.codex/SCRATCHPAD.md`.
+- [x] Ship first clarity/hierarchy slice (primary vs advanced toolbar, workspace contextual headers).
+- [ ] Execute Batch 1 open items from tracker.
+
+## Decision Log
+
+- Keep blocked items explicit when they require external reviewers/test participants.
+- Use existing release evidence artifacts to avoid re-implementing already-closed quality gates.
+- Treat UX100 closure as evidence-based, not assertion-based.
+
+## Validation Plan
+
+- Per-batch targeted checks.
+- Program-level checks: `make verify`, `make doctor`, `make scorecard`.
+
+## Outcomes & Retrospective
+
+In progress.
