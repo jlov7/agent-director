@@ -27,9 +27,10 @@ test.describe('Flow mode', () => {
     await initStorage(page);
     await page.goto('/');
 
+    await expect(page.locator('.timeline')).toBeVisible();
     await page.getByTitle('Graph view').click();
     await expect(page.locator('.flow-canvas')).toBeVisible();
-    await expect(page.locator('.react-flow__node:visible').first()).toBeVisible();
+    await expect(page.locator('.react-flow__viewport .react-flow__node:visible').first()).toBeVisible();
 
     await expect(page.getByLabel('Structure')).toBeVisible();
     await expect(page.getByLabel('Sequence')).toBeVisible();
@@ -39,6 +40,7 @@ test.describe('Flow mode', () => {
   test('edge layer toggles are interactive', async ({ page }) => {
     await initStorage(page);
     await page.goto('/');
+    await expect(page.locator('.timeline')).toBeVisible();
     await page.getByTitle('Graph view').click();
 
     const structure = page.getByLabel('Structure');
@@ -57,6 +59,7 @@ test.describe('Flow mode', () => {
   test('clicking a flow node opens inspector', async ({ page }) => {
     await initStorage(page);
     await page.goto('/');
+    await expect(page.locator('.timeline')).toBeVisible();
     await page.getByTitle('Graph view').click();
 
     const firstNode = page.locator('.react-flow__viewport .react-flow__node:visible').first();
