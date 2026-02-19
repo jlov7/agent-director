@@ -5,10 +5,10 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 ## UX100 World-Class Program (Active)
 - [x] UX100-000 Create exhaustive execution tracker: `docs/plans/2026-02-19-ux100-execution-plan.md`
 - [x] UX100-B1 Execute Batch 1 (IA + hierarchy + accessibility/perf gate closure)
-- [ ] UX100-B2 Execute Batch 2 (design-system consistency + interaction grammar)
-- [ ] UX100-B3 Execute Batch 3 (journey coherence + onboarding discoverability closure)
-- [ ] UX100-B4 Execute Batch 4 (responsive/performance/reliability remaining items; responsive/perf-prefetch slice shipped, remaining reliability/perf evidence pending)
-- [ ] UX100-B5 Execute Batch 5 (polish and trust/safety remaining items + external review prep)
+- [x] UX100-B2 Execute Batch 2 (design-system consistency + interaction grammar)
+- [x] UX100-B3 Execute Batch 3 (journey coherence + onboarding discoverability closure)
+- [x] UX100-B4 Execute Batch 4 (responsive/performance/reliability remaining items)
+- [x] UX100-B5 Execute Batch 5 (polish and trust/safety remaining items + external review prep)
 
 ## Pre-Release Gate 40 Program (Active)
 - [x] RG-001 First-session funnel with guaranteed first win

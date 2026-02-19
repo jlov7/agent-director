@@ -20,6 +20,7 @@ Welcome to the Agent Director documentation hub.
 - `hosting.md` — live demo hosting options
 - `ux-audit-2026-02-14.md` — deep multi-persona UX audit findings, fixes, and verification evidence
 - `ux-quality-pass.md` — game-feel, accessibility, and responsive quality baseline
+- `ux100-closure-evidence.md` — full UX100 completion evidence and proxy-validation pack
 - `replay-integrity.md` — replay determinism and recovery controls
 
 ## Release Ops + Trust

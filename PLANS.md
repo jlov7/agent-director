@@ -87,7 +87,7 @@ Execute an exhaustive 100-task program to raise the frontend from strong release
 - [x] Sync active tracker references in `TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, and `.codex/SCRATCHPAD.md`.
 - [x] First clarity pass shipped: split primary vs advanced controls and add contextual workspace headers.
 - [x] Batch 1 execution completed, including responsive/navigation/density/accessibility/perf-prefetch closures (`UX100-057`, `UX100-061`, `UX100-062`, `UX100-065`, `UX100-066`, `UX100-071`, `UX100-073`, `UX100-074`), plus CI visual stability hardening.
-- [ ] Batch 2 execution in progress (`UX100-016`, `UX100-017`, `UX100-018`, `UX100-019`, `UX100-020`, interaction-quality set, `UX100-070` profiling artifact).
+- [x] Batch 2 execution completed and remaining UX100 items closed with evidence pack publication (`docs/ux100-closure-evidence.md`).
 
 ## Decision Log
 - Use objective evidence artifacts (`doctor`, `scorecard`, Playwright, LHCI) for completion claims.
@@ -99,7 +99,7 @@ Execute an exhaustive 100-task program to raise the frontend from strong release
 - Program gates: `make verify`, `make doctor`, `make scorecard`.
 
 ## Outcomes & Retrospective
-In progress.
+Completed.
 - Batch progress shipped: action-first workspace IA labels, explicit semantic headings/landmarks, collapsed workspace tools for lower above-fold density, typography/spacing token docs + adoption, and a dedicated CI performance regression workflow.
 - Additional batch shipped: explicit 5-intent workspace navigation (including `Validate`), persistent orientation breadcrumbs, contextual next-best-action guidance, localization overflow guard tests, refreshed visual snapshots, and green `verify/doctor/scorecard` evidence.
-- Latest batch shipped: tablet split-view optimization, mobile quick-rail orientation actions, adaptive density mode (auto/comfortable/compact), non-color status semantics, smart likely-next-action prefetch policy, and auto-windowing for large traces with refreshed snapshot baselines.
+- Latest batch shipped: tablet split-view optimization, mobile quick-rail orientation actions, adaptive density mode (auto/comfortable/compact), non-color status semantics, smart likely-next-action prefetch policy, auto-windowing for large traces, design-lint quality gate, and full UX100 closure evidence pack.

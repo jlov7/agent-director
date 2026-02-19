@@ -226,6 +226,7 @@ See `TESTING.md` for details.
 - `docs/story.md` — product narrative + positioning
 - `docs/architecture.md` — system design + diagrams
 - `docs/ux.md` — interaction model + magic moments
+- `docs/ux100-closure-evidence.md` — full UX100 completion evidence pack
 - `docs/gameplay-core-loop.md` — v1 gameplay loop, outcomes, funnels, and difficulty ramp
 - `docs/hosting.md` — live demo hosting options
 - `docs/brand.md` — logo + voice guidelines

@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "lint": "eslint .",
+    "design:lint": "node ./scripts/design_lint.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest --run",
     "test:e2e": "playwright test",

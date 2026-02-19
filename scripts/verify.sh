@@ -17,6 +17,7 @@ if [[ ! -d ui/node_modules ]]; then
 fi
 
 pnpm -C ui lint
+pnpm -C ui design:lint
 pnpm -C ui typecheck
 pnpm -C ui build
 pnpm -C ui test
