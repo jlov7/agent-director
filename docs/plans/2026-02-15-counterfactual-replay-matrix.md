@@ -12,12 +12,12 @@
 
 ## Scope and Acceptance Criteria
 
-- [ ] User can define 2-N replay scenarios from a selected step.
-- [ ] Backend executes scenarios and exposes progress, status, and errors per scenario.
-- [ ] Matrix summary returns base-vs-scenario deltas for cost, wall time, errors, and changed steps.
-- [ ] Causal panel ranks factors with score, confidence, and evidence.
-- [ ] Matrix UI supports sort, inspect, compare jump, and safe export behavior.
-- [ ] Docs include quickstart and troubleshooting for matrix mode and missing env vars.
+- [x] User can define 2-N replay scenarios from a selected step.
+- [x] Backend executes scenarios and exposes progress, status, and errors per scenario.
+- [x] Matrix summary returns base-vs-scenario deltas for cost, wall time, errors, and changed steps.
+- [x] Causal panel ranks factors with score, confidence, and evidence.
+- [x] Matrix UI supports sort, inspect, compare jump, and safe export behavior.
+- [x] Docs include quickstart and troubleshooting for matrix mode and missing env vars.
 
 ## Out of Scope for v1
 

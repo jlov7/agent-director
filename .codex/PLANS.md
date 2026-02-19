@@ -59,7 +59,7 @@ Close the complete pre-release feature/polish/fix set required to ship as a worl
 - [x] Cross-cutting: RG-007 and RG-011 (profile migration contract + matchmaking flow)
 - [x] Batch D: RG-026 and RG-027 (content depth + procedural quality controls)
 - [x] Batch E: RG-024 (global localization infrastructure)
-- [ ] Full closure verification and release evidence refresh
+- [x] Full closure verification and release evidence refresh
 
 ## Decision Log
 
@@ -504,7 +504,7 @@ Close all in-repo actionable tasks in the UX100 program and maintain explicit st
 - [x] Sync tracker entry points in `TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, and `.codex/SCRATCHPAD.md`.
 - [x] Ship first clarity/hierarchy slice (primary vs advanced toolbar, workspace contextual headers).
 - [x] Ship second batch slice (semantic landmarks, accessible-name audit checks, density reduction, typography/spacing standards, CI performance regression workflow).
-- [ ] Execute remaining Batch 1 open items from tracker.
+- [x] Execute remaining Batch 1 open items from tracker.
 
 ## Decision Log
 
@@ -519,5 +519,5 @@ Close all in-repo actionable tasks in the UX100 program and maintain explicit st
 
 ## Outcomes & Retrospective
 
-In progress.
+Completed.
 - Evidence refresh after second slice: `make verify`, `make doctor`, and `make scorecard` all pass.
