@@ -24,6 +24,12 @@ All must pass:
    - E2E critical action success
 4. Promote to full rollout only if error/latency remain within baseline thresholds.
 
+One-command path:
+
+```bash
+./scripts/release_safety_ops.sh canary
+```
+
 ## Rollback Triggers
 
 Rollback immediately if any of the following occurs:
@@ -41,6 +47,24 @@ vercel ls agent-director
 vercel rollback <deployment-url-or-id>
 vercel inspect <deployment-url-or-id> --logs
 ```
+
+One-command path:
+
+```bash
+./scripts/release_safety_ops.sh rollback <deployment-url-or-id>
+```
+
+## Runtime Kill Switch
+
+Global kill switch is controlled by `VITE_GLOBAL_KILL_SWITCH` in Vercel production env.
+
+```bash
+./scripts/release_safety_ops.sh kill-switch on
+./scripts/release_safety_ops.sh kill-switch status
+./scripts/release_safety_ops.sh kill-switch off
+```
+
+When enabled, the app serves a temporary-unavailable safety shell instead of interactive workflows.
 
 ### GitHub Pages
 

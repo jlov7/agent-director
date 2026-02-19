@@ -11,7 +11,7 @@ In Progress
 1. [x] RG-041 Initialize exhaustive plan + task sync (`TASKS.md`, `.codex/PLANS.md`, `.codex/SCRATCHPAD.md`)
 2. [x] RG-042 Batch A: close RG-021 + RG-022 (keybind remap + unified settings center)
 3. [x] RG-043 Batch B: close RG-032 + RG-034 (startup perf gate + reliability drills)
-4. [ ] RG-044 Batch C: close RG-038 (one-command canary/rollback/kill-switch ops)
+4. [x] RG-044 Batch C: close RG-038 (one-command canary/rollback/kill-switch ops)
 5. [ ] RG-045 Batch D: close RG-026 + RG-027 (content depth + procedural quality controls)
 6. [ ] RG-046 Batch E: close RG-024 (global localization infrastructure)
 7. [ ] Final release verification and evidence refresh

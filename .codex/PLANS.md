@@ -14,7 +14,7 @@ Close the complete pre-release feature/polish/fix set required to ship as a worl
 - [x] Initialize exhaustive RG tracker and batch plan
 - [x] Batch A: RG-021 and RG-022 (input remap + unified settings center)
 - [x] Batch B: RG-032 and RG-034 (startup perf gate + reliability drills)
-- [ ] Batch C: RG-038 (release safety one-command operations)
+- [x] Batch C: RG-038 (release safety one-command operations)
 - [ ] Batch D: RG-026 and RG-027 (content depth + procedural quality controls)
 - [ ] Batch E: RG-024 (global localization infrastructure)
 - [ ] Full closure verification and release evidence refresh

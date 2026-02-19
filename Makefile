@@ -21,3 +21,6 @@ cold-start-budget:
 
 reliability-drills:
 	python3 ./scripts/reliability_drills.py
+
+release-safety:
+	./scripts/release_safety_ops.sh preflight

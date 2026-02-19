@@ -127,6 +127,7 @@ const COLLAB_CURSOR_STORAGE_KEY = 'agentDirector.collab.cursors.v1';
 const COLLAB_ANNOTATION_STORAGE_KEY = 'agentDirector.collab.annotations.v1';
 const COLLAB_ACTIVITY_STORAGE_KEY = 'agentDirector.collab.activity.v1';
 const NOTIFICATION_TTL_MS = 6000;
+const GLOBAL_KILL_SWITCH = import.meta.env.VITE_GLOBAL_KILL_SWITCH === '1';
 
 type Mode = 'cinema' | 'flow' | 'compare' | 'matrix' | 'gameplay';
 type IntroPersona = 'builder' | 'executive' | 'operator';
@@ -3546,6 +3547,36 @@ export default function App() {
         variant="loading"
         title="Loading trace..."
         message="Preparing timeline, graph, and replay context."
+      />
+    );
+  }
+
+  if (GLOBAL_KILL_SWITCH) {
+    return (
+      <AppShellState
+        variant="error"
+        title="Temporarily unavailable"
+        message="A release safety kill switch is active while we stabilize production. Read-only diagnostics are available in support."
+        actions={[
+          {
+            id: 'open-help',
+            label: 'Open help',
+            node: (
+              <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
+                Open help
+              </a>
+            ),
+          },
+          {
+            id: 'retry',
+            label: 'Retry',
+            node: (
+              <button className="primary-button" type="button" onClick={reload}>
+                Retry
+              </button>
+            ),
+          },
+        ]}
       />
     );
   }

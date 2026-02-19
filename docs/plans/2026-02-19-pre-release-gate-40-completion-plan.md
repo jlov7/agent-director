@@ -62,7 +62,7 @@ Status legend: `verified` (implemented with current evidence), `gap` (needs impl
 | RG-035 | verified | Security hardening pass | Rate limits/validation/headers/secret hygiene are enforced with tests. |
 | RG-036 | verified | Backup/restore + DR runbook | Operational recovery docs and maintenance tooling exist. |
 | RG-037 | verified | Blocking release CI gates | Verify/UX/security/perf gates are wired and required. |
-| RG-038 | gap | Canary + one-click rollback + kill-switches | End-to-end release safety actions are executable with minimal operator friction. |
+| RG-038 | verified | Canary + one-click rollback + kill-switches | End-to-end release safety actions are executable with minimal operator friction. |
 | RG-039 | verified | Public docs pack | Public README/help/ops documents are launch-grade and cross-linked. |
 | RG-040 | verified | Launch analytics dashboard | Funnel/retention/health reporting exists for release decisioning. |
 
@@ -78,7 +78,7 @@ Status legend: `verified` (implemented with current evidence), `gap` (needs impl
 - RG-032: startup performance budget capture + enforced gate.
 - RG-034: scripted reliability drills and evidence output.
 
-### Batch C: Release Safety Operations
+### Batch C (Complete): Release Safety Operations
 
 - RG-038: promote release-safety runbook to one-command operational flow with kill-switch toggles.
 

@@ -40,14 +40,14 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] RG-035 Security hardening pass
 - [x] RG-036 Backup/restore + disaster-recovery runbook
 - [x] RG-037 Blocking release CI gates
-- [ ] RG-038 Canary + one-click rollback + runtime kill-switches
+- [x] RG-038 Canary + one-click rollback + runtime kill-switches
 - [x] RG-039 Public docs pack
 - [x] RG-040 Launch analytics dashboard
 
 - [x] RG-041 Create exhaustive master plan `docs/plans/2026-02-19-pre-release-gate-40-completion-plan.md`
 - [x] RG-042 Execute Batch A (RG-021, RG-022)
 - [x] RG-043 Execute Batch B (RG-032, RG-034)
-- [ ] RG-044 Execute Batch C (RG-038)
+- [x] RG-044 Execute Batch C (RG-038)
 - [ ] RG-045 Execute Batch D (RG-026, RG-027)
 - [ ] RG-046 Execute Batch E (RG-024)
 
