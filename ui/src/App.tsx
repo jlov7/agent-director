@@ -193,6 +193,25 @@ type ExportTask = {
   retryable: boolean;
 };
 
+const WORKSPACE_SECTION_COPY: Record<WorkspaceSection, { title: string; description: string }> = {
+  journey: {
+    title: 'Journey tools',
+    description: 'Track persona progression and save the views you use most often.',
+  },
+  analysis: {
+    title: 'Analysis tools',
+    description: 'Run exports and async diagnostics without leaving your current trace context.',
+  },
+  collaboration: {
+    title: 'Collaboration tools',
+    description: 'Manage ownership, handoffs, and team activity around this incident.',
+  },
+  operations: {
+    title: 'Operations tools',
+    description: 'Configure setup, support access, feature flags, and workspace defaults.',
+  },
+};
+
 const WORKSPACE_OPTIONS: WorkspaceOption[] = [
   { id: 'personal', label: 'Personal' },
   { id: 'operations', label: 'Operations' },
@@ -596,6 +615,7 @@ export default function App() {
   const [traceQuery, setTraceQuery] = useState('');
   const [traceQueryResult, setTraceQueryResult] = useState<TraceQueryResult | null>(null);
   const [traceQueryError, setTraceQueryError] = useState<string | null>(null);
+  const [showAdvancedControls, setShowAdvancedControls] = usePersistedState('agentDirector.toolbarAdvanced.v1', false);
   const [investigation, setInvestigation] = useState<InvestigationReport | null>(null);
   const [extensions, setExtensions] = useState<ExtensionDefinition[]>([]);
   const [selectedExtensionId, setSelectedExtensionId] = useState('');
@@ -3684,6 +3704,11 @@ export default function App() {
     );
   }
 
+  const activeWorkspaceSection = WORKSPACE_SECTION_COPY[activeSection];
+  const advancedControlsActive = Boolean(
+    traceQuery.trim() || traceQueryResult || traceQueryError || selectedExtensionId || extensionRunning
+  );
+
   return (
     <div
       className={`app theme-${themeMode} ${explainMode ? 'explain-mode' : ''} ${
@@ -4004,6 +4029,7 @@ export default function App() {
         <button
           className={`ghost-button ${activeSection === 'journey' ? 'active' : ''}`}
           type="button"
+          aria-pressed={activeSection === 'journey'}
           onClick={() => setActiveSection('journey')}
         >
           Journey
@@ -4011,6 +4037,7 @@ export default function App() {
         <button
           className={`ghost-button ${activeSection === 'analysis' ? 'active' : ''}`}
           type="button"
+          aria-pressed={activeSection === 'analysis'}
           onClick={() => setActiveSection('analysis')}
         >
           Analysis
@@ -4018,6 +4045,7 @@ export default function App() {
         <button
           className={`ghost-button ${activeSection === 'collaboration' ? 'active' : ''}`}
           type="button"
+          aria-pressed={activeSection === 'collaboration'}
           onClick={() => setActiveSection('collaboration')}
         >
           Collaboration
@@ -4025,11 +4053,17 @@ export default function App() {
         <button
           className={`ghost-button ${activeSection === 'operations' ? 'active' : ''}`}
           type="button"
+          aria-pressed={activeSection === 'operations'}
           onClick={() => setActiveSection('operations')}
         >
           Operations
         </button>
       </nav>
+      <div className="workspace-section-header">
+        <p className="workspace-section-eyebrow">Workspace</p>
+        <h2>{activeWorkspaceSection.title}</h2>
+        <p>{activeWorkspaceSection.description}</p>
+      </div>
 
       <section className="workspace-context-panel" aria-label="Contextual workspace tools">
         {activeSection === 'journey' ? (
@@ -4400,180 +4434,210 @@ export default function App() {
         data-help-indicator
         data-tour="toolbar"
         data-help-title="Search + filters"
-        data-help-body="Filter by step type, enable Safe export, and jump between Cinema, Flow, Compare, and Matrix."
+        data-help-body="Core controls stay visible. Open Advanced controls for TraceQL and extension diagnostics."
         data-help-placement="bottom"
       >
-        <SearchBar query={query} typeFilter={typeFilter} onQueryChange={setQuery} onTypeFilterChange={setTypeFilter} />
-        <div className="toolbar-actions">
-          <input
-            className="search-input"
-            value={traceQuery}
-            onChange={(event) => setTraceQuery(event.target.value)}
-            placeholder={t('traceql_placeholder')}
-            aria-label="TraceQL query"
-          />
-          <button className="ghost-button" type="button" onClick={() => void handleTraceQuery()}>
-            {t('run_traceql')}
-          </button>
-          {traceQueryResult ? <span className="status-badge">{traceQueryResult.matchCount} match(es)</span> : null}
-          {isFilteringDeferred ? <span className="status-badge">Filtering...</span> : null}
-          <span className="status-badge">Hydration {hydrationStatus}</span>
-          <span className="status-badge">Filter {filterComputeMs}ms</span>
-          {traceQueryResult ? (
+        <div className="toolbar-primary">
+          <SearchBar query={query} typeFilter={typeFilter} onQueryChange={setQuery} onTypeFilterChange={setTypeFilter} />
+          <div className="toolbar-mode-switcher">
             <button
-              className="ghost-button"
+              className={`ghost-button ${mode === 'cinema' ? 'active' : ''}`}
               type="button"
-              onClick={() => {
-                setTraceQuery('');
-                setTraceQueryResult(null);
-                setTraceQueryError(null);
-              }}
+              aria-pressed={mode === 'cinema'}
+              title="Timeline playback"
+              onClick={() => handleModeChange('cinema')}
+              data-help
+              data-help-title="Cinema mode"
+              data-help-body="Timeline view with step cards ordered by time."
+              data-help-placement="bottom"
             >
-              {t('clear_traceql')}
+              {t('mode_cinema')}
             </button>
-          ) : null}
-          {traceQueryError ? <span className="status-badge warn">{traceQueryError}</span> : null}
-          <select
-            className="search-select"
-            value={selectedExtensionId}
-            onChange={(event) => setSelectedExtensionId(event.target.value)}
-            aria-label="Extension selector"
-          >
-            <option value="">{t('select_extension')}</option>
-            {extensions.map((extension) => (
-              <option key={extension.id} value={extension.id}>
-                {extension.name}
-              </option>
-            ))}
-          </select>
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={() => void handleRunExtension()}
-            disabled={!trace || !selectedExtensionId || extensionRunning}
-          >
-            {extensionRunning ? t('running_extension') : t('run_extension')}
-          </button>
-          <button
-            className={`ghost-button ${mode === 'cinema' ? 'active' : ''}`}
-            type="button"
-            aria-pressed={mode === 'cinema'}
-            title="Timeline playback"
-            onClick={() => handleModeChange('cinema')}
-            data-help
-            data-help-title="Cinema mode"
-            data-help-body="Timeline view with step cards ordered by time."
-            data-help-placement="bottom"
-          >
-            {t('mode_cinema')}
-          </button>
-          <button
-            className={`ghost-button ${mode === 'flow' ? 'active' : ''}`}
-            type="button"
-            aria-pressed={mode === 'flow'}
-            title="Graph view"
-            onClick={() => handleModeChange('flow')}
-            data-help
-            data-help-title="Flow mode"
-            data-help-body="Dependency graph of steps and tool calls."
-            data-help-placement="bottom"
-          >
-            {t('mode_flow')}
-          </button>
-          <button
-            className={`ghost-button ${mode === 'compare' ? 'active' : ''}`}
-            type="button"
-            aria-pressed={mode === 'compare'}
-            title={compareTrace ? 'Side-by-side compare' : 'Run a replay to enable compare'}
-            onClick={() => handleModeChange('compare')}
-            disabled={!compareTrace}
-            data-tour="compare"
-            data-help
-            data-help-title="Compare mode"
-            data-help-body="Side-by-side view after a replay. Enabled once you replay."
-            data-help-placement="bottom"
-          >
-            {t('mode_compare')}
-          </button>
-          <button
-            className={`ghost-button ${mode === 'matrix' ? 'active' : ''}`}
-            type="button"
-            aria-pressed={mode === 'matrix'}
-            title="Counterfactual replay matrix"
-            onClick={() => handleModeChange('matrix')}
-            data-help
-            data-help-title="Matrix mode"
-            data-help-body="Run multiple replay scenarios and rank likely causal factors."
-            data-help-placement="bottom"
-          >
-            {t('mode_matrix')}
-          </button>
-          <button
-            className={`ghost-button ${mode === 'gameplay' ? 'active' : ''}`}
-            type="button"
-            aria-pressed={mode === 'gameplay'}
-            title="Gameplay mechanics command center"
-            onClick={() => handleModeChange('gameplay')}
-            data-help
-            data-help-title="Gameplay mode"
-            data-help-body="Command raids, campaign, pvp, time forks, boss runs, economy, and liveops."
-            data-help-placement="bottom"
-          >
-            {t('mode_gameplay')}
-          </button>
-          <label
-            className="toggle"
-            title="Redact payloads and disable raw views for safe sharing"
-            data-help
-            data-help-title="Safe export"
-            data-help-body="Redacts secrets and disables raw payload views for safe sharing."
-            data-help-placement="bottom"
-          >
-            <input type="checkbox" checked={safeExport} onChange={() => setSafeExport((prev) => !prev)} />
-            {t('safe_export')}
-          </label>
-          {trace.steps.length > 200 || windowed ? (
-            <label
-              className="toggle"
-              title="Window steps around the playhead for large traces"
+            <button
+              className={`ghost-button ${mode === 'flow' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={mode === 'flow'}
+              title="Graph view"
+              onClick={() => handleModeChange('flow')}
               data-help
-              data-help-title="Windowed mode"
-              data-help-body="Limits rendering to a playhead window for large traces."
+              data-help-title="Flow mode"
+              data-help-body="Dependency graph of steps and tool calls."
               data-help-placement="bottom"
             >
-              <input type="checkbox" checked={windowed} onChange={() => setWindowed((prev) => !prev)} />
-              {t('windowed')}
+              {t('mode_flow')}
+            </button>
+            <button
+              className={`ghost-button ${mode === 'compare' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={mode === 'compare'}
+              title={compareTrace ? 'Side-by-side compare' : 'Run a replay to enable compare'}
+              onClick={() => handleModeChange('compare')}
+              disabled={!compareTrace}
+              data-tour="compare"
+              data-help
+              data-help-title="Compare mode"
+              data-help-body="Side-by-side view after a replay. Enabled once you replay."
+              data-help-placement="bottom"
+            >
+              {t('mode_compare')}
+            </button>
+            <button
+              className={`ghost-button ${mode === 'matrix' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={mode === 'matrix'}
+              title="Counterfactual replay matrix"
+              onClick={() => handleModeChange('matrix')}
+              data-help
+              data-help-title="Matrix mode"
+              data-help-body="Run multiple replay scenarios and rank likely causal factors."
+              data-help-placement="bottom"
+            >
+              {t('mode_matrix')}
+            </button>
+            <button
+              className={`ghost-button ${mode === 'gameplay' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={mode === 'gameplay'}
+              title="Gameplay mechanics command center"
+              onClick={() => handleModeChange('gameplay')}
+              data-help
+              data-help-title="Gameplay mode"
+              data-help-body="Command raids, campaign, pvp, time forks, boss runs, economy, and liveops."
+              data-help-placement="bottom"
+            >
+              {t('mode_gameplay')}
+            </button>
+          </div>
+        </div>
+
+        <div className="toolbar-utility">
+          <div className="toolbar-toggle-group">
+            <label
+              className="toggle"
+              title="Redact payloads and disable raw views for safe sharing"
+              data-help
+              data-help-title="Safe export"
+              data-help-body="Redacts secrets and disables raw payload views for safe sharing."
+              data-help-placement="bottom"
+            >
+              <input type="checkbox" checked={safeExport} onChange={() => setSafeExport((prev) => !prev)} />
+              {t('safe_export')}
             </label>
-          ) : null}
-          {compareTrace ? (
-            <label
-              className="toggle"
-              title="Show ghost overlay of replay in Cinema/Flow"
-              data-help
-              data-help-title="Overlay replay"
-              data-help-body="Layer the replay over the base run to spot differences."
-              data-help-placement="bottom"
-            >
+            {trace.steps.length > 200 || windowed ? (
+              <label
+                className="toggle"
+                title="Window steps around the playhead for large traces"
+                data-help
+                data-help-title="Windowed mode"
+                data-help-body="Limits rendering to a playhead window for large traces."
+                data-help-placement="bottom"
+              >
+                <input type="checkbox" checked={windowed} onChange={() => setWindowed((prev) => !prev)} />
+                {t('windowed')}
+              </label>
+            ) : null}
+            {compareTrace ? (
+              <label
+                className="toggle"
+                title="Show ghost overlay of replay in Cinema/Flow"
+                data-help
+                data-help-title="Overlay replay"
+                data-help-body="Layer the replay over the base run to spot differences."
+                data-help-placement="bottom"
+              >
+                <input
+                  type="checkbox"
+                  checked={overlayEnabled}
+                  onChange={() => setOverlayEnabled((prev) => !prev)}
+                />
+                {t('overlay')}
+              </label>
+            ) : null}
+            <label className="toggle" title="Follow active collaborator cursor and mode updates">
               <input
                 type="checkbox"
-                checked={overlayEnabled}
-                onChange={() => setOverlayEnabled((prev) => !prev)}
+                checked={syncPlayback}
+                onChange={() => setSyncPlayback((prev) => !prev)}
               />
-              {t('overlay')}
+              {t('sync_playback')}
             </label>
-          ) : null}
-          <label
-            className="toggle"
-            title="Follow active collaborator cursor and mode updates"
-          >
-            <input
-              type="checkbox"
-              checked={syncPlayback}
-              onChange={() => setSyncPlayback((prev) => !prev)}
-            />
-            {t('sync_playback')}
-          </label>
+          </div>
+          <div className="toolbar-advanced-controls">
+            {!showAdvancedControls && advancedControlsActive ? (
+              <span className="status-badge">Advanced controls active</span>
+            ) : null}
+            <button
+              className={`ghost-button ${showAdvancedControls ? 'active' : ''}`}
+              type="button"
+              onClick={() => setShowAdvancedControls((prev) => !prev)}
+              aria-expanded={showAdvancedControls}
+              aria-controls="advanced-toolbar-panel"
+            >
+              {showAdvancedControls ? 'Hide advanced controls' : 'Show advanced controls'}
+            </button>
+          </div>
         </div>
+
+        {showAdvancedControls ? (
+          <div className="toolbar-advanced-panel" id="advanced-toolbar-panel">
+            <div className="toolbar-advanced-group">
+              <input
+                className="search-input"
+                value={traceQuery}
+                onChange={(event) => setTraceQuery(event.target.value)}
+                placeholder={t('traceql_placeholder')}
+                aria-label="TraceQL query"
+              />
+              <button className="ghost-button" type="button" onClick={() => void handleTraceQuery()}>
+                {t('run_traceql')}
+              </button>
+              {traceQueryResult ? (
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => {
+                    setTraceQuery('');
+                    setTraceQueryResult(null);
+                    setTraceQueryError(null);
+                  }}
+                >
+                  {t('clear_traceql')}
+                </button>
+              ) : null}
+            </div>
+            <div className="toolbar-advanced-group">
+              <select
+                className="search-select"
+                value={selectedExtensionId}
+                onChange={(event) => setSelectedExtensionId(event.target.value)}
+                aria-label="Extension selector"
+              >
+                <option value="">{t('select_extension')}</option>
+                {extensions.map((extension) => (
+                  <option key={extension.id} value={extension.id}>
+                    {extension.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => void handleRunExtension()}
+                disabled={!trace || !selectedExtensionId || extensionRunning}
+              >
+                {extensionRunning ? t('running_extension') : t('run_extension')}
+              </button>
+            </div>
+            <div className="toolbar-advanced-status">
+              {traceQueryResult ? <span className="status-badge">{traceQueryResult.matchCount} match(es)</span> : null}
+              {isFilteringDeferred ? <span className="status-badge">Filtering...</span> : null}
+              <span className="status-badge">Hydration {hydrationStatus}</span>
+              <span className="status-badge">Filter {filterComputeMs}ms</span>
+              {traceQueryError ? <span className="status-badge warn">{traceQueryError}</span> : null}
+            </div>
+          </div>
+        ) : null}
+
       </div>
 
       {extensionOutput ? (
