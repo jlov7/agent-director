@@ -42,12 +42,12 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 4. `UX100-004` | Status: `DONE` | Define release gate thresholds tied to evidence artifacts. | DoD: thresholds documented. | Verify: `cat RELEASE_GATES.md`. | Evidence: `RELEASE_GATES.md`.
 
 ### Information Architecture
-5. `UX100-005` | Status: `IN_PROGRESS` | Rebuild navigation around top 5 intents. | DoD: IA map + UI implementation. | Verify: E2E nav flows. | Evidence: workspace nav updated to action-first labels in `ui/src/App.tsx`; full top-5 intent model pending.
+5. `UX100-005` | Status: `DONE` | Rebuild navigation around top 5 intents. | DoD: IA map + UI implementation. | Verify: E2E nav flows. | Evidence: workspace nav now includes `Understand`, `Diagnose`, `Coordinate`, `Configure`, `Validate` intents in `ui/src/App.tsx` with mode/section handoff tests in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 6. `UX100-006` | Status: `IN_PROGRESS` | Collapse secondary actions behind contextual overflow. | DoD: primary/secondary split in all top surfaces. | Verify: visual + E2E. | Evidence: toolbar advanced controls collapsed by default; remaining surfaces pending.
 7. `UX100-007` | Status: `IN_PROGRESS` | Enforce single primary CTA per major surface. | DoD: no competing primary CTAs. | Verify: UX audit check. | Evidence: workspace-level primary CTA introduced; full-app enforcement pending.
-8. `UX100-008` | Status: `IN_PROGRESS` | Rewrite section labels to intent/action language. | DoD: updated copy across app shell. | Verify: copy lint/manual review. | Evidence: workspace section labels and descriptions updated in `ui/src/App.tsx`.
-9. `UX100-009` | Status: `OPEN` | Replace ambiguous nouns with action-first labels. | DoD: copy pass complete. | Verify: content checklist. | Evidence: pending.
-10. `UX100-010` | Status: `OPEN` | Standardize breadcrumbs and orientation cues. | DoD: orientation layer exists across primary journeys. | Verify: E2E path assertions. | Evidence: pending.
+8. `UX100-008` | Status: `DONE` | Rewrite section labels to intent/action language. | DoD: updated copy across app shell. | Verify: copy lint/manual review. | Evidence: action-first workspace headings/navigation and guidance copy in `ui/src/App.tsx`.
+9. `UX100-009` | Status: `IN_PROGRESS` | Replace ambiguous nouns with action-first labels. | DoD: copy pass complete. | Verify: content checklist. | Evidence: operations feature toggles now use action labels (`Enable ...`) in `ui/src/App.tsx`; broader app-wide copy sweep pending.
+10. `UX100-010` | Status: `DONE` | Standardize breadcrumbs and orientation cues. | DoD: orientation layer exists across primary journeys. | Verify: E2E path assertions. | Evidence: `workspace-breadcrumb` orientation rail in `ui/src/App.tsx` with mode-sync assertions in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 11. `UX100-011` | Status: `DONE` | Add explicit “where am I / what next” headers per workspace area. | DoD: header pattern applied and tested. | Verify: Playwright + snapshot. | Evidence: `ui/src/App.tsx`, `ui/src/styles/main.css`.
 12. `UX100-012` | Status: `OPEN` | Run tree-test of IA and iterate. | DoD: >=90% success on internal test script/proxy. | Verify: scripted task-test artifact. | Evidence: pending.
 
@@ -84,7 +84,7 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 ### Journey Coherence
 37. `UX100-037` | Status: `OPEN` | Map end-to-end journeys by persona. | DoD: journey maps stored in docs. | Verify: docs review. | Evidence: pending.
 38. `UX100-038` | Status: `OPEN` | Remove redundant steps in top workflows. | DoD: top 5 workflows trimmed and validated. | Verify: task-time comparison. | Evidence: pending.
-39. `UX100-039` | Status: `OPEN` | Add next-best-action guidance at key decision points. | DoD: surfaced guidance in key modes. | Verify: UX checklist tests. | Evidence: pending.
+39. `UX100-039` | Status: `DONE` | Add next-best-action guidance at key decision points. | DoD: surfaced guidance in key modes. | Verify: UX checklist tests. | Evidence: `workspace-next-action` guidance block in `ui/src/App.tsx` with actionable flow assertion in `ui/tests/e2e/ux-audit-deep.spec.ts`.
 40. `UX100-040` | Status: `OPEN` | Enforce deterministic state transitions across journeys. | DoD: state transition contracts tested. | Verify: reducer/state tests. | Evidence: pending.
 41. `UX100-041` | Status: `OPEN` | Add resume-where-you-left-off continuity. | DoD: users can reliably resume key workflows. | Verify: persisted state tests. | Evidence: pending.
 42. `UX100-042` | Status: `DONE` | Align empty/loading/error states with context. | DoD: unified shell states live for primary routes. | Verify: unit + E2E. | Evidence: `AppShellState` and tests.
@@ -115,7 +115,7 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 61. `UX100-061` | Status: `OPEN` | Rework responsive layouts by task priority. | DoD: task-first responsive map applied. | Verify: responsive test matrix. | Evidence: pending.
 62. `UX100-062` | Status: `OPEN` | Optimize tablet split-view behavior. | DoD: tablet flows validated without regressions. | Verify: tablet E2E/snapshot. | Evidence: pending.
 63. `UX100-063` | Status: `OPEN` | Enforce touch target sizing and gesture tolerance. | DoD: key controls meet touch target guidelines. | Verify: style/a11y audit. | Evidence: pending.
-64. `UX100-064` | Status: `IN_PROGRESS` | Prevent overflow/truncation in localization expansion. | DoD: longest locale strings render safely in key screens. | Verify: locale visual tests. | Evidence: locale infra exists; overflow audit pending.
+64. `UX100-064` | Status: `DONE` | Prevent overflow/truncation in localization expansion. | DoD: longest locale strings render safely in key screens. | Verify: locale visual tests. | Evidence: Spanish overflow regression tests in `ui/tests/e2e/localization-layout.spec.ts` and supporting header/layout CSS fixes in `ui/src/styles/main.css`.
 65. `UX100-065` | Status: `OPEN` | Refine mobile navigation for orientation and speed. | DoD: mobile nav journey times reduced. | Verify: mobile journey tests. | Evidence: pending.
 66. `UX100-066` | Status: `OPEN` | Add adaptive density modes for constrained viewports. | DoD: compact/comfortable modes available where needed. | Verify: responsive snapshot coverage. | Evidence: pending.
 67. `UX100-067` | Status: `OPEN` | Validate on real device/browser matrix. | DoD: matrix report with pass/fail and fixes. | Verify: test artifact. | Evidence: pending.
@@ -162,14 +162,14 @@ Reach a defensible 100/100 front-end product quality bar across 12 criteria:
 100. `UX100-100` | Status: `BLOCKED` | Conduct external red-team UX misuse review. | DoD: external red-team report complete and findings closed. | Verify: external artifact. | Evidence: blocked on external review.
 
 ## Current Closure Summary
-- `DONE`: 42
-- `IN_PROGRESS`: 8
-- `OPEN`: 43
+- `DONE`: 47
+- `IN_PROGRESS`: 6
+- `OPEN`: 40
 - `BLOCKED` (external dependencies): 7
 
 ## Next Execution Batch (B1)
-1. Close foundation tasks `UX100-005`, `UX100-006`, `UX100-007`, `UX100-008`.
-2. Close visual hierarchy tasks `UX100-013`, `UX100-014`, `UX100-015`, `UX100-017`.
-3. Close accessibility/perf tasks `UX100-053`, `UX100-057`, `UX100-064`, `UX100-069` validation refresh.
+1. Close remaining IA/copy tasks `UX100-006`, `UX100-007`, `UX100-009`.
+2. Execute responsive/mobile navigation cleanup `UX100-061`, `UX100-062`, `UX100-065`, `UX100-066`.
+3. Complete accessibility quality items `UX100-053`, `UX100-057`, `UX100-059`.
 4. Re-run verification: `make verify`, `make doctor`, `make scorecard`.
 5. Update this tracker and push.

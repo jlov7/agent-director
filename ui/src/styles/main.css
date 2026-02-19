@@ -419,6 +419,7 @@ pre {
   backdrop-filter: blur(18px);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+  overflow-x: clip;
 }
 
 .hero-ribbon {
@@ -534,6 +535,8 @@ pre {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  width: 100%;
 }
 
 .header-logo {
@@ -635,6 +638,12 @@ pre {
   color: var(--text-secondary);
   font-size: 0.9rem;
   flex-wrap: wrap;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.header-meta > * {
+  min-width: 0;
 }
 
 .header-tagline {
@@ -2400,6 +2409,11 @@ pre {
 
 .timeline-studio-strategy select {
   min-width: 160px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: rgba(10, 16, 24, 0.92);
+  color: var(--text-primary);
 }
 
 .timeline-studio-summary {
@@ -3930,6 +3944,10 @@ pre {
     padding: 18px 18px 24px;
   }
 
+  .header {
+    padding: 14px 16px;
+  }
+
   .intro-card {
     width: min(92vw, 360px);
     padding: 24px;
@@ -4357,6 +4375,33 @@ textarea:focus-visible {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.workspace-orientation {
+  margin: var(--space-xs) var(--space-sm) 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: linear-gradient(140deg, rgba(10, 16, 25, 0.82), rgba(8, 13, 20, 0.72));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.workspace-breadcrumb {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--type-label-sm);
+  letter-spacing: 0.01em;
+}
+
+.workspace-orientation-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .workspace-section-header {
   margin: 0 var(--space-sm);
   display: flex;
@@ -4388,6 +4433,31 @@ textarea:focus-visible {
   margin: 0;
   font-size: var(--type-body-sm);
   color: var(--text-muted);
+}
+
+.workspace-next-action {
+  margin-top: 10px;
+  border: 1px solid rgba(126, 186, 255, 0.35);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(16, 29, 45, 0.56);
+  max-width: 620px;
+  display: grid;
+  gap: 6px;
+}
+
+.workspace-next-action-eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--type-label-xs);
+  color: rgba(175, 213, 255, 0.92);
+}
+
+.workspace-next-action-summary {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--type-body-sm);
 }
 
 .workspace-section-actions {
@@ -4576,6 +4646,10 @@ textarea:focus-visible {
 
   .workspace-nav {
     margin: 8px;
+  }
+
+  .workspace-orientation {
+    margin: 8px 8px 0;
   }
 
   .workspace-section-header {

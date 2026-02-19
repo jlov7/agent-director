@@ -212,6 +212,14 @@ const WORKSPACE_SECTION_COPY: Record<WorkspaceSection, { title: string; descript
   },
 };
 
+const MODE_ORIENTATION_COPY: Record<Mode, string> = {
+  cinema: 'Timeline playback',
+  flow: 'Flow graph',
+  compare: 'Compare runs',
+  matrix: 'Scenario matrix',
+  gameplay: 'Gameplay command',
+};
+
 const WORKSPACE_OPTIONS: WorkspaceOption[] = [
   { id: 'personal', label: 'Personal' },
   { id: 'operations', label: 'Operations' },
@@ -3746,6 +3754,83 @@ export default function App() {
         };
     }
   })();
+  const modeOrientationLabel = MODE_ORIENTATION_COPY[mode];
+  const workspaceTrail = `Workspace / ${activeWorkspaceSection.title} / ${modeOrientationLabel}`;
+  const nextBestAction = (() => {
+    if (activeSection === 'journey') {
+      if (mode !== 'cinema') {
+        return {
+          summary: 'Switch back to timeline playback to inspect sequence order before you save or share.',
+          label: 'Open timeline playback',
+          onClick: () => handleModeChange('cinema'),
+          disabled: false,
+        };
+      }
+      const firstHotspot =
+        trace.steps.find((step) => step.status === 'failed') ??
+        [...trace.steps].sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0))[0];
+      if (!selectedStepId && firstHotspot) {
+        return {
+          summary: 'Jump to the first hotspot and start triage from the highest-signal step.',
+          label: 'Jump to first hotspot',
+          onClick: () => setSelectedStepId(firstHotspot.id),
+          disabled: false,
+        };
+      }
+      return {
+        summary: 'Save this viewpoint so you can return to the exact context during handoff.',
+        label: 'Save current view',
+        onClick: () => saveCurrentView(),
+        disabled: Boolean(savedViewNameError),
+      };
+    }
+
+    if (activeSection === 'analysis') {
+      if (mode !== 'flow') {
+        return {
+          summary: 'Open the flow graph to inspect causal edges before running deeper diagnostics.',
+          label: 'Open flow graph',
+          onClick: () => handleModeChange('flow'),
+          disabled: false,
+        };
+      }
+      return {
+        summary: 'Queue a director narrative so root-cause evidence is ready for reporting.',
+        label: 'Queue narrative export',
+        onClick: () => exportDirectorNarrative(),
+        disabled: !featureFlags.exportCenterV1,
+      };
+    }
+
+    if (activeSection === 'collaboration') {
+      if (!syncPlayback) {
+        return {
+          summary: 'Enable sync playback so collaborators stay aligned on the same investigation moment.',
+          label: 'Enable sync playback',
+          onClick: () => setSyncPlayback(true),
+          disabled: false,
+        };
+      }
+      return {
+        summary: 'Share a live session link so responders open this exact context immediately.',
+        label: 'Share live link',
+        onClick: () => {
+          void shareSession();
+        },
+        disabled: !featureFlags.ownershipPanelV1,
+      };
+    }
+
+    return {
+      summary: 'Run setup checks before demo and release handoff to avoid surprises.',
+      label: t('open_setup_wizard'),
+      onClick: () => {
+        setSetupWizardOpen(true);
+        trackProductEvent('ux.setup.opened', { source: 'workspace_next_action' });
+      },
+      disabled: !featureFlags.setupWizardV1,
+    };
+  })();
 
   return (
     <div
@@ -3753,7 +3838,7 @@ export default function App() {
         mode === 'compare' ? 'mode-compare' : ''
       } ${mode === 'matrix' ? 'mode-matrix' : ''} ${mode === 'gameplay' ? 'mode-gameplay' : ''}`}
     >
-      <h1 className="sr-only">Workspace overview</h1>
+      <h1 className="sr-only">Workspace</h1>
       <Header
         trace={trace}
         traces={traces}
@@ -4101,12 +4186,44 @@ export default function App() {
         >
           Configure
         </button>
+        <button
+          className={`ghost-button ${mode === 'compare' || mode === 'matrix' ? 'active' : ''}`}
+          type="button"
+          aria-pressed={mode === 'compare' || mode === 'matrix'}
+          aria-label="Validate outcome intent"
+          onClick={() => {
+            setActiveSection('analysis');
+            if (compareTrace) {
+              handleModeChange('compare');
+            } else {
+              handleModeChange('matrix');
+            }
+          }}
+        >
+          Validate
+        </button>
       </nav>
+      <div className="workspace-orientation" aria-live="polite">
+        <p className="workspace-breadcrumb" aria-label="Current location">
+          {workspaceTrail}
+        </p>
+        <div className="workspace-orientation-meta">
+          <span className="status-badge">Workspace: {workspaceId}</span>
+          <span className="status-badge">Role: {workspaceRole}</span>
+        </div>
+      </div>
       <div className="workspace-section-header">
         <div className="workspace-section-meta">
           <p className="workspace-section-eyebrow">Workspace</p>
           <h2 id="workspace-section-title">{activeWorkspaceSection.title}</h2>
           <p>{activeWorkspaceSection.description}</p>
+          <div className="workspace-next-action">
+            <p className="workspace-next-action-eyebrow">Next best action</p>
+            <p className="workspace-next-action-summary">{nextBestAction.summary}</p>
+            <button className="ghost-button" type="button" onClick={nextBestAction.onClick} disabled={nextBestAction.disabled}>
+              {nextBestAction.label}
+            </button>
+          </div>
         </div>
         <div className="workspace-section-actions">
           <button
@@ -4365,7 +4482,7 @@ export default function App() {
                     checked={featureFlags.setupWizardV1}
                     onChange={() => toggleFeatureFlag('setupWizardV1')}
                   />
-                  Setup wizard flag
+                  Enable setup wizard
                 </label>
                 <label className="toggle">
                   <input
@@ -4373,7 +4490,7 @@ export default function App() {
                     checked={featureFlags.supportPanelV1}
                     onChange={() => toggleFeatureFlag('supportPanelV1')}
                   />
-                  Support panel flag
+                  Enable support panel
                 </label>
                 <label className="toggle">
                   <input
@@ -4381,7 +4498,7 @@ export default function App() {
                     checked={featureFlags.exportCenterV1}
                     onChange={() => toggleFeatureFlag('exportCenterV1')}
                   />
-                  Export center flag
+                  Enable export center
                 </label>
                 <label className="toggle">
                   <input
@@ -4389,7 +4506,7 @@ export default function App() {
                     checked={featureFlags.ownershipPanelV1}
                     onChange={() => toggleFeatureFlag('ownershipPanelV1')}
                   />
-                  Ownership panel flag
+                  Enable ownership panel
                 </label>
               </div>
             </article>
@@ -4513,7 +4630,7 @@ export default function App() {
         aria-labelledby="workspace-toolbar-heading"
       >
         <h2 id="workspace-toolbar-heading" className="sr-only">
-          Workspace search and controls
+          Controls
         </h2>
         <div className="toolbar-primary">
           <SearchBar query={query} typeFilter={typeFilter} onQueryChange={setQuery} onTypeFilterChange={setTypeFilter} />

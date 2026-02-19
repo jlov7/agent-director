@@ -190,6 +190,29 @@ test.describe('Deep UX audit probes', () => {
     expect(unnamedControls).toEqual([]);
   });
 
+  test('orientation breadcrumb reflects active intent and mode', async ({ page }) => {
+    await initExperienced(page);
+    await page.goto('/');
+
+    const breadcrumb = page.getByLabel('Current location');
+    await expect(breadcrumb).toContainText('Workspace /');
+    await expect(breadcrumb).toContainText('Timeline playback');
+
+    await page.getByRole('button', { name: 'Validate' }).click();
+    await expect(breadcrumb).toContainText(/Compare runs|Scenario matrix/);
+  });
+
+  test('next best action guidance is visible and actionable in diagnose intent', async ({ page }) => {
+    await initExperienced(page);
+    await page.goto('/');
+
+    await page.getByRole('button', { name: 'Diagnose' }).click();
+    const guidance = page.locator('.workspace-next-action');
+    await expect(guidance).toContainText('Next best action');
+    await guidance.getByRole('button', { name: 'Open flow graph' }).click();
+    await expect(page.locator('.flow-canvas')).toBeVisible();
+  });
+
   test('global C key switches from flow back to cinema', async ({ page }) => {
     await initExperienced(page);
     await page.goto('/');

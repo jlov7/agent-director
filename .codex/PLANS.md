@@ -36,6 +36,35 @@ In progress.
 
 ---
 
+# ExecPlan: UX100 World-Class Frontend Program
+
+## Purpose / Big Picture
+
+Execute an exhaustive 100-task program to raise the frontend from strong release quality to a defensible world-class standard across IA, hierarchy, design consistency, interaction quality, journeys, onboarding, accessibility, responsiveness, performance, reliability, polish, and trust/safety UX.
+
+## Scope
+
+- In scope: `UX100-001..UX100-100` tracked in `docs/plans/2026-02-19-ux100-execution-plan.md`.
+- Out of scope: non-frontend platform rewrites not required for UX100 closure.
+
+## Progress
+
+- [x] Initialize exhaustive task ledger with statuses, DoD, verification commands, and evidence pointers.
+- [x] Sync tracker references in `TASKS.md`, `PLANS.md`, `.codex/PLANS.md`, and `.codex/SCRATCHPAD.md`.
+- [x] Shipped IA clarity pass, semantic landmarks, density controls, and perf CI regression gate.
+- [x] Shipped orientation/intent pass: 5-intent navigation (`Validate` included), breadcrumbs, and next-best-action guidance.
+- [ ] Close remaining Batch 1 tasks (`UX100-006`, `UX100-007`, `UX100-009`, `UX100-017`, `UX100-053`, `UX100-057`).
+
+## Validation Plan
+
+- Program gates: `make verify`, `make doctor`, `make scorecard`.
+
+## Outcomes & Retrospective
+
+In progress. Latest evidence run is green for `make verify`, `make doctor`, and `make scorecard`.
+
+---
+
 # SaaS UX World-Class Sweep ExecPlan
 
 ## Purpose / Big Picture
