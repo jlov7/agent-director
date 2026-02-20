@@ -90,6 +90,18 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: enforce strict identifier allowlist validation for all trace/step ID inputs and add API regression tests for malicious ID patterns.
 - Status: `Closed` (2026-02-15, implemented in `server/mcp/schema.py` and `server/tests/test_api.py`)
 
+### GAP-P1-015: Playwright E2E reused external server process and validated wrong app
+- Evidence: `make verify` failed with 58/60 E2E failures while `http://127.0.0.1:4173` was served by another repo (`Scaffold Arena`), confirmed via `ps` + `curl` output.
+- Impacted journey: Core quality gate reliability (`G1`, `G3`, `G4`) and launch trust in E2E evidence.
+- Fix strategy: isolate E2E harness port and disable unsafe reuse (`ui/playwright.config.ts` uses dedicated `4273`, `--strictPort`, `reuseExistingServer=false`).
+- Status: `Closed` (2026-02-20, `make verify` and `make verify-strict` passing with isolated server settings)
+
+### GAP-P1-016: LHCI measured wrong app because shared preview port collided
+- Evidence: `make verify-ux` failed Lighthouse performance assertion at `0.7` while port `4173` was occupied by a different project.
+- Impacted journey: Performance gate reliability (`G5`) and scorecard freshness confidence.
+- Fix strategy: move LHCI preview/URL to dedicated strict port (`4274`) in `ui/lighthouserc.json`.
+- Status: `Closed` (2026-02-20, `make verify-ux`, `make doctor`, and `make scorecard` all passing)
+
 ### GAP-P2-004: API did not explicitly validate malformed `Content-Length` values
 - Evidence: invalid/non-numeric `Content-Length` could bypass explicit boundary semantics and produce generic failure paths.
 - Impacted journey: Robust failure-state UX and API boundary hygiene.

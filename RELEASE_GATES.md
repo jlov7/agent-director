@@ -36,9 +36,9 @@ This emits `artifacts/scorecards.json` and requires every domain score to be `10
 - Re-run `make doctor` after each change set.
 
 ## Latest Evidence Snapshot
-- 2026-02-15: `make doctor` produced `artifacts/doctor.json` with `overall_status=pass`.
-- 2026-02-15: Gate summary in `artifacts/doctor.json` reports `G1` through `G8` all passing.
-- 2026-02-15: `make scorecard` produced `artifacts/scorecards.json` with `total_score=70/70` and `all_perfect=true`.
+- 2026-02-20: `make doctor` produced `artifacts/doctor.json` with `overall_status=pass`.
+- 2026-02-20: Gate summary in `artifacts/doctor.json` reports `G1` through `G8` all passing.
+- 2026-02-20: `make scorecard` produced `artifacts/scorecards.json` with `total_score=70/70` and `all_perfect=true`.
 
 ## Failure Policy
 - Any failed gate must create or update a gap in `GAPS.md` before starting the next fix.

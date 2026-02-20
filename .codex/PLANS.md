@@ -1,3 +1,49 @@
+# Launch Tomorrow Readiness ExecPlan
+
+## Purpose / Big Picture
+
+Execute an exhaustive launch-readiness sweep with fresh evidence, live UX validation, and deployment checks so tomorrow's launch decision is backed by passing gates and reproducible artifacts.
+
+## Scope
+
+- In scope: full verification gates, Rodney live checks, release artifacts, and deployment readiness.
+- Out of scope: speculative product expansion unrelated to launch stability.
+
+## Progress
+
+- [x] Create implementation plan `docs/plans/2026-02-20-launch-readiness-execution-plan.md`
+- [x] Sync launch tracker items in `TASKS.md`
+- [x] Run automated gates (`verify`, `verify-strict`, `verify-ux`, `doctor`, `scorecard`)
+- [x] Run release preflight and deployment readiness checks
+- [x] Run Rodney live UX/journey/responsive checks
+- [x] Close any discovered gaps and refresh evidence
+- [x] Finalize with commit + push
+
+## Decision Log
+
+- Start with gate refresh before any new UX claims because current artifacts are stale vs latest commit.
+- Treat Rodney scripts as launch UAT and convert any failures into immediate fix loops.
+- Stabilize browser automation by forcing isolated local test ports and disabling unsafe server reuse in test harnesses.
+
+## Validation Plan
+
+- `make verify`
+- `make verify-strict`
+- `make verify-ux`
+- `make doctor`
+- `make scorecard`
+- `make release-safety`
+- `make vercel-check`
+
+## Outcomes & Retrospective
+
+Completed.
+- Launch gate evidence refreshed and passing (`doctor`: all gates true; `scorecard`: 70/70).
+- Fixed two real release blockers caused by shared-port test harness collisions.
+- Added Rodney launch screenshots for cinema/flow/matrix/inspector/help/support and responsive breakpoints.
+
+---
+
 # Documentation Excellence ExecPlan
 
 ## Purpose / Big Picture

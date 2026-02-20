@@ -1,5 +1,8 @@
 import { defineConfig } from '@playwright/test';
 
+const E2E_PORT = Number(process.env.PLAYWRIGHT_PORT ?? 4273);
+const E2E_HOST = '127.0.0.1';
+
 export default defineConfig({
   testDir: './tests/e2e',
   timeout: 30_000,
@@ -14,12 +17,12 @@ export default defineConfig({
     },
   },
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: `http://${E2E_HOST}:${E2E_PORT}`,
   },
   webServer: {
-    command: 'pnpm dev --host 127.0.0.1 --port 4173',
-    url: 'http://127.0.0.1:4173',
-    reuseExistingServer: true,
+    command: `pnpm dev --host ${E2E_HOST} --port ${E2E_PORT} --strictPort`,
+    url: `http://${E2E_HOST}:${E2E_PORT}`,
+    reuseExistingServer: false,
     timeout: 60_000,
     env: {
       VITE_HIDE_BUILD_DATE: '1',

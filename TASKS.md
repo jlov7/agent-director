@@ -2,6 +2,22 @@
 
 Below is the complete, prioritized list of "perfecting" work. Each item is framed as a checkable task. We can tackle them in batches instead of one‑by‑one.
 
+## Launch Tomorrow — Exhaustive Readiness Sweep (Active)
+- [x] LTX-000 Create launch execution plan `docs/plans/2026-02-20-launch-readiness-execution-plan.md`
+- [x] LTX-001 Baseline workspace hygiene + toolchain verification
+- [x] LTX-002 Full baseline verification `make verify`
+- [x] LTX-003 Strict verification `make verify-strict`
+- [x] LTX-004 UX verification bundle `make verify-ux`
+- [x] LTX-005 Release evidence refresh `make doctor`
+- [x] LTX-006 Scorecard refresh `make scorecard`
+- [x] LTX-007 Release preflight `make release-safety`
+- [x] LTX-008 Rodney live onboarding/help/support checks
+- [x] LTX-009 Rodney live mode-switch/inspector/replay checks
+- [x] LTX-010 Rodney responsive visual checks (mobile/tablet/desktop)
+- [x] LTX-011 Deployment readiness check `make vercel-check`
+- [x] LTX-012 Final artifact/gate reconciliation and gap closure
+- [x] LTX-013 Commit + push launch-readiness evidence
+
 ## UX100 World-Class Program (Active)
 - [x] UX100-000 Create exhaustive execution tracker: `docs/plans/2026-02-19-ux100-execution-plan.md`
 - [x] UX100-B1 Execute Batch 1 (IA + hierarchy + accessibility/perf gate closure)
