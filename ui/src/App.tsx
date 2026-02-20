@@ -900,12 +900,15 @@ export default function App() {
     [laneConfig.hidden, laneConfig.order]
   );
   const remoteCursors = useMemo(() => {
+    if (activeSessions < 2) return [];
     const sessionId = sessionIdRef.current;
+    const activePresence = prunePresence(readPresenceStore());
     return Object.values(sessionCursors)
       .filter((cursor) => cursor.sessionId !== sessionId)
+      .filter((cursor) => Boolean(activePresence[cursor.sessionId]))
       .filter((cursor) => cursor.traceId === (trace?.id ?? 'none'))
       .sort((left, right) => right.updatedAt - left.updatedAt);
-  }, [sessionCursors, trace?.id]);
+  }, [activeSessions, sessionCursors, trace?.id]);
   const remotePlayheads = useMemo(
     () => remoteCursors.map((cursor) => cursor.playheadMs),
     [remoteCursors]
@@ -1199,21 +1202,32 @@ export default function App() {
       urlStateAppliedRef.current = true;
       return;
     }
-    if (initialState.mode && initialState.mode !== mode) {
-      setMode(initialState.mode);
+    if (initialState.mode) {
+      if (initialState.mode !== mode) {
+        setMode(initialState.mode);
+      }
+      initialState.mode = undefined;
     }
     if (initialState.traceId) {
+      if (!traces.length) return;
       const traceExists = traces.some((item) => item.id === initialState.traceId);
-      if (!traceExists) return;
+      if (!traceExists) {
+        initialState.traceId = undefined;
+        initialState.stepId = undefined;
+        urlStateAppliedRef.current = true;
+        return;
+      }
       if (selectedTraceId !== initialState.traceId) {
         setSelectedTraceId(initialState.traceId);
         return;
       }
+      initialState.traceId = undefined;
     }
     if (initialState.stepId && trace?.steps.some((step) => step.id === initialState.stepId)) {
       if (selectedStepId !== initialState.stepId) {
         setSelectedStepId(initialState.stepId);
       }
+      initialState.stepId = undefined;
     }
     urlStateAppliedRef.current = true;
   }, [mode, selectedStepId, selectedTraceId, setMode, setSelectedTraceId, trace?.steps, traces]);
