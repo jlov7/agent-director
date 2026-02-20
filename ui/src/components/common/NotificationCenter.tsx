@@ -15,9 +15,20 @@ export default function NotificationCenter({ notifications, onDismiss }: Notific
   if (!notifications.length) return null;
 
   return (
-    <aside className="notification-center" aria-label="System notifications" aria-live="polite">
+    <aside
+      className="notification-center"
+      aria-label="System notifications"
+      role="region"
+      aria-live="polite"
+      aria-relevant="additions text"
+    >
       {notifications.map((notification) => (
-        <article key={notification.id} className={`notification-item level-${notification.level}`}>
+        <article
+          key={notification.id}
+          className={`notification-item level-${notification.level}`}
+          role={notification.level === 'error' || notification.level === 'warning' ? 'alert' : 'status'}
+          aria-atomic="true"
+        >
           <p>{notification.message}</p>
           <button
             className="ghost-button notification-dismiss"

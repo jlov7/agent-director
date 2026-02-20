@@ -1,94 +1,69 @@
 import { expect, test } from '@playwright/test';
 
-async function initFreshUser(page: import('@playwright/test').Page) {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('agentDirector.introDismissed', 'false');
-    window.localStorage.setItem('agentDirector.tourCompleted', 'false');
-    window.localStorage.setItem('agentDirector.heroDismissed', 'false');
-    window.localStorage.setItem('agentDirector.explainMode', 'false');
-  });
+async function initRouteShellOnboarding(
+  page: import('@playwright/test').Page,
+  path: 'evaluate' | 'operate' | 'investigate' = 'evaluate'
+) {
+  await page.addInitScript((selectedPath) => {
+    window.localStorage.setItem('agentDirector.uxReboot.routes.v1', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('select'));
+    window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify(selectedPath));
+    window.localStorage.setItem('agentDirector.explainMode', JSON.stringify(false));
+    window.localStorage.setItem('agentDirector.introDismissed', JSON.stringify(false));
+    window.localStorage.setItem('agentDirector.heroDismissed', JSON.stringify(false));
+  }, path);
 }
 
-async function initPostIntroUser(page: import('@playwright/test').Page) {
-  await page.addInitScript(() => {
-    window.localStorage.setItem('agentDirector.introDismissed', 'true');
-    window.localStorage.setItem('agentDirector.tourCompleted', 'true');
-    window.localStorage.setItem('agentDirector.heroDismissed', 'false');
-    window.localStorage.setItem('agentDirector.explainMode', 'false');
-  });
-}
+test.describe('Onboarding (Route Shell)', () => {
+  test('shows one first-run decision with three role paths', async ({ page }) => {
+    await initRouteShellOnboarding(page, 'evaluate');
+    await page.goto('/?routes=1&route=overview');
 
-test.describe('Onboarding', () => {
-  test('shows intro overlay for first-run users', async ({ page }) => {
-    await initFreshUser(page);
-    await page.goto('/');
-
-    await expect(page.locator('.intro-overlay')).toBeVisible();
-    await expect(page.getByText('Watch your agent think. Then direct it.')).toBeVisible();
+    await expect(page.getByText('What are you here to do?')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Evaluate' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Operate' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Investigate' })).toBeVisible();
+    await expect(page.locator('.intro-overlay')).toHaveCount(0);
   });
 
-  test('skip intro moves user to hero briefing', async ({ page }) => {
-    await initFreshUser(page);
-    await page.goto('/');
+  test('evaluate path supports safe skip and recommends one first action', async ({ page }) => {
+    await initRouteShellOnboarding(page, 'evaluate');
+    await page.goto('/?routes=1&route=overview');
 
-    await page.getByRole('button', { name: 'Skip intro' }).click();
-    await expect(page.locator('.intro-overlay')).not.toBeVisible();
-    await expect(page.locator('.hero-ribbon')).toBeVisible();
+    await page.getByRole('button', { name: 'Skip for now' }).click();
+
+    await expect(page.getByText('Skipped for now')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open top risk' })).toBeVisible();
   });
 
-  test('starting guided tour from intro opens tour', async ({ page }) => {
-    await initFreshUser(page);
-    await page.goto('/');
+  test('operate path progresses checklist after recommended action', async ({ page }) => {
+    await initRouteShellOnboarding(page, 'operate');
+    await page.goto('/?routes=1&route=triage');
 
-    await page.locator('.intro-overlay').getByRole('button', { name: 'Start guided tour' }).click();
+    await page.getByRole('button', { name: 'Start first win' }).click();
+    await expect(page.getByText('First win checklist')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Open incident triage' }).click();
+    await expect(page.getByText('1 of 3 complete')).toBeVisible();
+  });
+
+  test('investigate path progresses checklist after opening flow mode', async ({ page }) => {
+    await initRouteShellOnboarding(page, 'investigate');
+    await page.goto('/?routes=1&route=diagnose');
+
+    await page.getByRole('button', { name: 'Start first win' }).click();
+    await page.getByRole('button', { name: 'Open flow mode' }).click();
+
+    await expect(page.getByText('1 of 3 complete')).toBeVisible();
+  });
+
+  test('help me around opens guided tour as optional assist', async ({ page }) => {
+    await initRouteShellOnboarding(page, 'evaluate');
+    await page.goto('/?routes=1&route=overview');
+
+    await page.getByRole('button', { name: 'Help me around' }).first().click();
+
     await expect(page.locator('.tour-overlay')).toBeVisible();
     await expect(page.getByText('Step 1 of')).toBeVisible();
-  });
-
-  test('guided tour can be navigated from header guide button', async ({ page }) => {
-    await initPostIntroUser(page);
-    await page.goto('/');
-
-    await page.locator('.header').getByRole('button', { name: 'Start guided tour' }).click();
-    await expect(page.locator('.tour-overlay')).toBeVisible();
-    await expect(page.getByText('Step 1 of')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Next', exact: true }).click();
-    await expect(page.getByText('Step 2 of')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Back', exact: true }).click();
-    await expect(page.getByText('Step 1 of')).toBeVisible();
-  });
-
-  test('hero briefing can be dismissed and stays dismissed after reload', async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      window.localStorage.setItem('agentDirector.introDismissed', 'true');
-      window.localStorage.setItem('agentDirector.tourCompleted', 'true');
-      window.localStorage.setItem('agentDirector.heroDismissed', 'false');
-      window.localStorage.setItem('agentDirector.explainMode', 'false');
-    });
-    await page.reload();
-
-    await expect(page.locator('.hero-ribbon')).toBeVisible();
-    await page.locator('.hero-ribbon').getByRole('button', { name: 'Dismiss' }).click();
-    await expect(page.locator('.hero-ribbon')).not.toBeVisible();
-
-    await page.reload();
-    await expect(page.locator('.hero-ribbon')).not.toBeVisible();
-  });
-
-  test('tour completion is persisted after skip', async ({ page }) => {
-    await initPostIntroUser(page);
-    await page.goto('/');
-
-    await page.getByRole('button', { name: 'Start guided tour' }).first().click();
-    await expect(page.locator('.tour-overlay')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Skip' }).click();
-    await expect(page.locator('.tour-overlay')).not.toBeVisible();
-
-    await page.reload();
-    await expect(page.locator('.tour-overlay')).not.toBeVisible();
   });
 });

@@ -36,11 +36,13 @@ Agent Director is a cinematic, chat-native debugger for AI-agent runs. It turns 
 
 Key capabilities:
 - Cinema, Flow, Compare, and Matrix analysis modes.
+- Route-shell journeys (`Review`, `Triage`, `Diagnose`, `Coordinate`, `Configure`) with explicit outcomes and resume markers.
 - Director's Cut replay with deterministic invalidation + diff.
 - Scenario workbench and matrix outcomes with causal ranking.
 - Story mode, guided tour, explain overlays, and setup wizard.
 - Collaboration rails: ownership, handoff digests, support diagnostics, export queue.
 - Safety by default: redaction-first with safe-export guardrails.
+- Staged UX rollout cohorts (`off`/`internal`/`pilot`/`ga`) controlled from Settings.
 
 ## Visual Tour
 
@@ -194,6 +196,7 @@ Full reference: [`docs/api-reference.md`](docs/api-reference.md)
 - Standard suite: `make verify`
 - Strict suite: `make verify-strict`
 - UX suite: `make verify-ux`
+- 3-second route comprehension proxy: `pnpm -C ui scan:check`
 - Release evidence: `make doctor`
 - Scorecards: `make scorecard`
 

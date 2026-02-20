@@ -18,6 +18,123 @@ Below is the complete, prioritized list of "perfecting" work. Each item is frame
 - [x] LTX-012 Final artifact/gate reconciliation and gap closure
 - [x] LTX-013 Commit + push launch-readiness evidence
 
+## SaaS UX Reboot Program (Active)
+Source plan: `docs/plans/2026-02-20-saas-ux-reboot-implementation-plan.md`
+
+### Phase A — Foundations and Baseline
+- [x] UXR-001 Add SaaS UX Reboot task ledger to `TASKS.md`
+- [x] UXR-002 Sync reboot ExecPlan status in `.codex/PLANS.md`
+- [x] UXR-003 Generate baseline complexity artifact `artifacts/ux-baseline.json`
+- [x] UXR-004 Add journey metric schema in `ui/src/ux/metrics.ts`
+- [x] UXR-005 Add first-meaningful-interaction and first-success hooks
+- [x] UXR-006 Add onboarding exit telemetry (skip/complete/abandon)
+- [x] UXR-007 Define route architecture contract
+- [x] UXR-008 Add route-ready shell wrapper + feature flag
+- [x] UXR-009 Add route-level legacy/new shell smoke test
+- [x] UXR-010 Capture baseline journey durations by persona
+- [x] UXR-011 Update done-definition to require measured outcomes
+- [x] UXR-012 Add migration guardrail documentation
+- [x] UXR-013 Add assertion for multi-primary CTA violations
+- [x] UXR-014 Add assertion for above-fold control-count threshold
+- [x] UXR-015 Refresh and persist Phase A baseline evidence
+
+### Phase B — IA and Navigation Simplification
+- [x] UXR-016 Define top-level routes (`overview`, `triage`, `diagnose`, `coordinate`, `settings`)
+- [x] UXR-017 Move global mode switcher to contextual analysis tools
+- [x] UXR-018 Reduce header default controls to core essentials + overflow
+- [x] UXR-019 Move workspace/role/theme/motion/density controls to Settings route
+- [x] UXR-020 Keep command palette global and remove duplicate quick-entry controls
+- [x] UXR-021 Replace mixed-intent labels with action-first labels
+- [x] UXR-022 Implement route breadcrumb + single next-best-action component
+- [x] UXR-023 Enforce one visible primary CTA per route viewport
+- [x] UXR-024 Move secondary actions behind overflow in route headers
+- [x] UXR-025 Add consistent route-level empty/loading/error shells
+- [x] UXR-026 Remove duplicate orientation modules and keep one canonical surface
+- [x] UXR-027 Gate validation nav entry behind prerequisites
+- [x] UXR-028 Add IA regression tests for nav clarity/transitions
+- [x] UXR-029 Add mobile-first route navigation behavior
+- [x] UXR-030 Publish IA v2 old-to-new mapping
+
+### Phase C — Onboarding and First-Time Value
+- [x] UXR-031 Replace multi-surface onboarding with one orchestrator
+- [x] UXR-032 Keep one initial first-load decision
+- [x] UXR-033 Define role paths (`Evaluate`, `Operate`, `Investigate`)
+- [x] UXR-034 Add 3-step first-win checklists by role
+- [x] UXR-035 Reframe guided tour as optional assist, not default path
+- [x] UXR-036 Make explain overlay contextual on demand
+- [x] UXR-037 Remove duplicated onboarding triggers in shell surfaces
+- [x] UXR-038 Add first-run progress indicator with confidence signal
+- [x] UXR-039 Add onboarding restart/start-over control
+- [x] UXR-040 Add safe-skip with recommended next action
+- [x] UXR-041 Add first-value telemetry per role path
+- [x] UXR-042 Add onboarding abandonment telemetry and friction tags
+- [x] UXR-043 Complete onboarding copy pass for plain language
+- [x] UXR-044 Add onboarding E2E for all role paths
+- [x] UXR-045 Capture onboarding before/after delta artifact
+
+### Phase D — Core Persona Journeys
+- [x] UXR-046 Define explicit outcome per route and enforce in copy
+- [x] UXR-047 Rebuild Overview route (executive/evaluator clarity)
+- [x] UXR-048 Rebuild Triage route (on-call problem-first flow)
+- [x] UXR-049 Rebuild Diagnose route (deep analysis sequence)
+- [x] UXR-050 Rebuild Coordinate route (ownership/handoff flow)
+- [x] UXR-051 Rebuild Settings route (setup/preferences/feature controls)
+- [x] UXR-052 Move workspace panel content into route-specific cards
+- [x] UXR-053 Simplify JourneyPanel to route progress indicator
+- [x] UXR-054 Remove duplicate checklist surfaces
+- [x] UXR-055 Standardize action-card format (outcome/why/one CTA)
+- [x] UXR-056 Add last-completed and resume markers per route
+- [x] UXR-057 Reorder diagnostics actions by task sequence
+- [x] UXR-058 Move support diagnostics entry to contextual recovery points
+- [x] UXR-059 Add route empty states with one primary and one alternate action
+- [x] UXR-060 Add route success states with what-changed confirmation
+- [x] UXR-061 Add route failure states with direct recovery controls
+- [x] UXR-062 Unify export queue and async action status timeline
+- [x] UXR-063 Reduce modal reliance with inline side panels where possible
+- [x] UXR-064 Add persistent collaboration action-history strip
+- [x] UXR-065 Add journey snapshots for handoff-ready state
+- [x] UXR-066 Add route-scoped command palette ranking
+- [x] UXR-067 Add keyboard-only triage and diagnose task flows
+- [x] UXR-068 Add route-level analytics checkpoints
+- [x] UXR-069 Add full regression E2E for five canonical journeys
+- [x] UXR-070 Capture journey-time delta artifact
+
+### Phase E — Visual Hierarchy and Interaction Simplification
+- [x] UXR-071 Split stylesheet into token/layout/component layers
+- [x] UXR-072 Enforce strict typography hierarchy tiers
+- [x] UXR-073 Enforce breakpoint spacing rhythm with lint checks
+- [x] UXR-074 Reduce decorative chrome/background noise
+- [x] UXR-075 Normalize card density and remove mixed-density screens
+- [x] UXR-076 Standardize status chips/state indicators
+- [x] UXR-077 Rebuild quick actions as contextual task actions (max 4)
+- [x] UXR-078 Remove duplicated Guide/Command/Explain entries
+- [x] UXR-079 Simplify command palette groups to task categories
+- [x] UXR-080 Enforce one heavy visual treatment per section rule
+- [x] UXR-081 Refresh microcopy to short outcome-first labels
+- [x] UXR-082 Add visual snapshots for route x breakpoint matrix
+- [x] UXR-083 Add internal 3-second scan comprehension script
+- [x] UXR-084 Update style governance documentation
+- [x] UXR-085 Publish visual QA checklist and failure criteria
+
+### Phase F — Accessibility, Performance, and Trust UX
+- [x] UXR-086 Complete route-level landmark and heading hierarchy
+- [x] UXR-087 Improve SR announcements for async/nav changes
+- [x] UXR-088 Validate keyboard-only completion for five core journeys
+- [x] UXR-089 Enforce touch target and focus visibility consistency
+- [x] UXR-090 Profile heavy routes and reduce unnecessary rerenders
+- [x] UXR-091 Add route performance budgets + regression thresholds
+- [x] UXR-092 Clarify trust states inline (safe/raw/role constraints)
+- [x] UXR-093 Add explicit confirmation + reversible high-risk flows
+- [x] UXR-094 Expand localization overflow checks across primary routes
+- [x] UXR-095 Publish trust/a11y/perf hardening evidence pack
+
+### Phase G — Rollout, Adoption, and Cleanup
+- [x] UXR-096 Roll out reboot behind staged feature flag cohorts
+- [x] UXR-097 Collect 7-day telemetry and compare baseline deltas
+- [x] UXR-098 Remove deprecated duplicated legacy surfaces
+- [x] UXR-099 Update docs/runbooks/screenshots to new IA and journeys
+- [x] UXR-100 Lock UX reboot release-gate criteria and close tracker
+
 ## UX100 World-Class Program (Active)
 - [x] UX100-000 Create exhaustive execution tracker: `docs/plans/2026-02-19-ux100-execution-plan.md`
 - [x] UX100-B1 Execute Batch 1 (IA + hierarchy + accessibility/perf gate closure)

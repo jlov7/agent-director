@@ -1,11 +1,10 @@
 # Open Questions
 
 ## Active (non-blocking)
-- 2026-02-15: ExecPlan "Release-ready v1" shows all milestones complete; no next task found.
-- 2026-02-15: ExecPlan "Release-ready v1" still complete on latest check; no actionable milestone available.
-- 2026-02-15: ExecPlan "Release-ready v1" still complete in `/Users/jasonlovell/AI/Agent Director`; no next task available for this run.
+- None.
 
 ## Resolved During Execution
+- 2026-02-20: Exhaustive UX reboot and release-gate execution completed; no blocking open questions remain.
 - 2026-02-14: Should help docs be a full routed page or minimal static page for v1?
   Decision: implement a minimal static help page (`ui/public/help.html`) and link it from the app shell for lowest risk.
 - 2026-02-14: `vite build` warned that the main JS chunk was ~589 kB minified.

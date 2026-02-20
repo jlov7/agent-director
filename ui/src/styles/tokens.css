@@ -1,0 +1,38 @@
+:root {
+  --ux-tier-1: clamp(1.2rem, 1.8vw, 1.45rem);
+  --ux-tier-2: 1rem;
+  --ux-tier-3: 0.88rem;
+  --ux-tier-4: 0.78rem;
+
+  --ux-rhythm-unit: 12px;
+  --ux-rhythm-unit-lg: 16px;
+  --ux-rhythm-unit-xl: 20px;
+
+  --ux-surface-padding: 12px;
+  --ux-surface-gap: 12px;
+  --ux-focus-ring: 0 0 0 3px rgba(95, 168, 245, 0.34);
+
+  --ux-chip-neutral-bg: rgba(20, 32, 48, 0.9);
+  --ux-chip-neutral-border: rgba(255, 255, 255, 0.22);
+  --ux-chip-neutral-text: #c8d6e9;
+  --ux-chip-success: #7bd389;
+  --ux-chip-warning: #f0c86d;
+  --ux-chip-danger: #f07c82;
+  --ux-chip-info: #7aa4d1;
+}
+
+@media (min-width: 900px) {
+  :root {
+    --ux-rhythm-unit: var(--ux-rhythm-unit-lg);
+    --ux-surface-padding: 14px;
+    --ux-surface-gap: 14px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --ux-rhythm-unit: var(--ux-rhythm-unit-xl);
+    --ux-surface-padding: 16px;
+    --ux-surface-gap: 16px;
+  }
+}

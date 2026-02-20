@@ -319,4 +319,53 @@ test.describe('Deep UX audit probes', () => {
 
     expect(after).not.toBe(before);
   });
+
+  test('primary CTA budget enforces one dominant action in workspace header', async ({ page }) => {
+    await initExperienced(page);
+    await page.goto('/');
+
+    const visiblePrimaryCtas = await page.evaluate(() => {
+      const root = document.querySelector('.workspace-section-actions');
+      if (!root) return 0;
+      const controls = Array.from(root.querySelectorAll<HTMLElement>('.primary-button'));
+      return controls.filter((control) => {
+        const style = window.getComputedStyle(control);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        const rect = control.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      }).length;
+    });
+
+    expect(visiblePrimaryCtas).toBeLessThanOrEqual(1);
+  });
+
+  test('above-fold interaction budget stays within current guardrail thresholds', async ({ page }) => {
+    await initExperienced(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+
+    const countAboveFold = async () =>
+      page.evaluate(() => {
+        const selector = ['button', 'a[href]', 'input', 'select', 'textarea', '[role="button"]', '[role="tab"]'].join(',');
+        const controls = Array.from(new Set(Array.from(document.querySelectorAll<HTMLElement>(selector))));
+        const visible = controls.filter((control) => {
+          const style = window.getComputedStyle(control);
+          if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+          const rect = control.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        });
+        return visible.filter((control) => {
+          const rect = control.getBoundingClientRect();
+          return rect.top >= 0 && rect.left >= 0 && rect.bottom <= window.innerHeight && rect.right <= window.innerWidth;
+        }).length;
+      });
+
+    const desktopAboveFold = await countAboveFold();
+    expect(desktopAboveFold).toBeLessThanOrEqual(30);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    const mobileAboveFold = await countAboveFold();
+    expect(mobileAboveFold).toBeLessThanOrEqual(20);
+  });
 });

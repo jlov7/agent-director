@@ -4,8 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(process.cwd(), 'src');
-const ALLOWED_CSS_FILES = new Set(['styles/main.css']);
+const ALLOWED_CSS_FILES = new Set([
+  'styles/main.css',
+  'styles/tokens.css',
+  'styles/layout.css',
+  'styles/components.css',
+]);
 const CODE_EXT = new Set(['.ts', '.tsx', '.js', '.jsx']);
+const RHYTHM_PX_SCALE = new Set(['0', '4', '6', '8', '10', '12', '14', '16', '20', '24', '32', '44']);
 
 const violations = [];
 
@@ -38,6 +44,58 @@ function walk(dir) {
 }
 
 walk(ROOT);
+
+function lintTypographyHierarchy() {
+  const componentsPath = path.resolve(ROOT, 'styles/components.css');
+  if (!fs.existsSync(componentsPath)) return;
+  const text = fs.readFileSync(componentsPath, 'utf8');
+  const fontSizes = [...text.matchAll(/font-size:\s*([^;]+);/g)].map((match) => match[1].trim());
+  const invalid = fontSizes.filter((value) => !/^var\(--ux-tier-[1-4]\)$/.test(value));
+  if (invalid.length > 0) {
+    violations.push(`styles/components.css: font-size must use ux typography tiers (found: ${invalid.slice(0, 3).join(', ')})`);
+  }
+}
+
+function lintSpacingRhythm() {
+  const files = ['styles/layout.css', 'styles/components.css'];
+  const spacingRule = /(margin(?:-[a-z]+)?|padding(?:-[a-z]+)?|gap|row-gap|column-gap)\s*:\s*([^;]+);/g;
+
+  for (const file of files) {
+    const abs = path.resolve(ROOT, file);
+    if (!fs.existsSync(abs)) continue;
+    const text = fs.readFileSync(abs, 'utf8');
+    for (const match of text.matchAll(spacingRule)) {
+      const value = match[2];
+      if (value.includes('var(')) continue;
+      const pxValues = [...value.matchAll(/(-?\d+(?:\.\d+)?)px/g)].map((item) => item[1]);
+      if (pxValues.length === 0) continue;
+      const invalid = pxValues.find((px) => !RHYTHM_PX_SCALE.has(px));
+      if (invalid) {
+        violations.push(`${file}: spacing value ${invalid}px is outside rhythm scale`);
+      }
+    }
+  }
+}
+
+function lintHeavyTreatmentRule() {
+  const componentsPath = path.resolve(ROOT, 'styles/components.css');
+  if (!fs.existsSync(componentsPath)) return;
+  const text = fs.readFileSync(componentsPath, 'utf8');
+  const selectors = ['.route-outcome-card', '.route-state-card', '.journey-action-card', '.route-progress-strip'];
+  for (const selector of selectors) {
+    const blockMatch = text.match(new RegExp(`${selector.replace('.', '\\.')}\\s*\\{([\\s\\S]*?)\\}`, 'm'));
+    if (!blockMatch) continue;
+    const block = blockMatch[1];
+    const heavyCount = [...block.matchAll(/\b(background|box-shadow|backdrop-filter)\s*:/g)].length;
+    if (heavyCount > 1) {
+      violations.push(`styles/components.css: ${selector} violates heavy-treatment rule (${heavyCount} heavy properties)`);
+    }
+  }
+}
+
+lintTypographyHierarchy();
+lintSpacingRhythm();
+lintHeavyTreatmentRule();
 
 if (violations.length > 0) {
   console.error('Design lint failed:\n');

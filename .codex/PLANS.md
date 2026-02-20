@@ -1,3 +1,47 @@
+# SaaS UX Reboot ExecPlan
+
+## Purpose / Big Picture
+
+Reset Agent Director UX from a feature-dense control room into a world-class SaaS product with clear persona journeys, lower cognitive load, and measurable first-value improvements.
+
+## Scope
+
+- In scope: frontend IA simplification, onboarding redesign, route-based journey architecture, interaction-density reduction, and validation metrics.
+- Out of scope: backend contract rewrites or unrelated gameplay/platform expansion.
+
+## Progress
+
+- [x] Research and current-state diagnosis completed.
+- [x] Design brief created: `docs/plans/2026-02-20-saas-ux-reboot-design.md`.
+- [x] Detailed implementation plan created: `docs/plans/2026-02-20-saas-ux-reboot-implementation-plan.md`.
+- [x] Phase A execution (foundations + baseline instrumentation).
+- [x] Phase B execution (IA/nav simplification).
+- [x] Phase C execution (onboarding + first-value).
+- [x] Phase D execution (core journeys by persona).
+- [x] Phase E execution (visual hierarchy + interaction simplification).
+- [x] Phase F execution (a11y/perf/trust hardening).
+- [x] Phase G execution (rollout + cleanup + gate closure).
+
+## Decision Log
+
+- Use a hybrid strangler migration strategy (route-by-route) instead of cosmetic-only edits or full rewrite.
+- Reframe UX completion criteria around measured outcomes (TTFV, journey completion, control density), not checklist saturation.
+- Route-shell onboarding now uses a single orchestrator with role paths (`evaluate`/`operate`/`investigate`) and optional guidance as a secondary path.
+
+## Validation Plan
+
+- Phase-local verification: `pnpm -C ui typecheck`, `pnpm -C ui test`, targeted `pnpm -C ui test:e2e`.
+- Program gates: `make verify`, `make verify-ux`, `make doctor`, `make scorecard`.
+
+## Outcomes & Retrospective
+
+Completed.
+- Reboot program delivered route-first journeys, contextual onboarding, visual simplification, and hardening gates with measurable artifacts.
+- Added canonical route E2E regressions, visual snapshots, scan proxy, route perf budgets, and trust-state confirmation/undo protections.
+- Updated release gate criteria and tracker artifacts to close UXR-001..UXR-100.
+
+---
+
 # Launch Tomorrow Readiness ExecPlan
 
 ## Purpose / Big Picture
@@ -119,7 +163,9 @@ Close the complete pre-release feature/polish/fix set required to ship as a worl
 
 ## Outcomes & Retrospective
 
-In progress.
+Completed.
+- Closed RG-001..RG-040 with verification-backed execution and tracker sync.
+- Final evidence gates passed (`make verify`, `make verify-strict`, `make verify-ux`, `make doctor`, `make scorecard`, `make release-safety`, `make vercel-check`).
 
 ---
 

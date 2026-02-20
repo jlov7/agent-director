@@ -2,6 +2,11 @@
 
 Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 
+## UX Reboot Closure (2026-02-20)
+
+- UXR-001 through UXR-100 are closed with current evidence artifacts and verification runs.
+- No open P0/P1 UX reboot gaps remain.
+
 ## P0
 
 ### GAP-P0-001: Missing strict, repeatable doctor command with machine-readable evidence

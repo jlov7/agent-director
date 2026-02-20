@@ -10,6 +10,22 @@ async function initStorage(page: import('@playwright/test').Page) {
   });
 }
 
+async function initRouteShellStorage(page: import('@playwright/test').Page) {
+  await page.addInitScript(() => {
+    window.localStorage.setItem('agentDirector.onboarded', 'true');
+    window.localStorage.setItem('agentDirector.safeExport', 'true');
+    window.localStorage.setItem('agentDirector.windowed', 'true');
+    window.localStorage.setItem('agentDirector.overlayEnabled', 'true');
+    window.localStorage.setItem('agentDirector.speed', '1');
+    window.localStorage.setItem('agentDirector.introDismissed', 'true');
+    window.localStorage.setItem('agentDirector.tourCompleted', 'true');
+    window.localStorage.setItem('agentDirector.explainMode', 'false');
+    window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', 'true');
+    window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify('evaluate'));
+    window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('completed'));
+  });
+}
+
 test.describe('Keyboard shortcuts', () => {
   test('question mark opens shortcuts modal and escape closes it', async ({ page }) => {
     await initStorage(page);
@@ -56,5 +72,45 @@ test.describe('Keyboard shortcuts', () => {
 
     await page.keyboard.press('i');
     await expect(page.getByRole('button', { name: 'Close inspector' })).not.toBeVisible();
+  });
+
+  test('route-shell journeys are keyboard-completable across five routes', async ({ page }) => {
+    await initRouteShellStorage(page);
+    await page.goto('/?routes=1&route=overview');
+
+    await page.getByRole('button', { name: 'Review run health', exact: true }).first().focus();
+    await page.keyboard.press('Enter');
+    await expect(page.getByText('Resume here: Review run health')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Triage workspace route' }).focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('1');
+    await page.keyboard.press('2');
+    await page.keyboard.press('3');
+    await page.keyboard.press('4');
+    await expect(page.getByText('Resume here: Share the handoff')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Diagnose workspace route' }).focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('1');
+    await page.keyboard.press('2');
+    await page.keyboard.press('3');
+    await page.keyboard.press('4');
+    await expect(page.getByText('Resume here: Share findings')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Coordinate workspace route' }).focus();
+    await page.keyboard.press('Enter');
+    await page.getByRole('button', { name: 'Capture snapshot', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.workspace-card').filter({ hasText: 'Handoff snapshots' })).toContainText(/snapshot/i);
+
+    await page.getByRole('button', { name: 'Configure workspace route' }).focus();
+    await page.keyboard.press('Enter');
+    const safeExportToggle = page.locator('[data-route-panel="settings"]').getByRole('checkbox', { name: 'Safe export' });
+    await safeExportToggle.focus();
+    await page.keyboard.press('Space');
+    await page.getByRole('button', { name: 'Confirm' }).focus();
+    await page.keyboard.press('Enter');
+    await expect(safeExportToggle).not.toBeChecked();
   });
 });

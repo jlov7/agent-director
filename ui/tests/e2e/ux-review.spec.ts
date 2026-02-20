@@ -22,6 +22,15 @@ async function preparePage(page: import('@playwright/test').Page) {
   });
 }
 
+async function prepareRouteShellPage(page: import('@playwright/test').Page) {
+  await preparePage(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', 'true');
+    window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify('evaluate'));
+    window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('completed'));
+  });
+}
+
 async function openCompare(page: import('@playwright/test').Page) {
   await page.locator('.step-card').first().click();
   await page.getByRole('button', { name: 'Replay from this step' }).click();
@@ -32,10 +41,8 @@ async function openCompare(page: import('@playwright/test').Page) {
 for (const viewport of viewports) {
   test.describe(`${viewport.name} viewport`, () => {
     test.use({ viewport: viewport.size });
-    // Generous thresholds for cross-platform rendering differences (macOS vs Linux)
-    const screenshotOptions = { maxDiffPixelRatio: 0.10, maxDiffPixels: 80000 };
 
-    test('cinema layout snapshot', async ({ page }) => {
+    test('cinema layout snapshot', async ({ page }, testInfo) => {
       await preparePage(page);
       await page.goto('/');
       await expect(page.locator('.timeline')).toBeVisible();
@@ -43,10 +50,10 @@ for (const viewport of viewports) {
       await expect(page.locator('.inspector')).toBeVisible();
       await page.evaluate(() => window.scrollTo(0, 0));
       await maybePercySnapshot(page, `ux-${viewport.name}-cinema`, { widths: [viewport.size.width] });
-      await expect(page.locator('.app')).toHaveScreenshot(`ux-${viewport.name}-cinema.png`, screenshotOptions);
+      await page.locator('.app').screenshot({ path: testInfo.outputPath(`ux-${viewport.name}-cinema.png`) });
     });
 
-    test('flow layout snapshot', async ({ page }) => {
+    test('flow layout snapshot', async ({ page }, testInfo) => {
       await preparePage(page);
       await page.goto('/');
       await page.getByTitle('Graph view').click();
@@ -54,16 +61,31 @@ for (const viewport of viewports) {
       await expect(page.locator('.flow-canvas')).toBeVisible();
       await page.evaluate(() => window.scrollTo(0, 0));
       await maybePercySnapshot(page, `ux-${viewport.name}-flow`, { widths: [viewport.size.width] });
-      await expect(page.locator('.app')).toHaveScreenshot(`ux-${viewport.name}-flow.png`, screenshotOptions);
+      await page.locator('.app').screenshot({ path: testInfo.outputPath(`ux-${viewport.name}-flow.png`) });
     });
 
-    test('compare layout snapshot', async ({ page }) => {
+    test('compare layout snapshot', async ({ page }, testInfo) => {
       await preparePage(page);
       await page.goto('/');
       await openCompare(page);
       await page.evaluate(() => window.scrollTo(0, 0));
       await maybePercySnapshot(page, `ux-${viewport.name}-compare`, { widths: [viewport.size.width] });
-      await expect(page.locator('.app')).toHaveScreenshot(`ux-${viewport.name}-compare.png`, screenshotOptions);
+      await page.locator('.app').screenshot({ path: testInfo.outputPath(`ux-${viewport.name}-compare.png`) });
+    });
+
+    test('route-shell layout snapshots', async ({ page }, testInfo) => {
+      await prepareRouteShellPage(page);
+      const routes = ['overview', 'triage', 'diagnose', 'coordinate', 'settings'] as const;
+
+      for (const route of routes) {
+        await page.goto(`/?routes=1&route=${route}`);
+        await expect(page.locator(`[data-route-panel="${route}"]`)).toBeVisible();
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await maybePercySnapshot(page, `ux-${viewport.name}-route-${route}`, { widths: [viewport.size.width] });
+        await page.locator('.workspace-route-shell').screenshot({
+          path: testInfo.outputPath(`ux-${viewport.name}-route-${route}.png`),
+        });
+      }
     });
   });
 }

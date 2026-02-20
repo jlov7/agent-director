@@ -14,6 +14,10 @@ import ContextHelpOverlay from './components/common/ContextHelpOverlay';
 import IntroOverlay from './components/common/IntroOverlay';
 import HeroRibbon from './components/common/HeroRibbon';
 import QuickActions from './components/common/QuickActions';
+import OnboardingOrchestrator, { type OnboardingStage } from './components/onboarding/OnboardingOrchestrator';
+import type { OnboardingPath } from './components/onboarding/RolePathSelector';
+import type { FirstWinStep } from './components/onboarding/FirstWinChecklist';
+import type { RouteTimelineItem } from './components/journeys/ExecutionTimeline';
 import StoryModeBanner from './components/common/StoryModeBanner';
 import AppShellState from './components/common/AppShellState';
 import NotificationCenter, {
@@ -113,6 +117,7 @@ import {
   type SetupWizardDraft,
 } from './utils/saasUx';
 import { computeTimeToFirstSuccessMs, pruneToWindow, shouldTriggerRageClick } from './utils/usabilitySignals';
+import { evaluateRoutePerfBudget } from './utils/perf';
 import {
   DEFAULT_SHORTCUT_BINDINGS,
   normalizeShortcutBindings,
@@ -121,6 +126,16 @@ import {
   SHORTCUT_KEY_OPTIONS,
   type ShortcutBindings,
 } from './utils/shortcutBindings';
+import { trackJourneyMetric, trackJourneyMetricOnce, type JourneyMetricName } from './ux/metrics';
+import {
+  parseUxRebootRoute,
+  UX_REBOOT_ROUTE_QUERY_KEY,
+  UX_REBOOT_SHELL_QUERY_KEY,
+  UX_REBOOT_SHELL_STORAGE_KEY,
+  type UxRebootRoute,
+} from './routes/routeConfig';
+import WorkspaceRoute from './routes/WorkspaceRoute';
+import type { RouteSnapshot } from './routes/workspaceRouteTypes';
 
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 120;
@@ -200,6 +215,14 @@ type ExportTask = {
   updatedAt: number;
   retryable: boolean;
 };
+type RouteLastCompletedAction = { id: string; label: string; at: string } | null;
+type RouteLastCompletedByRoute = Record<UxRebootRoute, RouteLastCompletedAction>;
+type RouteActionHistoryEntry = {
+  id: string;
+  route: UxRebootRoute;
+  label: string;
+  at: string;
+};
 type StuckSignalKind = 'rage_click' | 'dead_end_actions';
 type StuckSignal = {
   id: string;
@@ -240,6 +263,37 @@ const WORKSPACE_OPTIONS: WorkspaceOption[] = [
   { id: 'operations', label: 'Operations' },
   { id: 'executive', label: 'Executive' },
 ];
+
+const UX_REBOOT_ROUTE_TO_SECTION: Record<UxRebootRoute, WorkspaceSection> = {
+  overview: 'journey',
+  triage: 'analysis',
+  diagnose: 'analysis',
+  coordinate: 'collaboration',
+  settings: 'operations',
+};
+
+const UX_REBOOT_ROUTE_LABEL: Record<UxRebootRoute, string> = {
+  overview: 'Review',
+  triage: 'Triage',
+  diagnose: 'Diagnose',
+  coordinate: 'Coordinate',
+  settings: 'Configure',
+};
+type UxRebootCohort = 'off' | 'internal' | 'pilot' | 'ga';
+
+const DEFAULT_ROUTE_LAST_COMPLETED: RouteLastCompletedByRoute = {
+  overview: null,
+  triage: null,
+  diagnose: null,
+  coordinate: null,
+  settings: null,
+};
+
+const ONBOARDING_PATH_TO_PERSONA: Record<OnboardingPath, IntroPersona> = {
+  evaluate: 'executive',
+  operate: 'operator',
+  investigate: 'builder',
+};
 
 const FlowMode = lazy(() => import('./components/FlowMode'));
 const Compare = lazy(() => import('./components/Compare'));
@@ -663,12 +717,20 @@ export default function App() {
   const [overlayEnabled, setOverlayEnabled] = usePersistedState('agentDirector.overlayEnabled', false);
   const [journeyCollapsed, setJourneyCollapsed] = usePersistedState('agentDirector.onboarded', false);
   const [, setTourCompleted] = usePersistedState('agentDirector.tourCompleted', false);
-  const [explainMode, setExplainMode] = usePersistedState('agentDirector.explainMode', true);
+  const [explainMode, setExplainMode] = usePersistedState('agentDirector.explainMode', false);
   const [heroDismissed, setHeroDismissed] = usePersistedState('agentDirector.heroDismissed', false);
   const [dockOpen, setDockOpen] = usePersistedState('agentDirector.dockOpen', false);
   const [introPersona, setIntroPersona] = usePersistedState<IntroPersona>(
     'agentDirector.introPersona',
     'builder'
+  );
+  const [onboardingPath, setOnboardingPath] = usePersistedState<OnboardingPath>(
+    'agentDirector.onboarding.path.v1',
+    'evaluate'
+  );
+  const [onboardingStage, setOnboardingStage] = usePersistedState<OnboardingStage>(
+    'agentDirector.onboarding.stage.v1',
+    'select'
   );
   const [launchPath, setLaunchPath] = usePersistedState<LaunchPath>(
     'agentDirector.launchPath',
@@ -677,7 +739,37 @@ export default function App() {
   const [themeMode, setThemeMode] = usePersistedState<ThemeMode>('agentDirector.themeMode', 'studio');
   const [motionMode, setMotionMode] = usePersistedState<MotionMode>('agentDirector.motionMode', 'balanced');
   const [densityMode, setDensityMode] = usePersistedState<DensityMode>('agentDirector.densityMode.v1', 'auto');
+  const [uxRebootCohort, setUxRebootCohort] = usePersistedState<UxRebootCohort>(
+    'agentDirector.uxReboot.cohort.v1',
+    'off'
+  );
   const [viewportWidth, setViewportWidth] = useState(typeof window === 'undefined' ? 1280 : window.innerWidth);
+  const routeShell = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return { enabled: false, route: parseUxRebootRoute(null), cohort: uxRebootCohort };
+    }
+    const params = new URLSearchParams(window.location.search);
+    const queryEnabled = params.get(UX_REBOOT_SHELL_QUERY_KEY) === '1';
+    const route = parseUxRebootRoute(params.get(UX_REBOOT_ROUTE_QUERY_KEY));
+    const queryCohort = params.get('cohort');
+    const normalizedQueryCohort =
+      queryCohort === 'internal' || queryCohort === 'pilot' || queryCohort === 'ga' || queryCohort === 'off'
+        ? (queryCohort as UxRebootCohort)
+        : null;
+    const cohort = normalizedQueryCohort ?? uxRebootCohort;
+    const cohortEnabled = cohort === 'internal' || cohort === 'pilot' || cohort === 'ga';
+    let storageEnabled = false;
+    try {
+      storageEnabled = JSON.parse(window.localStorage.getItem(UX_REBOOT_SHELL_STORAGE_KEY) ?? 'false') === true;
+    } catch {
+      storageEnabled = false;
+    }
+    const envEnabled = import.meta.env.VITE_UX_REBOOT_ROUTES === '1';
+    return { enabled: envEnabled || queryEnabled || storageEnabled || cohortEnabled, route, cohort };
+  }, [uxRebootCohort]);
+  const routeShellEnabled = routeShell.enabled;
+  const routeShellRoute = routeShell.route;
+  const [routeShellActiveRoute, setRouteShellActiveRoute] = useState<UxRebootRoute>(routeShellRoute);
   const [workspaceId, setWorkspaceId] = usePersistedState('agentDirector.workspaceId.v1', WORKSPACE_OPTIONS[0].id);
   const [workspaceRole, setWorkspaceRole] = usePersistedState<SaaSRole>('agentDirector.workspaceRole.v1', 'operator');
   const [sessionExpiresAt, setSessionExpiresAt] = usePersistedState(
@@ -797,6 +889,18 @@ export default function App() {
   const [undoState, setUndoState] = useState<null | { id: string; label: string }>(null);
   const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
   const [sharedAnnotations, setSharedAnnotations] = useState<SharedAnnotation[]>([]);
+  const [routeLastCompletedActions, setRouteLastCompletedActions] = usePersistedState<RouteLastCompletedByRoute>(
+    'agentDirector.route.lastCompleted.v1',
+    DEFAULT_ROUTE_LAST_COMPLETED
+  );
+  const [routeActionHistory, setRouteActionHistory] = usePersistedState<RouteActionHistoryEntry[]>(
+    'agentDirector.route.actionHistory.v1',
+    []
+  );
+  const [routeSnapshots, setRouteSnapshots] = usePersistedState<RouteSnapshot[]>(
+    'agentDirector.route.snapshots.v1',
+    []
+  );
 
   useEffect(() => {
     const syncViewport = () => setViewportWidth(window.innerWidth);
@@ -817,6 +921,7 @@ export default function App() {
   const filterMeasureRef = useRef(0);
   const applyingRemoteCursorRef = useRef(false);
   const gameplayFunnelFlagsRef = useRef<Record<string, boolean>>({});
+  const journeyMetricFlagsRef = useRef<Record<string, boolean>>({});
   const gamepadPressedRef = useRef<Record<string, boolean>>({});
   const sessionStartedAtRef = useRef(Date.now());
   const firstSuccessTrackedRef = useRef(false);
@@ -829,6 +934,10 @@ export default function App() {
   const confirmHandlersRef = useRef<Record<string, () => void>>({});
   const undoHandlersRef = useRef<Record<string, () => void>>({});
   const smartPrefetchSignatureRef = useRef<string>('');
+  const runRouteActionRef = useRef<(actionId: string) => Promise<void> | void>(() => {});
+  const routePerfEnteredAtRef = useRef<number>(typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const routePerfBudgetSignatureRef = useRef<string>('');
+  const routeAsyncAnnouncementRef = useRef<string>('');
   const initialUrlStateRef = useRef(
     typeof window === 'undefined' ? parseUrlAppState('') : parseUrlAppState(window.location.search)
   );
@@ -991,6 +1100,23 @@ export default function App() {
       // Non-blocking analytics queue.
     }
   }, []);
+  const trackJourneyEvent = useCallback((name: JourneyMetricName, metadata: Record<string, unknown> = {}) => {
+    try {
+      trackJourneyMetric(window.localStorage, name, metadata);
+    } catch {
+      // Non-blocking analytics queue.
+    }
+  }, []);
+  const trackJourneyEventOnce = useCallback(
+    (onceKey: string, name: JourneyMetricName, metadata: Record<string, unknown> = {}) => {
+      try {
+        trackJourneyMetricOnce(window.localStorage, journeyMetricFlagsRef.current, onceKey, name, metadata);
+      } catch {
+        // Non-blocking analytics queue.
+      }
+    },
+    []
+  );
   const registerStuckSignal = useCallback(
     (kind: StuckSignalKind, detail: string, metadata: Record<string, unknown> = {}) => {
       const now = Date.now();
@@ -1019,6 +1145,13 @@ export default function App() {
         '';
       const label = rawLabel.trim().replace(/\s+/g, ' ').slice(0, 60).toLowerCase();
       if (!label) return;
+      trackJourneyEventOnce('session:first-meaningful-interaction', 'journey.first_meaningful_interaction', {
+        label,
+        mode,
+        section: activeSection,
+        traceId: trace?.id ?? null,
+        sessionId: sessionIdRef.current,
+      });
       const now = Date.now();
       const key = `click:${label}`;
       const previous = clickBurstMapRef.current[key] ?? [];
@@ -1030,7 +1163,7 @@ export default function App() {
     };
     window.addEventListener('click', handleClick, true);
     return () => window.removeEventListener('click', handleClick, true);
-  }, [registerStuckSignal]);
+  }, [activeSection, mode, registerStuckSignal, trace?.id, trackJourneyEventOnce]);
   useEffect(() => {
     const latest = notifications[notifications.length - 1];
     if (!latest) return;
@@ -1044,6 +1177,14 @@ export default function App() {
         elapsedMs,
         message: latest.message,
       });
+      trackJourneyEventOnce('session:first-success', 'journey.first_success', {
+        elapsedMs,
+        message: latest.message,
+        mode,
+        section: activeSection,
+        traceId: trace?.id ?? null,
+        sessionId: sessionIdRef.current,
+      });
     }
     if (latest.level === 'error') {
       const next = [...pruneToWindow(deadEndErrorTimestampsRef.current, now, DEAD_END_WINDOW_MS), now];
@@ -1052,7 +1193,7 @@ export default function App() {
         registerStuckSignal('dead_end_actions', 'Multiple error outcomes detected in a short period.', { count: next.length });
       }
     }
-  }, [notifications, registerStuckSignal, trackProductEvent]);
+  }, [activeSection, mode, notifications, registerStuckSignal, trace?.id, trackJourneyEventOnce, trackProductEvent]);
   const setAsyncAction = useCallback(
     (next: Omit<AsyncActionRecord, 'updatedAt'> & { updatedAt?: number }) => {
       setAsyncActions((prev) => mergeAsyncAction(prev, next));
@@ -1231,6 +1372,27 @@ export default function App() {
     }
     urlStateAppliedRef.current = true;
   }, [mode, selectedStepId, selectedTraceId, setMode, setSelectedTraceId, trace?.steps, traces]);
+
+  useEffect(() => {
+    if (!routeShellEnabled) return;
+    setRouteShellActiveRoute(routeShellRoute);
+  }, [routeShellEnabled, routeShellRoute]);
+
+  useEffect(() => {
+    if (!routeShellEnabled) return;
+    const mappedSection = UX_REBOOT_ROUTE_TO_SECTION[routeShellActiveRoute];
+    if (mappedSection !== activeSection) {
+      setActiveSection(mappedSection);
+    }
+  }, [activeSection, routeShellActiveRoute, routeShellEnabled, setActiveSection]);
+
+  useEffect(() => {
+    if (!routeShellEnabled) return;
+    const mappedPersona = ONBOARDING_PATH_TO_PERSONA[onboardingPath];
+    if (mappedPersona !== introPersona) {
+      setIntroPersona(mappedPersona);
+    }
+  }, [introPersona, onboardingPath, routeShellEnabled, setIntroPersona]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2464,7 +2626,6 @@ export default function App() {
     async (path: LaunchPath) => {
       setLaunchPath(path);
       if (path === 'rapid_triage') {
-        setExplainMode(true);
         handleModeChange('cinema');
         jumpToError();
         if (!trace?.steps.some((step) => step.status === 'failed')) {
@@ -2474,9 +2635,7 @@ export default function App() {
         return;
       }
       if (path === 'deep_diagnosis') {
-        setExplainMode(true);
         handleModeChange('flow');
-        setTourOpen(true);
         appendActivity('Started deep diagnosis launch path');
         return;
       }
@@ -2490,7 +2649,6 @@ export default function App() {
       handleModeChange,
       jumpToBottleneck,
       jumpToError,
-      setExplainMode,
       setLaunchPath,
       setSyncPlayback,
       shareSession,
@@ -2965,15 +3123,63 @@ export default function App() {
 
   const toggleFeatureFlag = useCallback(
     (flag: keyof FeatureFlags) => {
-      setFeatureFlags((prev) => {
-        const next = { ...prev, [flag]: !prev[flag] };
-        writeFeatureFlags(window.localStorage, next);
-        trackProductEvent('ux.feature_flag.toggled', { flag, enabled: next[flag] });
-        return next;
-      });
+      const currentValue = featureFlags[flag];
+      const nextValue = !currentValue;
+      const applyValue = (enabled: boolean) => {
+        setFeatureFlags((prev) => {
+          const next = { ...prev, [flag]: enabled };
+          writeFeatureFlags(window.localStorage, next);
+          trackProductEvent('ux.feature_flag.toggled', { flag, enabled });
+          return next;
+        });
+      };
+
+      const commit = () => {
+        applyValue(nextValue);
+        addNotification(`${nextValue ? 'Enabled' : 'Disabled'} ${flag}.`, nextValue ? 'success' : 'warning');
+        pushUndo(`${flag} ${nextValue ? 'enabled' : 'disabled'}.`, () => applyValue(currentValue));
+      };
+
+      if (!nextValue) {
+        requestConfirm(
+          'Disable feature control?',
+          `Turning off ${flag} can remove a workflow control from the active route. Continue?`,
+          commit
+        );
+        return;
+      }
+
+      commit();
     },
-    [trackProductEvent]
+    [addNotification, featureFlags, pushUndo, requestConfirm, trackProductEvent]
   );
+
+  const toggleSafeExportWithConfirm = useCallback(() => {
+    const nextValue = !safeExport;
+    const applyValue = (enabled: boolean) => {
+      setSafeExport(enabled);
+      trackProductEvent('ux.action.confirmed', { action: 'safe_export_toggle', enabled });
+    };
+    const commit = () => {
+      applyValue(nextValue);
+      addNotification(
+        nextValue ? 'Safe export enabled. Sensitive payloads remain redacted.' : 'Safe export disabled. Raw payload controls are now available.',
+        nextValue ? 'success' : 'warning'
+      );
+      pushUndo(`Safe export ${nextValue ? 'enabled' : 'disabled'}.`, () => applyValue(!nextValue));
+    };
+
+    if (!nextValue) {
+      requestConfirm(
+        'Disable safe export?',
+        'Disabling safe export may expose raw payload data. Continue?',
+        commit
+      );
+      return;
+    }
+
+    commit();
+  }, [addNotification, pushUndo, requestConfirm, safeExport, setSafeExport, trackProductEvent]);
 
   const completeSetupWizard = useCallback(() => {
     if (!setupValidation.isValid) return;
@@ -3177,7 +3383,7 @@ export default function App() {
   }, [storyState?.active, trace, storyTraceId, stopStory]);
 
   useEffect(() => {
-    if (introDismissed || skipIntro) return;
+    if (routeShellEnabled || introDismissed || skipIntro) return;
     emitGameplayFunnelOnce(
       `tutorial_start:${trace?.id || gameplayTraceId || gameplayState.seed}`,
       'funnel.tutorial_start',
@@ -3190,6 +3396,7 @@ export default function App() {
     introDismissed,
     introPersona,
     launchPath,
+    routeShellEnabled,
     skipIntro,
     trace?.id,
   ]);
@@ -3518,6 +3725,50 @@ export default function App() {
     toggleStory,
   ]);
 
+  useEffect(() => {
+    if (!routeShellEnabled) return;
+    if (routeShellActiveRoute !== 'triage' && routeShellActiveRoute !== 'diagnose') return;
+
+    const isEditableTarget = (target: EventTarget | null) => {
+      const node = target as HTMLElement | null;
+      if (!node) return false;
+      const tag = node.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable;
+    };
+
+    const handler = (event: KeyboardEvent) => {
+      if (isEditableTarget(event.target)) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      const triageFlow: Record<string, string> = {
+        '1': 'triage-observe-incident',
+        '2': 'triage-isolate-cause',
+        '3': 'triage-validate-fix',
+        '4': 'triage-share-handoff',
+      };
+      const diagnoseFlow: Record<string, string> = {
+        '1': 'diagnose-observe-baseline',
+        '2': 'diagnose-isolate-cause',
+        '3': 'diagnose-validate-hypothesis',
+        '4': 'diagnose-share-findings',
+      };
+      const map = routeShellActiveRoute === 'triage' ? triageFlow : diagnoseFlow;
+      const action = map[event.key];
+      if (!action) return;
+
+      event.preventDefault();
+      void runRouteActionRef.current(action);
+      setLiveAnnouncement(
+        routeShellActiveRoute === 'triage'
+          ? `Triage step ${event.key} executed.`
+          : `Diagnose step ${event.key} executed.`
+      );
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [routeShellActiveRoute, routeShellEnabled, setLiveAnnouncement]);
+
   const windowRange = useMemo(() => {
     if (!trace || !windowed || query) return null;
     const wallTimeMs = trace.metadata.wallTimeMs || 1;
@@ -3536,31 +3787,31 @@ export default function App() {
   const storyTotal = storyPlan.length;
   const isFilteringDeferred = query !== deferredQuery;
   const hydrationStatus = `${Math.min(textFilteredSteps.length, hydrationLimit)}/${textFilteredSteps.length}`;
-  const personaFocus = useMemo(() => {
-    if (introPersona === 'executive') {
+  const onboardingSteps = useMemo<FirstWinStep[]>(() => {
+    if (onboardingPath === 'evaluate') {
       return [
-        { label: 'Review run health', done: runHealthScore >= 80 },
-        { label: 'Inspect top risk', done: Boolean(selectedStepId) },
-        { label: 'Share handoff digest', done: Boolean(handoffStatus) },
+        { id: 'evaluate-health', label: 'Review run health', done: runHealthScore >= 80, hint: 'Check run score and summary.' },
+        { id: 'evaluate-risk', label: 'Inspect top risk', done: Boolean(selectedStepId), hint: 'Open the highest-risk step.' },
+        { id: 'evaluate-share', label: 'Share handoff digest', done: Boolean(handoffStatus), hint: 'Send a concise handoff update.' },
       ];
     }
-    if (introPersona === 'operator') {
+    if (onboardingPath === 'operate') {
       return [
-        { label: 'Open failed step', done: Boolean(selectedStepId) },
-        { label: 'Run replay', done: Boolean(compareTrace) },
-        { label: 'Use support diagnostics', done: supportOpen || Boolean(supportNote.trim()) },
+        { id: 'operate-failure', label: 'Open failed step', done: Boolean(selectedStepId), hint: 'Focus on the failing step first.' },
+        { id: 'operate-replay', label: 'Run replay', done: Boolean(compareTrace), hint: 'Validate with a replay compare run.' },
+        { id: 'operate-support', label: 'Use support diagnostics', done: supportOpen || Boolean(supportNote.trim()), hint: 'Capture guided recovery diagnostics.' },
       ];
     }
     return [
-      { label: 'Open flow graph', done: mode === 'flow' },
-      { label: 'Run matrix scenario', done: Boolean(replayMatrix) },
-      { label: 'Save a reusable view', done: savedViews.length > 0 },
+      { id: 'investigate-flow', label: 'Open flow graph', done: mode === 'flow', hint: 'Switch to flow mode for graph context.' },
+      { id: 'investigate-matrix', label: 'Run matrix scenario', done: Boolean(replayMatrix), hint: 'Launch one what-if scenario.' },
+      { id: 'investigate-save', label: 'Save a reusable view', done: savedViews.length > 0, hint: 'Save this setup for the next run.' },
     ];
   }, [
     compareTrace,
     handoffStatus,
-    introPersona,
     mode,
+    onboardingPath,
     replayMatrix,
     runHealthScore,
     savedViews.length,
@@ -3568,9 +3819,553 @@ export default function App() {
     supportNote,
     supportOpen,
   ]);
+  const onboardingCompletionCount = onboardingSteps.filter((item) => item.done).length;
+  const onboardingCompleted = onboardingCompletionCount >= onboardingSteps.length;
+  const onboardingFrictionTag = useMemo(
+    () => stuckSignals[0]?.kind ?? (timeToFirstSuccessMs === null ? 'no_success_yet' : 'none'),
+    [stuckSignals, timeToFirstSuccessMs]
+  );
+  const onboardingRecommendedAction = useMemo(
+    () =>
+      onboardingPath === 'evaluate'
+        ? {
+            label: 'Open top risk',
+            run: () => {
+              setActiveSection('analysis');
+              jumpToError();
+              if (!trace?.steps.some((step) => step.status === 'failed')) jumpToBottleneck();
+            },
+          }
+        : onboardingPath === 'operate'
+          ? {
+              label: 'Open incident triage',
+              run: () => {
+                setActiveSection('analysis');
+                jumpToError();
+                if (!trace?.steps.some((step) => step.status === 'failed')) jumpToBottleneck();
+              },
+            }
+          : {
+              label: 'Open flow mode',
+              run: () => {
+                setActiveSection('analysis');
+                handleModeChange('flow');
+              },
+            },
+    [handleModeChange, jumpToBottleneck, jumpToError, onboardingPath, setActiveSection, trace?.steps]
+  );
+  const personaFocus = useMemo(
+    () => onboardingSteps.map((step) => ({ label: step.label, done: step.done })),
+    [onboardingSteps]
+  );
+  const handleOnboardingRecommendedAction = useCallback(() => {
+    onboardingRecommendedAction.run();
+    if (onboardingStage === 'skipped') {
+      setOnboardingStage('active');
+    }
+  }, [onboardingRecommendedAction, onboardingStage, setOnboardingStage]);
+
+  const handleOnboardingStart = useCallback(() => {
+    setOnboardingStage('active');
+    trackJourneyEvent('journey.onboarding.exit', {
+      source: 'start_first_win',
+      path: onboardingPath,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
+  }, [gameplayTraceId, onboardingPath, setOnboardingStage, trace?.id, trackJourneyEvent]);
+
+  const handleOnboardingSkipSafely = useCallback(() => {
+    setOnboardingStage('skipped');
+    trackJourneyEvent('journey.onboarding.exit', {
+      source: 'skip_safely',
+      path: onboardingPath,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
+    trackJourneyEventOnce(`session:onboarding-abandon:skip:${onboardingPath}`, 'journey.onboarding.abandon', {
+      reason: 'skip_for_now',
+      friction: onboardingFrictionTag,
+      path: onboardingPath,
+      stage: onboardingStage,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
+  }, [
+    gameplayTraceId,
+    onboardingFrictionTag,
+    onboardingPath,
+    onboardingStage,
+    setOnboardingStage,
+    trace?.id,
+    trackJourneyEvent,
+    trackJourneyEventOnce,
+  ]);
+
+  const handleOnboardingStartOver = useCallback(() => {
+    setOnboardingStage('select');
+    trackJourneyEvent('journey.onboarding.exit', {
+      source: 'start_over',
+      path: onboardingPath,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
+  }, [gameplayTraceId, onboardingPath, setOnboardingStage, trace?.id, trackJourneyEvent]);
+
+  useEffect(() => {
+    if (!routeShellEnabled) return;
+    if (onboardingStage !== 'active') return;
+    if (!onboardingCompleted) return;
+    setOnboardingStage('completed');
+    trackJourneyEvent('journey.onboarding.exit', {
+      source: 'first_win_complete',
+      path: onboardingPath,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
+  }, [
+    gameplayTraceId,
+    onboardingCompleted,
+    onboardingPath,
+    onboardingStage,
+    routeShellEnabled,
+    setOnboardingStage,
+    trace?.id,
+    trackJourneyEvent,
+  ]);
+
+  useEffect(() => {
+    if (!routeShellEnabled) return;
+    if (onboardingStage === 'select' || onboardingStage === 'skipped') return;
+    const firstCompletedStep = onboardingSteps.find((step) => step.done);
+    if (!firstCompletedStep) return;
+    trackJourneyEventOnce(
+      `session:onboarding-first-value:${onboardingPath}`,
+      'journey.onboarding.first_value',
+      {
+        path: onboardingPath,
+        stepId: firstCompletedStep.id,
+        traceId: trace?.id ?? gameplayTraceId ?? null,
+        sessionId: sessionIdRef.current,
+      }
+    );
+  }, [
+    gameplayTraceId,
+    onboardingPath,
+    onboardingStage,
+    onboardingSteps,
+    routeShellEnabled,
+    trace?.id,
+    trackJourneyEventOnce,
+  ]);
+
+  useEffect(() => {
+    if (!routeShellEnabled) return;
+    const handlePageHide = () => {
+      if (onboardingStage === 'completed' || onboardingStage === 'skipped') return;
+      trackJourneyEventOnce(`session:onboarding-abandon:pagehide:${onboardingPath}`, 'journey.onboarding.abandon', {
+        reason: 'session_exit',
+        friction: onboardingFrictionTag,
+        path: onboardingPath,
+        stage: onboardingStage,
+        traceId: trace?.id ?? gameplayTraceId ?? null,
+        sessionId: sessionIdRef.current,
+      });
+    };
+    window.addEventListener('pagehide', handlePageHide);
+    return () => window.removeEventListener('pagehide', handlePageHide);
+  }, [
+    gameplayTraceId,
+    onboardingFrictionTag,
+    onboardingPath,
+    onboardingStage,
+    routeShellEnabled,
+    trace?.id,
+    trackJourneyEventOnce,
+  ]);
+
+  const recordRouteCheckpoint = useCallback(
+    (route: UxRebootRoute, actionId: string, label: string, metadata: Record<string, unknown> = {}) => {
+      const nowIso = new Date().toISOString();
+      setRouteLastCompletedActions((prev) => ({
+        ...prev,
+        [route]: { id: actionId, label, at: nowIso },
+      }));
+      setRouteActionHistory((prev) =>
+        [
+          {
+            id: `${route}-${actionId}-${nowIso}`,
+            route,
+            label,
+            at: nowIso,
+          },
+          ...prev,
+        ].slice(0, 24)
+      );
+      trackProductEvent('ux.route.checkpoint', {
+        route,
+        actionId,
+        label,
+        traceId: trace?.id ?? null,
+        sessionId: sessionIdRef.current,
+        ...metadata,
+      });
+    },
+    [setRouteActionHistory, setRouteLastCompletedActions, trace?.id, trackProductEvent]
+  );
+
+  const captureRouteSnapshot = useCallback(
+    (route: UxRebootRoute, summary: string) => {
+      const nowIso = new Date().toISOString();
+      const snapshot: RouteSnapshot = {
+        id: `${route}-${nowIso}`,
+        route,
+        summary,
+        at: nowIso,
+      };
+      setRouteSnapshots((prev) => [snapshot, ...prev].slice(0, 20));
+      return snapshot;
+    },
+    [setRouteSnapshots]
+  );
+
+  const asyncTimeline = useMemo<RouteTimelineItem[]>(
+    () =>
+      [
+        ...asyncActions.map<RouteTimelineItem>((action) => ({
+          id: action.id,
+          source: 'async' as const,
+          label: action.label,
+          status: action.status === 'idle' ? 'queued' : action.status,
+          detail: action.detail,
+          updatedAt: action.updatedAt,
+          retryable: Boolean(action.retryable),
+          resumable: Boolean(action.resumable),
+        })),
+        ...exportTasks.map<RouteTimelineItem>((task) => ({
+          id: task.id,
+          source: 'export' as const,
+          status: task.status === 'queued' ? 'queued' : task.status,
+          label: task.label,
+          detail: task.detail,
+          updatedAt: task.updatedAt,
+          retryable: task.retryable,
+          resumable: false,
+        })),
+      ]
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .slice(0, 16),
+    [asyncActions, exportTasks]
+  );
+
+  const routeProgressMap = useMemo<Record<UxRebootRoute, { completed: number; total: number }>>(
+    () => ({
+      overview: {
+        completed: [runHealthScore >= 80, Boolean(selectedStepId), Boolean(handoffStatus)].filter(Boolean).length,
+        total: 3,
+      },
+      triage: {
+        completed: [Boolean(selectedStepId), mode === 'flow', Boolean(compareTrace) || mode === 'matrix', Boolean(handoffStatus)].filter(Boolean)
+          .length,
+        total: 4,
+      },
+      diagnose: {
+        completed: [mode === 'cinema', mode === 'flow', Boolean(replayMatrix), Boolean(exportTasks.length)].filter(Boolean).length,
+        total: 4,
+      },
+      coordinate: {
+        completed: [Boolean(runOwner.trim()), Boolean(handoffOwner.trim()), Boolean(shareStatus), Boolean(routeSnapshots.length)].filter(Boolean)
+          .length,
+        total: 4,
+      },
+      settings: {
+        completed: [safeExport, gamepadEnabled, windowed, featureFlags.setupWizardV1 || featureFlags.supportPanelV1].filter(Boolean).length,
+        total: 4,
+      },
+    }),
+    [
+      compareTrace,
+      exportTasks.length,
+      featureFlags.setupWizardV1,
+      featureFlags.supportPanelV1,
+      gamepadEnabled,
+      handoffOwner,
+      handoffStatus,
+      mode,
+      replayMatrix,
+      routeSnapshots.length,
+      runHealthScore,
+      runOwner,
+      safeExport,
+      selectedStepId,
+      shareStatus,
+      windowed,
+    ]
+  );
+
+  useEffect(() => {
+    if (!routeShellEnabled) return;
+    routePerfEnteredAtRef.current = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    setLiveAnnouncement(`Opened ${UX_REBOOT_ROUTE_LABEL[routeShellActiveRoute]} route.`);
+    trackProductEvent('ux.route.entered', {
+      route: routeShellActiveRoute,
+      traceId: trace?.id ?? null,
+      sessionId: sessionIdRef.current,
+    });
+  }, [routeShellActiveRoute, routeShellEnabled, setLiveAnnouncement, trace?.id, trackProductEvent]);
+
+  useEffect(() => {
+    if (!routeShellEnabled || !workspacePanelOpen) return;
+    const signature = `${routeShellActiveRoute}:${trace?.id ?? 'none'}`;
+    if (routePerfBudgetSignatureRef.current === signature) return;
+    routePerfBudgetSignatureRef.current = signature;
+
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const result = evaluateRoutePerfBudget(routeShellActiveRoute, now - routePerfEnteredAtRef.current);
+    trackProductEvent('ux.route.perf_budget', {
+      route: result.route,
+      durationMs: result.durationMs,
+      budgetMs: result.budgetMs,
+      overBudgetByMs: result.overBudgetByMs,
+      withinBudget: result.withinBudget,
+      traceId: trace?.id ?? null,
+    });
+
+    if (!result.withinBudget) {
+      addNotification(
+        `${UX_REBOOT_ROUTE_LABEL[result.route]} route exceeded budget by ${result.overBudgetByMs}ms.`,
+        'warning'
+      );
+    }
+  }, [addNotification, routeShellActiveRoute, routeShellEnabled, trace?.id, trackProductEvent, workspacePanelOpen]);
+
+  useEffect(() => {
+    if (!routeShellEnabled) return;
+    const prioritized = asyncTimeline.find((item) => item.status === 'error' || item.status === 'success' || item.status === 'running');
+    if (!prioritized) return;
+    const signature = `${prioritized.id}:${prioritized.status}:${prioritized.updatedAt}`;
+    if (routeAsyncAnnouncementRef.current === signature) return;
+    routeAsyncAnnouncementRef.current = signature;
+    const statusCopy =
+      prioritized.status === 'error'
+        ? 'failed and needs attention'
+        : prioritized.status === 'success'
+          ? 'completed successfully'
+          : 'is running';
+    setLiveAnnouncement(`${prioritized.label} ${statusCopy}.`);
+  }, [asyncTimeline, routeShellEnabled, setLiveAnnouncement]);
+
+  const runRouteAction = useCallback(
+    async (actionId: string) => {
+      if (!routeShellEnabled) return;
+
+      const route = routeShellActiveRoute;
+      const record = (label: string, metadata: Record<string, unknown> = {}) =>
+        recordRouteCheckpoint(route, actionId, label, metadata);
+
+      switch (actionId) {
+        case 'overview-review-health':
+          setActiveSection('journey');
+          record('Review run health');
+          return;
+        case 'overview-inspect-risk':
+          setActiveSection('analysis');
+          jumpToError();
+          if (!trace?.steps.some((step) => step.status === 'failed')) jumpToBottleneck();
+          record('Inspect top risk');
+          return;
+        case 'overview-share-handoff':
+          await createHandoffDigest();
+          record('Share handoff digest');
+          return;
+        case 'triage-observe-incident':
+          setActiveSection('analysis');
+          jumpToError();
+          if (!trace?.steps.some((step) => step.status === 'failed')) jumpToBottleneck();
+          record('Observe the incident');
+          return;
+        case 'triage-isolate-cause':
+          setActiveSection('analysis');
+          handleModeChange('flow');
+          record('Isolate the cause');
+          return;
+        case 'triage-validate-fix':
+          setActiveSection('analysis');
+          if (compareTrace) {
+            handleModeChange('compare');
+          } else {
+            handleModeChange('matrix');
+          }
+          record('Validate the fix');
+          return;
+        case 'triage-share-handoff':
+          await createHandoffDigest();
+          record('Share the handoff');
+          return;
+        case 'triage-open-support':
+          openNeedHelpNow('triage_route');
+          record('Open support diagnostics', { source: 'triage_route' });
+          return;
+        case 'diagnose-observe-baseline':
+          setActiveSection('analysis');
+          handleModeChange('cinema');
+          record('Observe baseline');
+          return;
+        case 'diagnose-isolate-cause':
+          setActiveSection('analysis');
+          handleModeChange('flow');
+          record('Isolate causal chain');
+          return;
+        case 'diagnose-validate-hypothesis':
+          setActiveSection('analysis');
+          handleModeChange('matrix');
+          record('Validate hypothesis');
+          return;
+        case 'diagnose-share-findings':
+          exportDirectorNarrative();
+          record('Share findings');
+          return;
+        case 'coordinate-share-live':
+          await shareSession();
+          record('Share live context');
+          return;
+        case 'coordinate-copy-handoff':
+          await createHandoffDigest();
+          record('Copy handoff digest');
+          return;
+        case 'coordinate-capture-snapshot': {
+          const summary = `${route.toUpperCase()} snapshot • mode=${mode} • step=${selectedStepId ?? 'none'} • trace=${trace?.id ?? 'unknown'}`;
+          const snapshot = captureRouteSnapshot(route, summary);
+          addNotification('Captured handoff snapshot.', 'success');
+          record('Capture handoff snapshot', { snapshotId: snapshot.id });
+          return;
+        }
+        default:
+          return;
+      }
+    },
+    [
+      addNotification,
+      captureRouteSnapshot,
+      compareTrace,
+      createHandoffDigest,
+      exportDirectorNarrative,
+      handleModeChange,
+      jumpToBottleneck,
+      jumpToError,
+      mode,
+      openNeedHelpNow,
+      recordRouteCheckpoint,
+      routeShellActiveRoute,
+      routeShellEnabled,
+      selectedStepId,
+      setActiveSection,
+      shareSession,
+      trace,
+    ]
+  );
+
+  useEffect(() => {
+    runRouteActionRef.current = runRouteAction;
+  }, [runRouteAction]);
+
+  const routeScopedCommandActions = useMemo<CommandAction[]>(
+    () => {
+      if (!routeShellEnabled) return [];
+      if (routeShellActiveRoute === 'overview') {
+        return [
+          {
+            id: 'route-overview-review-health',
+            label: 'Route: review run health',
+            description: 'Checkpoint 1 for Overview route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('overview-review-health'),
+          },
+          {
+            id: 'route-overview-inspect-risk',
+            label: 'Route: inspect top risk',
+            description: 'Checkpoint 2 for Overview route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('overview-inspect-risk'),
+          },
+        ];
+      }
+      if (routeShellActiveRoute === 'triage') {
+        return [
+          {
+            id: 'route-triage-observe',
+            label: 'Route: observe incident',
+            description: 'Checkpoint 1 for Triage route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('triage-observe-incident'),
+          },
+          {
+            id: 'route-triage-isolate',
+            label: 'Route: isolate cause',
+            description: 'Checkpoint 2 for Triage route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('triage-isolate-cause'),
+          },
+          {
+            id: 'route-triage-validate',
+            label: 'Route: validate fix',
+            description: 'Checkpoint 3 for Triage route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('triage-validate-fix'),
+          },
+        ];
+      }
+      if (routeShellActiveRoute === 'diagnose') {
+        return [
+          {
+            id: 'route-diagnose-observe',
+            label: 'Route: observe baseline',
+            description: 'Checkpoint 1 for Diagnose route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('diagnose-observe-baseline'),
+          },
+          {
+            id: 'route-diagnose-isolate',
+            label: 'Route: isolate causal chain',
+            description: 'Checkpoint 2 for Diagnose route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('diagnose-isolate-cause'),
+          },
+          {
+            id: 'route-diagnose-validate',
+            label: 'Route: validate hypothesis',
+            description: 'Checkpoint 3 for Diagnose route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('diagnose-validate-hypothesis'),
+          },
+        ];
+      }
+      if (routeShellActiveRoute === 'coordinate') {
+        return [
+          {
+            id: 'route-coordinate-share',
+            label: 'Route: share live context',
+            description: 'Checkpoint 1 for Coordinate route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('coordinate-share-live'),
+          },
+          {
+            id: 'route-coordinate-snapshot',
+            label: 'Route: capture snapshot',
+            description: 'Checkpoint 2 for Coordinate route.',
+            group: 'Route',
+            onTrigger: () => void runRouteAction('coordinate-capture-snapshot'),
+          },
+        ];
+      }
+      return [];
+    },
+    [routeShellActiveRoute, routeShellEnabled, runRouteAction]
+  );
 
   const commandActions = useMemo<CommandAction[]>(
     () => [
+      ...routeScopedCommandActions,
       {
         id: 'macro-rapid-triage',
         label: 'Run rapid triage launch path',
@@ -3583,7 +4378,7 @@ export default function App() {
       {
         id: 'macro-deep-diagnosis',
         label: 'Run deep diagnosis launch path',
-        description: 'Open flow analysis and guided tour.',
+        description: 'Open flow analysis with optional guidance.',
         group: 'Macros',
         onTrigger: () => {
           void startLaunchPath('deep_diagnosis');
@@ -3608,11 +4403,18 @@ export default function App() {
       },
       {
         id: 'tour-start',
-        label: 'Start guided tour',
-        description: 'Walk the interface step by step.',
+        label: 'Help me around',
+        description: 'Open the optional guided tour.',
         group: 'Onboarding',
         keys: 'T',
         onTrigger: () => setTourOpen(true),
+      },
+      {
+        id: 'onboarding-start-over',
+        label: 'Start over onboarding',
+        description: 'Reset first-run setup and choose a path again.',
+        group: 'Onboarding',
+        onTrigger: handleOnboardingStartOver,
       },
       {
         id: 'explain-toggle',
@@ -3712,7 +4514,7 @@ export default function App() {
         label: safeExport ? 'Disable safe export' : 'Enable safe export',
         description: 'Redact sensitive payloads.',
         group: 'Safety',
-        onTrigger: () => setSafeExport((prev) => !prev),
+        onTrigger: toggleSafeExportWithConfirm,
       },
       {
         id: 'reload',
@@ -3778,7 +4580,7 @@ export default function App() {
         onTrigger: () => {
           openNeedHelpNow('command_palette');
         },
-        disabled: !featureFlags.supportPanelV1,
+        disabled: !featureFlags.supportPanelV1 || routeShellEnabled,
       },
       ...savedViews.slice(0, 5).map((view) => ({
         id: `saved-view-${view.id}`,
@@ -3794,6 +4596,8 @@ export default function App() {
       featureFlags.setupWizardV1,
       featureFlags.supportPanelV1,
       openNeedHelpNow,
+      routeScopedCommandActions,
+      routeShellEnabled,
       storyActive,
       toggleStory,
       explainMode,
@@ -3810,15 +4614,45 @@ export default function App() {
       reload,
       setExplainMode,
       setOverlayEnabled,
-      setSafeExport,
       setShowShortcuts,
       setSetupWizardOpen,
       setTourOpen,
       setActiveSection,
       savedViews,
       startLaunchPath,
+      handleOnboardingStartOver,
+      toggleSafeExportWithConfirm,
       trackProductEvent,
     ]
+  );
+
+  const paletteActions = useMemo<CommandAction[]>(
+    () => {
+      if (!routeShellEnabled) return commandActions;
+      const mapGroup = (group: string | undefined) => {
+        switch (group) {
+          case 'Route':
+            return 'Current route';
+          case 'Mode':
+            return 'View';
+          case 'Tools':
+          case 'Workspace':
+            return 'Workflows';
+          case 'Safety':
+            return 'Trust';
+          case 'Meta':
+            return 'System';
+          default:
+            return group ?? 'Workflows';
+        }
+      };
+
+      return commandActions.map((action) => ({
+        ...action,
+        group: mapGroup(action.group),
+      }));
+    },
+    [commandActions, routeShellEnabled]
   );
 
   const handleIntroSkip = useCallback(() => {
@@ -3827,13 +4661,27 @@ export default function App() {
       'funnel.tutorial_skip',
       { traceId: trace?.id || gameplayTraceId || 'unknown', source: 'intro_overlay' }
     );
+    trackJourneyEvent('journey.onboarding.exit', {
+      source: 'skip_intro',
+      persona: introPersona,
+      launchPath,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
     setIntroDismissed(true);
-  }, [emitGameplayFunnelOnce, gameplayState.seed, gameplayTraceId, setIntroDismissed, trace?.id]);
+  }, [emitGameplayFunnelOnce, gameplayState.seed, gameplayTraceId, introPersona, launchPath, setIntroDismissed, trace?.id, trackJourneyEvent]);
 
   const handleStartIntroTour = useCallback(() => {
+    trackJourneyEvent('journey.onboarding.exit', {
+      source: 'start_guided_tour',
+      persona: introPersona,
+      launchPath,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
     setIntroDismissed(true);
     setTourOpen(true);
-  }, [setIntroDismissed, setTourOpen]);
+  }, [gameplayTraceId, introPersona, launchPath, setIntroDismissed, setTourOpen, trace?.id, trackJourneyEvent]);
 
   const handleGuidedTourClose = useCallback(() => {
     emitGameplayFunnelOnce(
@@ -3841,9 +4689,37 @@ export default function App() {
       'funnel.tutorial_skip',
       { traceId: trace?.id || gameplayTraceId || 'unknown', source: 'guided_tour' }
     );
+    trackJourneyEvent('journey.onboarding.exit', {
+      source: 'guided_tour_skip',
+      persona: introPersona,
+      launchPath,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
+    trackJourneyEventOnce(`session:onboarding-abandon:guided-tour:${onboardingPath}`, 'journey.onboarding.abandon', {
+      reason: 'guided_tour_skip',
+      friction: onboardingFrictionTag,
+      path: onboardingPath,
+      stage: onboardingStage,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
     setTourOpen(false);
     setTourCompleted(true);
-  }, [emitGameplayFunnelOnce, gameplayState.seed, gameplayTraceId, setTourCompleted, trace?.id]);
+  }, [
+    emitGameplayFunnelOnce,
+    gameplayState.seed,
+    gameplayTraceId,
+    introPersona,
+    launchPath,
+    onboardingFrictionTag,
+    onboardingPath,
+    onboardingStage,
+    setTourCompleted,
+    trace?.id,
+    trackJourneyEvent,
+    trackJourneyEventOnce,
+  ]);
 
   const handleGuidedTourComplete = useCallback(() => {
     emitGameplayFunnelOnce(
@@ -3851,9 +4727,70 @@ export default function App() {
       'funnel.tutorial_complete',
       { traceId: trace?.id || gameplayTraceId || 'unknown' }
     );
+    trackJourneyEvent('journey.onboarding.exit', {
+      source: 'guided_tour_complete',
+      persona: introPersona,
+      launchPath,
+      traceId: trace?.id ?? gameplayTraceId ?? null,
+      sessionId: sessionIdRef.current,
+    });
     setTourOpen(false);
     setTourCompleted(true);
-  }, [emitGameplayFunnelOnce, gameplayState.seed, gameplayTraceId, setTourCompleted, trace?.id]);
+  }, [
+    emitGameplayFunnelOnce,
+    gameplayState.seed,
+    gameplayTraceId,
+    introPersona,
+    launchPath,
+    setTourCompleted,
+    trace?.id,
+    trackJourneyEvent,
+  ]);
+
+  const supportPanelContent = (
+    <div className="palette support-panel">
+      <div className="palette-header">
+        <div>
+          <div className="palette-title">Support diagnostics</div>
+          <div className="palette-subtitle">Capture environment, friction signals, and handoff payload for rapid triage.</div>
+        </div>
+        <button className="ghost-button" type="button" onClick={() => setSupportOpen(false)}>
+          Close
+        </button>
+      </div>
+      <div className="support-guided-recovery">
+        <strong>Guided recovery context</strong>
+        <p>
+          {stuckSignals.length
+            ? `Latest signal: ${stuckSignals[0]?.kind.replace('_', ' ')}. ${stuckSignals[0]?.detail}`
+            : 'No explicit friction signal detected. This panel still captures full context for proactive support.'}
+        </p>
+        <p>
+          Time to first success:{' '}
+          {timeToFirstSuccessMs === null ? 'not yet recorded in this session' : `${timeToFirstSuccessMs}ms`}
+        </p>
+      </div>
+      <label>
+        Support note
+        <textarea
+          className="search-input"
+          value={supportNote}
+          onChange={(event) => setSupportNote(event.target.value)}
+          rows={3}
+          placeholder="Describe the issue, reproduction path, expected behavior, and where the user got stuck."
+        />
+      </label>
+      <pre className="support-diagnostics-preview">{JSON.stringify(supportDiagnostics, null, 2)}</pre>
+      <div className="workspace-inline-form">
+        <button className="primary-button" type="button" onClick={() => void copySupportPayload()}>
+          Copy diagnostics payload
+        </button>
+        <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
+          Open help
+        </a>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -3996,7 +4933,9 @@ export default function App() {
   const modeOrientationLabel = MODE_ORIENTATION_COPY[mode];
   const effectiveDensity: Exclude<DensityMode, 'auto'> =
     densityMode === 'auto' ? (viewportWidth <= 980 ? 'compact' : 'comfortable') : densityMode;
-  const workspaceTrail = `Workspace / ${activeWorkspaceSection.title} / ${modeOrientationLabel}`;
+  const workspaceTrail = `Workspace / ${
+    routeShellEnabled ? UX_REBOOT_ROUTE_LABEL[routeShellActiveRoute] : activeWorkspaceSection.title
+  } / ${modeOrientationLabel}`;
   const nextBestAction = (() => {
     if (activeSection === 'journey') {
       if (mode !== 'cinema') {
@@ -4066,7 +5005,9 @@ export default function App() {
     <div
       className={`app theme-${themeMode} density-${effectiveDensity} ${explainMode ? 'explain-mode' : ''} ${
         mode === 'compare' ? 'mode-compare' : ''
-      } ${mode === 'matrix' ? 'mode-matrix' : ''} ${mode === 'gameplay' ? 'mode-gameplay' : ''}`}
+      } ${mode === 'matrix' ? 'mode-matrix' : ''} ${mode === 'gameplay' ? 'mode-gameplay' : ''} ${
+        routeShellEnabled ? 'route-shell-enabled' : ''
+      }`}
     >
       <h1 className="sr-only">Workspace</h1>
       <div className="live-region" role="status" aria-live="polite" aria-atomic="true">
@@ -4110,12 +5051,13 @@ export default function App() {
         sessionLabel={sessionState.label}
         sessionExpired={sessionState.expired}
         onRenewSession={renewSession}
+        routeShellEnabled={routeShellEnabled}
       />
       <NotificationCenter
         notifications={notifications.map(({ id, message, level }) => ({ id, message, level }))}
         onDismiss={dismissNotification}
       />
-      {stuckSignals.length > 0 || timeToFirstSuccessMs === null ? (
+      {!routeShellEnabled && (stuckSignals.length > 0 || timeToFirstSuccessMs === null) ? (
         <section className="help-escalation-banner" aria-live="polite">
           <div className="help-escalation-copy">
             <strong>Need help now?</strong>
@@ -4297,52 +5239,33 @@ export default function App() {
         </div>
       ) : null}
       {supportOpen && featureFlags.supportPanelV1 ? (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Support diagnostics">
-          <div className="palette support-panel">
-            <div className="palette-header">
-              <div>
-                <div className="palette-title">Support diagnostics</div>
-                <div className="palette-subtitle">Capture environment, friction signals, and handoff payload for rapid triage.</div>
-              </div>
-              <button className="ghost-button" type="button" onClick={() => setSupportOpen(false)}>
-                Close
-              </button>
-            </div>
-            <div className="support-guided-recovery">
-              <strong>Guided recovery context</strong>
-              <p>
-                {stuckSignals.length
-                  ? `Latest signal: ${stuckSignals[0]?.kind.replace('_', ' ')}. ${stuckSignals[0]?.detail}`
-                  : 'No explicit friction signal detected. This panel still captures full context for proactive support.'}
-              </p>
-              <p>
-                Time to first success:{' '}
-                {timeToFirstSuccessMs === null ? 'not yet recorded in this session' : `${timeToFirstSuccessMs}ms`}
-              </p>
-            </div>
-            <label>
-              Support note
-              <textarea
-                className="search-input"
-                value={supportNote}
-                onChange={(event) => setSupportNote(event.target.value)}
-                rows={3}
-                placeholder="Describe the issue, reproduction path, expected behavior, and where the user got stuck."
-              />
-            </label>
-            <pre className="support-diagnostics-preview">{JSON.stringify(supportDiagnostics, null, 2)}</pre>
-            <div className="workspace-inline-form">
-              <button className="primary-button" type="button" onClick={() => void copySupportPayload()}>
-                Copy diagnostics payload
-              </button>
-              <a className="ghost-button" href="/help.html" target="_blank" rel="noreferrer">
-                Open help
-              </a>
-            </div>
+        routeShellEnabled ? (
+          <aside className="support-inline-panel" role="complementary" aria-label="Support diagnostics">
+            {supportPanelContent}
+          </aside>
+        ) : (
+          <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Support diagnostics">
+            {supportPanelContent}
           </div>
-        </div>
+        )
       ) : null}
-      {!introDismissed && !skipIntro ? (
+      {routeShellEnabled ? (
+        <OnboardingOrchestrator
+          stage={onboardingStage}
+          path={onboardingPath}
+          steps={onboardingSteps}
+          explainEnabled={explainMode}
+          recommendedActionLabel={onboardingRecommendedAction.label}
+          onPathChange={setOnboardingPath}
+          onStart={handleOnboardingStart}
+          onSkipSafely={handleOnboardingSkipSafely}
+          onStartOver={handleOnboardingStartOver}
+          onStartTour={() => setTourOpen(true)}
+          onToggleExplain={() => setExplainMode((prev) => !prev)}
+          onRecommendedAction={handleOnboardingRecommendedAction}
+        />
+      ) : null}
+      {!routeShellEnabled && !introDismissed && !skipIntro ? (
         <IntroOverlay
           onComplete={handleIntroSkip}
           onStartTour={handleStartIntroTour}
@@ -4354,7 +5277,7 @@ export default function App() {
           onStartLaunchPath={(path) => void startLaunchPath(path)}
         />
       ) : null}
-      {introDismissed && !heroDismissed ? (
+      {!routeShellEnabled && introDismissed && !heroDismissed ? (
         <HeroRibbon
           explainMode={explainMode}
           storyActive={storyActive}
@@ -4376,7 +5299,7 @@ export default function App() {
         onClose={handleGuidedTourClose}
         onComplete={handleGuidedTourComplete}
       />
-      <ContextHelpOverlay enabled={explainMode} />
+      <ContextHelpOverlay enabled={explainMode && (!routeShellEnabled || onboardingStage !== 'select')} />
       <StoryModeBanner
         active={storyActive}
         label={storyLabel}
@@ -4396,78 +5319,132 @@ export default function App() {
         onJumpToBottleneck={jumpToBottleneck}
       />
 
-      <JourneyPanel
-        trace={trace}
-        mode={mode === 'matrix' || mode === 'gameplay' ? 'cinema' : mode}
-        playheadMs={playheadMs}
-        selectedStepId={selectedStepId}
-        compareTrace={compareTrace}
-        collapsed={journeyCollapsed}
-        onToggleCollapsed={() => setJourneyCollapsed((prev) => !prev)}
-        onModeChange={handleModeChange}
-        onSelectStep={(stepId) => {
-          setSelectedStepId(stepId);
-          if (mode !== 'cinema') setMode('cinema');
-        }}
-        onJumpToBottleneck={jumpToBottleneck}
-        onReplay={handleReplay}
-        onStartTour={() => setTourOpen(true)}
-        priorityQueue={journeyPriorityQueue}
-      />
-
-      <nav className="workspace-nav" aria-label="Workspace navigation">
-        <button
-          className={`ghost-button ${activeSection === 'journey' ? 'active' : ''}`}
-          type="button"
-          aria-pressed={activeSection === 'journey'}
-          aria-label="Understand this run workspace section"
-          onClick={() => setActiveSection('journey')}
-        >
-          Understand
-        </button>
-        <button
-          className={`ghost-button ${activeSection === 'analysis' ? 'active' : ''}`}
-          type="button"
-          aria-pressed={activeSection === 'analysis'}
-          aria-label="Diagnose root cause workspace section"
-          onClick={() => setActiveSection('analysis')}
-        >
-          Diagnose
-        </button>
-        <button
-          className={`ghost-button ${activeSection === 'collaboration' ? 'active' : ''}`}
-          type="button"
-          aria-pressed={activeSection === 'collaboration'}
-          aria-label="Coordinate responders workspace section"
-          onClick={() => setActiveSection('collaboration')}
-        >
-          Coordinate
-        </button>
-        <button
-          className={`ghost-button ${activeSection === 'operations' ? 'active' : ''}`}
-          type="button"
-          aria-pressed={activeSection === 'operations'}
-          aria-label="Configure workspace section"
-          onClick={() => setActiveSection('operations')}
-        >
-          Configure
-        </button>
-        <button
-          className={`ghost-button ${mode === 'compare' || mode === 'matrix' ? 'active' : ''}`}
-          type="button"
-          aria-pressed={mode === 'compare' || mode === 'matrix'}
-          aria-label="Validate outcome intent"
-          onClick={() => {
-            setActiveSection('analysis');
-            if (compareTrace) {
-              handleModeChange('compare');
-            } else {
-              handleModeChange('matrix');
-            }
+      {!routeShellEnabled ? (
+        <JourneyPanel
+          trace={trace}
+          mode={mode === 'matrix' || mode === 'gameplay' ? 'cinema' : mode}
+          playheadMs={playheadMs}
+          selectedStepId={selectedStepId}
+          compareTrace={compareTrace}
+          collapsed={journeyCollapsed}
+          onToggleCollapsed={() => setJourneyCollapsed((prev) => !prev)}
+          onModeChange={handleModeChange}
+          onSelectStep={(stepId) => {
+            setSelectedStepId(stepId);
+            if (mode !== 'cinema') setMode('cinema');
           }}
-        >
-          Validate
-        </button>
+          onJumpToBottleneck={jumpToBottleneck}
+          onReplay={handleReplay}
+          onStartTour={() => setTourOpen(true)}
+          priorityQueue={journeyPriorityQueue}
+        />
+      ) : null}
+
+      <nav className={`workspace-nav ${routeShellEnabled ? 'route-shell' : ''}`} aria-label="Workspace navigation">
+        {routeShellEnabled ? (
+          <>
+            <button
+              className={`ghost-button ${routeShellActiveRoute === 'overview' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={routeShellActiveRoute === 'overview'}
+              aria-label="Review workspace route"
+              onClick={() => setRouteShellActiveRoute('overview')}
+            >
+              {UX_REBOOT_ROUTE_LABEL.overview}
+            </button>
+            <button
+              className={`ghost-button ${routeShellActiveRoute === 'triage' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={routeShellActiveRoute === 'triage'}
+              aria-label="Triage workspace route"
+              onClick={() => setRouteShellActiveRoute('triage')}
+            >
+              {UX_REBOOT_ROUTE_LABEL.triage}
+            </button>
+            <button
+              className={`ghost-button ${routeShellActiveRoute === 'diagnose' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={routeShellActiveRoute === 'diagnose'}
+              aria-label="Diagnose workspace route"
+              onClick={() => setRouteShellActiveRoute('diagnose')}
+            >
+              {UX_REBOOT_ROUTE_LABEL.diagnose}
+            </button>
+            <button
+              className={`ghost-button ${routeShellActiveRoute === 'coordinate' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={routeShellActiveRoute === 'coordinate'}
+              aria-label="Coordinate workspace route"
+              onClick={() => setRouteShellActiveRoute('coordinate')}
+            >
+              {UX_REBOOT_ROUTE_LABEL.coordinate}
+            </button>
+            <button
+              className={`ghost-button ${routeShellActiveRoute === 'settings' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={routeShellActiveRoute === 'settings'}
+              aria-label="Configure workspace route"
+              onClick={() => setRouteShellActiveRoute('settings')}
+            >
+              {UX_REBOOT_ROUTE_LABEL.settings}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              className={`ghost-button ${activeSection === 'journey' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={activeSection === 'journey'}
+              aria-label="Understand this run workspace section"
+              onClick={() => setActiveSection('journey')}
+            >
+              Understand
+            </button>
+            <button
+              className={`ghost-button ${activeSection === 'analysis' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={activeSection === 'analysis'}
+              aria-label="Diagnose root cause workspace section"
+              onClick={() => setActiveSection('analysis')}
+            >
+              Diagnose
+            </button>
+            <button
+              className={`ghost-button ${activeSection === 'collaboration' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={activeSection === 'collaboration'}
+              aria-label="Coordinate responders workspace section"
+              onClick={() => setActiveSection('collaboration')}
+            >
+              Coordinate
+            </button>
+            <button
+              className={`ghost-button ${activeSection === 'operations' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={activeSection === 'operations'}
+              aria-label="Configure workspace section"
+              onClick={() => setActiveSection('operations')}
+            >
+              Configure
+            </button>
+            <button
+              className={`ghost-button ${mode === 'compare' || mode === 'matrix' ? 'active' : ''}`}
+              type="button"
+              aria-pressed={mode === 'compare' || mode === 'matrix'}
+              aria-label="Validate outcome intent"
+              onClick={() => {
+                setActiveSection('analysis');
+                if (compareTrace) {
+                  handleModeChange('compare');
+                } else {
+                  handleModeChange('matrix');
+                }
+              }}
+            >
+              Validate
+            </button>
+          </>
+        )}
       </nav>
       <div className="workspace-orientation" aria-live="polite">
         <p className="workspace-breadcrumb" aria-label="Current location">
@@ -4490,6 +5467,51 @@ export default function App() {
               {nextBestAction.label}
             </button>
           </div>
+          {routeShellEnabled && activeSection === 'analysis' ? (
+            <div className="analysis-tools-mode-switcher" role="group" aria-label="Analysis tools mode switcher">
+              <button
+                className={`ghost-button ${mode === 'cinema' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'cinema'}
+                onClick={() => handleModeChange('cinema')}
+              >
+                {t('mode_cinema')}
+              </button>
+              <button
+                className={`ghost-button ${mode === 'flow' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'flow'}
+                onClick={() => handleModeChange('flow')}
+              >
+                {t('mode_flow')}
+              </button>
+              <button
+                className={`ghost-button ${mode === 'compare' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'compare'}
+                onClick={() => handleModeChange('compare')}
+                disabled={!compareTrace}
+              >
+                {t('mode_compare')}
+              </button>
+              <button
+                className={`ghost-button ${mode === 'matrix' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'matrix'}
+                onClick={() => handleModeChange('matrix')}
+              >
+                {t('mode_matrix')}
+              </button>
+              <button
+                className={`ghost-button ${mode === 'gameplay' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'gameplay'}
+                onClick={() => handleModeChange('gameplay')}
+              >
+                {t('mode_gameplay')}
+              </button>
+            </div>
+          ) : null}
         </div>
         <div className="workspace-section-actions">
           <button
@@ -4525,17 +5547,19 @@ export default function App() {
                 >
                   {workspacePanelOpen ? 'Hide workspace tools' : 'Show workspace tools'}
                 </button>
-                <button
-                  className="ghost-button"
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setTourOpen(true);
-                    setWorkspaceActionsOpen(false);
-                  }}
-                >
-                  Open guide
-                </button>
+                {!routeShellEnabled ? (
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setTourOpen(true);
+                      setWorkspaceActionsOpen(false);
+                    }}
+                  >
+                    Open guide
+                  </button>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -4543,6 +5567,53 @@ export default function App() {
       </div>
 
       {workspacePanelOpen ? (
+        routeShellEnabled ? (
+          <WorkspaceRoute
+            route={routeShellActiveRoute}
+            status={trace.status ?? null}
+            runHealthScore={runHealthScore}
+            workspaceRole={workspaceRole}
+            runOwner={runOwner}
+            handoffOwner={handoffOwner}
+            routeProgress={routeProgressMap[routeShellActiveRoute]}
+            lastCompletedAction={routeLastCompletedActions[routeShellActiveRoute]}
+            actionHistory={routeActionHistory}
+            snapshots={routeSnapshots}
+            activityFeed={activityFeed}
+            asyncTimeline={asyncTimeline}
+            themeMode={themeMode}
+            motionMode={motionMode}
+            densityMode={densityMode}
+            appLocale={normalizedAppLocale}
+            gameplayLocale={gameplayLocale}
+            safeExport={safeExport}
+            gamepadEnabled={gamepadEnabled}
+            windowed={windowed}
+            rolloutCohort={uxRebootCohort}
+            featureFlags={featureFlags}
+            onRouteAction={(actionId) => {
+              void runRouteAction(actionId);
+            }}
+            onRetryAsyncAction={retryAsyncAction}
+            onResumeAsyncAction={resumeAsyncAction}
+            onRetryExportTask={(taskId) => {
+              trackProductEvent('ux.export.retried', { taskId });
+              exportRetryHandlersRef.current[taskId]?.();
+            }}
+            onRunOwnerChange={setRunOwner}
+            onHandoffOwnerChange={setHandoffOwner}
+            onThemeModeChange={setThemeMode}
+            onMotionModeChange={setMotionMode}
+            onDensityModeChange={setDensityMode}
+            onAppLocaleChange={setAppLocale}
+            onGameplayLocaleChange={setGameplayLocale}
+            onToggleSafeExport={toggleSafeExportWithConfirm}
+            onToggleGamepadEnabled={() => setGamepadEnabled((prev) => !prev)}
+            onToggleWindowed={() => setWindowed((prev) => !prev)}
+            onRolloutCohortChange={setUxRebootCohort}
+            onToggleFeatureFlag={toggleFeatureFlag}
+          />
+        ) : (
         <section
           className="workspace-context-panel"
           id="workspace-context-panel"
@@ -4830,7 +5901,7 @@ export default function App() {
               <p>{t('settings_center_body')}</p>
               <div className="workspace-inline-form">
                 <label className="toggle">
-                  <input type="checkbox" checked={safeExport} onChange={() => setSafeExport((prev) => !prev)} />
+                  <input type="checkbox" checked={safeExport} onChange={toggleSafeExportWithConfirm} />
                   {t('safe_export')}
                 </label>
                 <label className="toggle">
@@ -4908,6 +5979,7 @@ export default function App() {
           </div>
         ) : null}
         </section>
+      )
       ) : (
         <p className="workspace-panel-collapsed" id="workspace-context-panel">
           Workspace tools are hidden to reduce clutter. Use “Show workspace tools” when you need deeper controls.
@@ -4929,75 +6001,77 @@ export default function App() {
         </h2>
         <div className="toolbar-primary">
           <SearchBar query={query} typeFilter={typeFilter} onQueryChange={setQuery} onTypeFilterChange={setTypeFilter} />
-          <div className="toolbar-mode-switcher">
-            <button
-              className={`ghost-button ${mode === 'cinema' ? 'active' : ''}`}
-              type="button"
-              aria-pressed={mode === 'cinema'}
-              title="Timeline playback"
-              onClick={() => handleModeChange('cinema')}
-              data-help
-              data-help-title="Cinema mode"
-              data-help-body="Timeline view with step cards ordered by time."
-              data-help-placement="bottom"
-            >
-              {t('mode_cinema')}
-            </button>
-            <button
-              className={`ghost-button ${mode === 'flow' ? 'active' : ''}`}
-              type="button"
-              aria-pressed={mode === 'flow'}
-              title="Graph view"
-              onClick={() => handleModeChange('flow')}
-              data-help
-              data-help-title="Flow mode"
-              data-help-body="Dependency graph of steps and tool calls."
-              data-help-placement="bottom"
-            >
-              {t('mode_flow')}
-            </button>
-            <button
-              className={`ghost-button ${mode === 'compare' ? 'active' : ''}`}
-              type="button"
-              aria-pressed={mode === 'compare'}
-              title={compareTrace ? 'Side-by-side compare' : 'Run a replay to enable compare'}
-              onClick={() => handleModeChange('compare')}
-              disabled={!compareTrace}
-              data-tour="compare"
-              data-help
-              data-help-title="Compare mode"
-              data-help-body="Side-by-side view after a replay. Enabled once you replay."
-              data-help-placement="bottom"
-            >
-              {t('mode_compare')}
-            </button>
-            <button
-              className={`ghost-button ${mode === 'matrix' ? 'active' : ''}`}
-              type="button"
-              aria-pressed={mode === 'matrix'}
-              title="Counterfactual replay matrix"
-              onClick={() => handleModeChange('matrix')}
-              data-help
-              data-help-title="Matrix mode"
-              data-help-body="Run multiple replay scenarios and rank likely causal factors."
-              data-help-placement="bottom"
-            >
-              {t('mode_matrix')}
-            </button>
-            <button
-              className={`ghost-button ${mode === 'gameplay' ? 'active' : ''}`}
-              type="button"
-              aria-pressed={mode === 'gameplay'}
-              title="Gameplay mechanics command center"
-              onClick={() => handleModeChange('gameplay')}
-              data-help
-              data-help-title="Gameplay mode"
-              data-help-body="Command raids, campaign, pvp, time forks, boss runs, economy, and liveops."
-              data-help-placement="bottom"
-            >
-              {t('mode_gameplay')}
-            </button>
-          </div>
+          {!routeShellEnabled ? (
+            <div className="toolbar-mode-switcher">
+              <button
+                className={`ghost-button ${mode === 'cinema' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'cinema'}
+                title="Timeline playback"
+                onClick={() => handleModeChange('cinema')}
+                data-help
+                data-help-title="Cinema mode"
+                data-help-body="Timeline view with step cards ordered by time."
+                data-help-placement="bottom"
+              >
+                {t('mode_cinema')}
+              </button>
+              <button
+                className={`ghost-button ${mode === 'flow' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'flow'}
+                title="Graph view"
+                onClick={() => handleModeChange('flow')}
+                data-help
+                data-help-title="Flow mode"
+                data-help-body="Dependency graph of steps and tool calls."
+                data-help-placement="bottom"
+              >
+                {t('mode_flow')}
+              </button>
+              <button
+                className={`ghost-button ${mode === 'compare' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'compare'}
+                title={compareTrace ? 'Side-by-side compare' : 'Run a replay to enable compare'}
+                onClick={() => handleModeChange('compare')}
+                disabled={!compareTrace}
+                data-tour="compare"
+                data-help
+                data-help-title="Compare mode"
+                data-help-body="Side-by-side view after a replay. Enabled once you replay."
+                data-help-placement="bottom"
+              >
+                {t('mode_compare')}
+              </button>
+              <button
+                className={`ghost-button ${mode === 'matrix' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'matrix'}
+                title="Counterfactual replay matrix"
+                onClick={() => handleModeChange('matrix')}
+                data-help
+                data-help-title="Matrix mode"
+                data-help-body="Run multiple replay scenarios and rank likely causal factors."
+                data-help-placement="bottom"
+              >
+                {t('mode_matrix')}
+              </button>
+              <button
+                className={`ghost-button ${mode === 'gameplay' ? 'active' : ''}`}
+                type="button"
+                aria-pressed={mode === 'gameplay'}
+                title="Gameplay mechanics command center"
+                onClick={() => handleModeChange('gameplay')}
+                data-help
+                data-help-title="Gameplay mode"
+                data-help-body="Command raids, campaign, pvp, time forks, boss runs, economy, and liveops."
+                data-help-placement="bottom"
+              >
+                {t('mode_gameplay')}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="toolbar-utility">
@@ -5010,7 +6084,7 @@ export default function App() {
               data-help-body="Redacts secrets and disables raw payload views for safe sharing."
               data-help-placement="bottom"
             >
-              <input type="checkbox" checked={safeExport} onChange={() => setSafeExport((prev) => !prev)} />
+              <input type="checkbox" checked={safeExport} onChange={toggleSafeExportWithConfirm} />
               {t('safe_export')}
             </label>
             {trace.steps.length > 200 || windowed ? (
@@ -5380,34 +6454,25 @@ export default function App() {
         >
           Validate
         </button>
-        <button className="ghost-button" type="button" onClick={() => setTourOpen(true)} aria-label="Start guided tour">
-          Guide
-        </button>
-        <button className="ghost-button" type="button" onClick={() => setShowPalette(true)} aria-label="Open command palette">
-          Command
-        </button>
       </div>
       <QuickActions
         mode={mode === 'matrix' || mode === 'gameplay' ? 'cinema' : mode}
         isPlaying={isPlaying}
         storyActive={storyActive}
-        explainMode={explainMode}
         hidden={mode === 'compare'}
         open={dockOpen}
         onToggleOpen={() => setDockOpen((prev) => !prev)}
+        hideOnboardingActions={routeShellEnabled}
         onTogglePlay={togglePlayback}
         onStartStory={startStory}
         onStopStory={stopStory}
-        onStartTour={() => setTourOpen(true)}
-        onOpenPalette={() => setShowPalette(true)}
         onShowShortcuts={() => setShowShortcuts(true)}
-        onToggleExplain={() => setExplainMode((prev) => !prev)}
         onJumpToBottleneck={jumpToBottleneck}
       />
       <CommandPalette
         open={showPalette}
         onClose={() => setShowPalette(false)}
-        actions={commandActions}
+        actions={paletteActions}
         context={{ section: activeSection, mode, persona: introPersona }}
         onActionRun={(action) => trackProductEvent('ux.palette.command_run', { id: action.id, group: action.group ?? null })}
       />

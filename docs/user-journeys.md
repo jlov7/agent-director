@@ -11,6 +11,16 @@ This document defines the primary user journeys required for a release-ready exp
 | J3: Team collaboration review | Multi-role response team | Shared incident triage | Coordinate actions with ownership and artifacts |
 | J4: Release gate verification | Release owner | Pre-release sign-off | Evidence-backed quality gates and publish confidence |
 
+## Route-Shell Canonical Journeys (v2)
+
+| Route | Primary Persona | Dominant Outcome | Completion Signal |
+|---|---|---|---|
+| `overview` | Evaluator / lead | Understand health, risk, and next decision quickly | `Review run health` checkpoint captured |
+| `triage` | On-call operator | Resolve incident with deterministic sequence | `Observe -> Isolate -> Validate -> Share` completed |
+| `diagnose` | Investigator | Produce evidence-backed root cause finding | `Share findings` checkpoint captured |
+| `coordinate` | Incident coordinator | Keep ownership and handoff continuity aligned | Snapshot and digest captured with owners set |
+| `settings` | Admin/operator | Configure trust defaults and feature controls | Safe-export/trust/cohort settings persisted |
+
 ## J1: First-Time Evaluator
 
 ```mermaid

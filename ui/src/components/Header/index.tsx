@@ -41,6 +41,7 @@ type HeaderProps = {
   sessionLabel?: string;
   sessionExpired?: boolean;
   onRenewSession?: () => void;
+  routeShellEnabled?: boolean;
 };
 
 export default function Header({
@@ -79,9 +80,11 @@ export default function Header({
   sessionLabel = 'Active',
   sessionExpired = false,
   onRenewSession,
+  routeShellEnabled = false,
 }: HeaderProps) {
   const [compactActions, setCompactActions] = useState(false);
   const [secondaryActionsOpen, setSecondaryActionsOpen] = useState(false);
+  const effectiveCompactActions = compactActions || routeShellEnabled;
   const clampedHealth = Math.max(0, Math.min(100, Math.round(runHealthScore)));
   const missionLabel = missionCompletion
     ? `${missionCompletion.done}/${missionCompletion.total} missions`
@@ -106,14 +109,14 @@ export default function Header({
   }, []);
 
   useEffect(() => {
-    if (!compactActions) {
+    if (!effectiveCompactActions) {
       setSecondaryActionsOpen(false);
     }
-  }, [compactActions]);
+  }, [effectiveCompactActions]);
 
   return (
     <header
-      className="header"
+      className={`header ${routeShellEnabled ? 'route-shell' : ''}`}
       data-help
       data-help-indicator
       data-tour="header"
@@ -150,104 +153,120 @@ export default function Header({
           <span className={`status-pill status-${trace?.status ?? 'loading'}`}>
             {traceStatusLabel}
           </span>
-          {trace?.replay ? (
+          {!routeShellEnabled && trace?.replay ? (
             <span className="header-replay header-meta-secondary" title={`Replay from ${trace.branchPointStepId ?? 'unknown step'}`}>
               Replay: {trace.replay.strategy}
             </span>
           ) : null}
-          <span className="header-wall">
-            Wall: {trace?.metadata.wallTimeMs ?? 0}ms
-          </span>
-          <span className="header-presence header-meta-secondary" aria-label="Active sessions">
-            Live: {activeSessions}
-          </span>
-          <span className="header-mode-pill header-meta-secondary" aria-label="Current mode">
-            Mode: {mode}
-          </span>
-          {workspaceId ? (
-            <span className="header-workspace-pill header-meta-secondary" aria-label="Current workspace">
-              Workspace: {workspaceId}
-            </span>
+          {!routeShellEnabled ? (
+            <>
+              <span className="header-wall">
+                Wall: {trace?.metadata.wallTimeMs ?? 0}ms
+              </span>
+              <span className="header-presence header-meta-secondary" aria-label="Active sessions">
+                Live: {activeSessions}
+              </span>
+              <span className="header-mode-pill header-meta-secondary" aria-label="Current mode">
+                Mode: {mode}
+              </span>
+              {workspaceId ? (
+                <span className="header-workspace-pill header-meta-secondary" aria-label="Current workspace">
+                  Workspace: {workspaceId}
+                </span>
+              ) : null}
+              <span className={`header-role-pill role-${workspaceRole} header-meta-secondary`} aria-label="Current workspace role">
+                Role: {workspaceRole}
+              </span>
+            </>
           ) : null}
-          <span className={`header-role-pill role-${workspaceRole} header-meta-secondary`} aria-label="Current workspace role">
-            Role: {workspaceRole}
-          </span>
           <span className={`header-session-pill ${sessionExpired ? 'expired' : ''} header-meta-secondary`} aria-label="Session status">
             Session: {sessionLabel}
           </span>
-          <span className="header-hotkeys header-meta-secondary" aria-label="Mode hotkeys">
-            Keys: {modeHotkeys}
-          </span>
-          <span className="header-mission header-meta-secondary" aria-label="Mission completion">
-            {missionLabel}
-          </span>
-          <span className="header-health" aria-label={`Run health score ${clampedHealth}`}>
-            <span className="header-health-bar">
-              <span className="header-health-fill" style={{ width: `${clampedHealth}%` }} />
-            </span>
-            <span>Health {clampedHealth}</span>
-          </span>
-          {shareStatus ? <span className="header-share-status header-meta-secondary">{shareStatus}</span> : null}
-          {handoffStatus ? <span className="header-share-status header-meta-secondary">{handoffStatus}</span> : null}
+          {!routeShellEnabled ? (
+            <>
+              <span className="header-hotkeys header-meta-secondary" aria-label="Mode hotkeys">
+                Keys: {modeHotkeys}
+              </span>
+              <span className="header-mission header-meta-secondary" aria-label="Mission completion">
+                {missionLabel}
+              </span>
+              <span className="header-health" aria-label={`Run health score ${clampedHealth}`}>
+                <span className="header-health-bar">
+                  <span className="header-health-fill" style={{ width: `${clampedHealth}%` }} />
+                </span>
+                <span>Health {clampedHealth}</span>
+              </span>
+              {shareStatus ? <span className="header-share-status header-meta-secondary">{shareStatus}</span> : null}
+              {handoffStatus ? <span className="header-share-status header-meta-secondary">{handoffStatus}</span> : null}
+            </>
+          ) : null}
         </div>
       </div>
       <div className="header-actions">
         <div className="header-actions-primary">
-          <label className="theme-picker">
-            Workspace
-            <select
-              className="trace-select"
-              value={workspaceId}
-              aria-label="Select workspace"
-              onChange={(event) => onWorkspaceChange?.(event.target.value)}
+          {!routeShellEnabled ? (
+            <label className="theme-picker">
+              Workspace
+              <select
+                className="trace-select"
+                value={workspaceId}
+                aria-label="Select workspace"
+                onChange={(event) => onWorkspaceChange?.(event.target.value)}
+              >
+                {workspaces.map((workspace) => (
+                  <option key={workspace.id} value={workspace.id}>
+                    {workspace.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+          {!routeShellEnabled ? (
+            <label className="theme-picker">
+              Role
+              <select
+                className="trace-select"
+                value={workspaceRole}
+                aria-label="Select workspace role"
+                onChange={(event) =>
+                  onWorkspaceRoleChange?.(event.target.value as 'viewer' | 'operator' | 'admin')
+                }
+              >
+                <option value="viewer">Viewer</option>
+                <option value="operator">Operator</option>
+                <option value="admin">Admin</option>
+              </select>
+            </label>
+          ) : null}
+          {!routeShellEnabled ? (
+            <button
+              className={`ghost-button ${storyActive ? 'active' : ''}`}
+              type="button"
+              onClick={onToggleStory}
+              aria-pressed={storyActive}
+              aria-label="Toggle story mode"
+              data-help
+              data-help-title="Story mode"
+              data-help-body="Auto-runs a cinematic walkthrough for demos."
+              data-help-placement="bottom"
             >
-              {workspaces.map((workspace) => (
-                <option key={workspace.id} value={workspace.id}>
-                  {workspace.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="theme-picker">
-            Role
-            <select
-              className="trace-select"
-              value={workspaceRole}
-              aria-label="Select workspace role"
-              onChange={(event) =>
-                onWorkspaceRoleChange?.(event.target.value as 'viewer' | 'operator' | 'admin')
-              }
+              Story
+            </button>
+          ) : null}
+          {!routeShellEnabled ? (
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={onStartTour}
+              aria-label="Start guided tour"
+              data-help
+              data-help-title="Guided tour"
+              data-help-body="Walk through the interface step by step."
+              data-help-placement="bottom"
             >
-              <option value="viewer">Viewer</option>
-              <option value="operator">Operator</option>
-              <option value="admin">Admin</option>
-            </select>
-          </label>
-          <button
-            className={`ghost-button ${storyActive ? 'active' : ''}`}
-            type="button"
-            onClick={onToggleStory}
-            aria-pressed={storyActive}
-            aria-label="Toggle story mode"
-            data-help
-            data-help-title="Story mode"
-            data-help-body="Auto-runs a cinematic walkthrough for demos."
-            data-help-placement="bottom"
-          >
-            Story
-          </button>
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={onStartTour}
-            aria-label="Start guided tour"
-            data-help
-            data-help-title="Guided tour"
-            data-help-body="Walk through the interface step by step."
-            data-help-placement="bottom"
-          >
-            Guide
-          </button>
+              Guide
+            </button>
+          ) : null}
           <button
             className="ghost-button"
             type="button"
@@ -260,20 +279,22 @@ export default function Header({
           >
             Command
           </button>
-          <button
-            className={`ghost-button ${explainMode ? 'active' : ''}`}
-            type="button"
-            onClick={onToggleExplain}
-            aria-pressed={explainMode}
-            aria-label="Toggle explain mode"
-            data-help
-            data-help-title="Explain mode"
-            data-help-body="Hover any control to see contextual guidance."
-            data-help-placement="bottom"
-          >
-            Explain
-          </button>
-          {compactActions ? (
+          {!routeShellEnabled ? (
+            <button
+              className={`ghost-button ${explainMode ? 'active' : ''}`}
+              type="button"
+              onClick={onToggleExplain}
+              aria-pressed={explainMode}
+              aria-label="Toggle explain mode"
+              data-help
+              data-help-title="Explain mode"
+              data-help-body="Hover any control to see contextual guidance."
+              data-help-placement="bottom"
+            >
+              Explain
+            </button>
+          ) : null}
+          {effectiveCompactActions ? (
             <button
               className={`ghost-button header-actions-toggle ${secondaryActionsOpen ? 'active' : ''}`}
               type="button"
@@ -287,53 +308,59 @@ export default function Header({
         </div>
         <div
           id="header-secondary-actions"
-          className={`header-actions-secondary ${!compactActions || secondaryActionsOpen ? 'open' : ''}`}
+          className={`header-actions-secondary ${!effectiveCompactActions || secondaryActionsOpen ? 'open' : ''}`}
         >
-          <label className="theme-picker">
-            Theme
-            <select
-              className="trace-select"
-              value={themeMode}
-              aria-label="Select theme"
-              onChange={(event) =>
-                onThemeChange?.(event.target.value as 'studio' | 'focus' | 'contrast')
-              }
-            >
-              <option value="studio">Studio</option>
-              <option value="focus">Focus</option>
-              <option value="contrast">Contrast</option>
-            </select>
-          </label>
-          <label className="theme-picker">
-            Motion
-            <select
-              className="trace-select"
-              value={motionMode}
-              aria-label="Select motion profile"
-              onChange={(event) =>
-                onMotionChange?.(event.target.value as 'cinematic' | 'balanced' | 'minimal')
-              }
-            >
-              <option value="cinematic">Cinematic</option>
-              <option value="balanced">Balanced</option>
-              <option value="minimal">Minimal</option>
-            </select>
-          </label>
-          <label className="theme-picker">
-            Density
-            <select
-              className="trace-select"
-              value={densityMode}
-              aria-label="Select density profile"
-              onChange={(event) =>
-                onDensityChange?.(event.target.value as 'auto' | 'comfortable' | 'compact')
-              }
-            >
-              <option value="auto">Auto</option>
-              <option value="comfortable">Comfortable</option>
-              <option value="compact">Compact</option>
-            </select>
-          </label>
+          {!routeShellEnabled ? (
+            <label className="theme-picker">
+              Theme
+              <select
+                className="trace-select"
+                value={themeMode}
+                aria-label="Select theme"
+                onChange={(event) =>
+                  onThemeChange?.(event.target.value as 'studio' | 'focus' | 'contrast')
+                }
+              >
+                <option value="studio">Studio</option>
+                <option value="focus">Focus</option>
+                <option value="contrast">Contrast</option>
+              </select>
+            </label>
+          ) : null}
+          {!routeShellEnabled ? (
+            <label className="theme-picker">
+              Motion
+              <select
+                className="trace-select"
+                value={motionMode}
+                aria-label="Select motion profile"
+                onChange={(event) =>
+                  onMotionChange?.(event.target.value as 'cinematic' | 'balanced' | 'minimal')
+                }
+              >
+                <option value="cinematic">Cinematic</option>
+                <option value="balanced">Balanced</option>
+                <option value="minimal">Minimal</option>
+              </select>
+            </label>
+          ) : null}
+          {!routeShellEnabled ? (
+            <label className="theme-picker">
+              Density
+              <select
+                className="trace-select"
+                value={densityMode}
+                aria-label="Select density profile"
+                onChange={(event) =>
+                  onDensityChange?.(event.target.value as 'auto' | 'comfortable' | 'compact')
+                }
+              >
+                <option value="auto">Auto</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="compact">Compact</option>
+              </select>
+            </label>
+          ) : null}
           <button
             className="ghost-button"
             onClick={onReload}
@@ -374,15 +401,17 @@ export default function Header({
           >
             Handoff
           </button>
-          <button
-            className="ghost-button"
-            type="button"
-            onClick={onOpenSupport}
-            aria-label="Open support diagnostics"
-            title="Open support diagnostics"
-          >
-            Support
-          </button>
+          {!routeShellEnabled ? (
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={onOpenSupport}
+              aria-label="Open support diagnostics"
+              title="Open support diagnostics"
+            >
+              Support
+            </button>
+          ) : null}
           <a
             className="ghost-button"
             href="/help.html"

@@ -46,6 +46,9 @@ export type ProductEventName =
   | 'ux.palette.command_run'
   | 'ux.settings.shortcut.updated'
   | 'ux.feature_flag.toggled'
+  | 'ux.route.entered'
+  | 'ux.route.checkpoint'
+  | 'ux.route.perf_budget'
   | 'ux.error.boundary'
   | 'ux.error.window'
   | 'ux.perf.filter_ms';

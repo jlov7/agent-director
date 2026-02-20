@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import App from './App';
 import { useTrace } from './hooks/useTrace';
 import demoTrace from './data/demoTrace.json';
 import type { TraceSummary } from './types';
+import { JOURNEY_METRIC_STORAGE_KEY, readJourneyMetrics } from './ux/metrics';
 
 vi.mock('./hooks/useTrace');
 
@@ -67,5 +68,82 @@ describe('App empty state', () => {
     render(<App />);
 
     expect(screen.getByRole('button', { name: 'Cine' })).toBeInTheDocument();
+  });
+});
+
+describe('App journey telemetry', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockedUseTrace.mockReturnValue({
+      trace: demoTrace as TraceSummary,
+      insights: null,
+      loading: false,
+      error: null,
+      reload: vi.fn(),
+      traces: [demoTrace as TraceSummary],
+      selectedTraceId: (demoTrace as TraceSummary).id,
+      setSelectedTraceId: vi.fn(),
+    });
+  });
+
+  it('records onboarding exit metric when intro is skipped', async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip intro' }));
+
+    await waitFor(() => {
+      const events = readJourneyMetrics(window.localStorage);
+      expect(events.some((event) => event.name === 'journey.onboarding.exit')).toBe(true);
+      expect(events.some((event) => event.name === 'journey.first_meaningful_interaction')).toBe(true);
+    });
+    expect(window.localStorage.getItem(JOURNEY_METRIC_STORAGE_KEY)).toBeTruthy();
+  });
+
+  it('records first success metric after first successful action notification', async () => {
+    window.localStorage.setItem('agentDirector.introDismissed', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.heroDismissed', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', JSON.stringify(true));
+
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText('Saved view name'), {
+      target: { value: 'My triage view' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save view' }));
+
+    await waitFor(() => {
+      const events = readJourneyMetrics(window.localStorage);
+      expect(events.some((event) => event.name === 'journey.first_success')).toBe(true);
+    });
+  });
+
+  it('uses orchestrated onboarding in route shell and records safe-skip abandonment', async () => {
+    window.localStorage.setItem('agentDirector.uxReboot.routes.v1', JSON.stringify(true));
+
+    render(<App />);
+
+    expect(screen.getByText('What are you here to do?')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+
+    await waitFor(() => {
+      const events = readJourneyMetrics(window.localStorage);
+      expect(events.some((event) => event.name === 'journey.onboarding.abandon')).toBe(true);
+    });
+    expect(screen.getByText('Skipped for now')).toBeInTheDocument();
+  });
+
+  it('records first-value onboarding telemetry for selected path in route shell', async () => {
+    window.localStorage.setItem('agentDirector.uxReboot.routes.v1', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify('investigate'));
+
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start first win' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open flow mode' }));
+
+    await waitFor(() => {
+      const events = readJourneyMetrics(window.localStorage);
+      expect(events.some((event) => event.name === 'journey.onboarding.first_value')).toBe(true);
+    });
   });
 });

@@ -1,4 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=optional');
+@import './tokens.css';
+@import './layout.css';
+@import './components.css';
 
 :root {
   --font-display: 'Unbounded', 'Space Grotesk', sans-serif;
@@ -455,6 +458,165 @@ pre {
   }
 }
 
+.onboarding-orchestrator {
+  position: relative;
+  padding: 18px 22px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(111, 210, 255, 0.24);
+  background: linear-gradient(135deg, rgba(18, 26, 36, 0.94), rgba(13, 19, 27, 0.95));
+  box-shadow: var(--shadow);
+}
+
+.onboarding-eyebrow {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.onboarding-orchestrator h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-family: var(--font-display);
+}
+
+.onboarding-orchestrator p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+}
+
+.onboarding-path-selector {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.onboarding-path-option {
+  min-height: 84px;
+  align-items: flex-start;
+  text-align: left;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.onboarding-path-option.active {
+  border-color: color-mix(in srgb, var(--accent-primary) 65%, transparent);
+  background: color-mix(in srgb, var(--accent-primary) 16%, transparent);
+}
+
+.onboarding-path-label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
+.onboarding-path-body {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.onboarding-orchestrator-actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.first-win-checklist h2 {
+  margin-top: 6px;
+}
+
+.first-win-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.first-win-progress-copy {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.first-win-progress {
+  margin-top: 10px;
+}
+
+.first-win-progress-track {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.first-win-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5fa8f5, #7bd389);
+}
+
+.first-win-confidence {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: #c7e8d8;
+}
+
+.first-win-steps {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.first-win-step {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(20, 30, 42, 0.55);
+  border: 1px solid rgba(111, 210, 255, 0.14);
+}
+
+.first-win-step.done {
+  border-color: color-mix(in srgb, var(--accent-success) 60%, transparent);
+}
+
+.first-win-step-marker {
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.first-win-step-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.first-win-step-copy strong {
+  font-size: 0.82rem;
+}
+
+.first-win-step-copy span {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.first-win-actions {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -812,6 +974,22 @@ pre {
 
 .header-actions-toggle {
   display: none;
+}
+
+.header.route-shell .header-actions-toggle {
+  display: inline-flex;
+}
+
+.header.route-shell .header-actions-secondary {
+  display: none;
+  width: 100%;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.header.route-shell .header-actions-secondary.open {
+  display: flex;
 }
 
 .header-build {
@@ -3979,6 +4157,10 @@ pre {
   .hero-ribbon {
     padding: 16px;
   }
+
+  .onboarding-path-selector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
@@ -4035,6 +4217,21 @@ pre {
     flex: 1 1 100%;
   }
 
+  .onboarding-path-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding-orchestrator-actions,
+  .first-win-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .onboarding-orchestrator-actions button,
+  .first-win-actions button {
+    width: 100%;
+  }
+
   .journey-head {
     flex-direction: column;
     align-items: flex-start;
@@ -4083,7 +4280,7 @@ pre {
   .quick-actions-toggle {
     position: fixed;
     right: 12px;
-    bottom: 12px;
+    bottom: 88px;
     margin-top: 0;
     align-self: auto;
     z-index: 100;
@@ -4539,6 +4736,14 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
+.workspace-nav.route-shell {
+  flex-wrap: nowrap;
+}
+
+.workspace-nav.route-shell .ghost-button {
+  flex: 0 0 auto;
+}
+
 .workspace-orientation {
   margin: var(--space-xs) var(--space-sm) 0;
   padding: 10px 12px;
@@ -4750,6 +4955,8 @@ textarea:focus-visible {
   color: #c7d3e4;
 }
 
+/* Route-shell journey surfaces moved to styles/components.css */
+
 .async-action-row,
 .export-task-row {
   display: flex;
@@ -4945,6 +5152,14 @@ textarea:focus-visible {
 
   .workspace-context-panel {
     margin: 8px;
+  }
+
+  .support-inline-panel {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: 80px;
+    width: auto;
   }
 
   .help-escalation-banner {

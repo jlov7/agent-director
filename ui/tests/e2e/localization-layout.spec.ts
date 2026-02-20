@@ -15,9 +15,24 @@ async function initLocalized(page: import('@playwright/test').Page, locale: 'en'
   }, locale);
 }
 
+async function initLocalizedRouteShell(page: import('@playwright/test').Page, locale: 'en' | 'es') {
+  await initLocalized(page, locale);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', 'true');
+    window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify('evaluate'));
+    window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('completed'));
+  });
+}
+
 async function assertNoHorizontalOverflow(page: import('@playwright/test').Page) {
   const overflow = await page.evaluate(() => {
-    const selectors = ['.header', '.toolbar', '.workspace-section-header', '.main'];
+    const selectors = [
+      '.header',
+      '.toolbar',
+      '.workspace-section-header',
+      '.main',
+      '.workspace-route-shell',
+    ];
     return selectors
       .map((selector) => {
         const node = document.querySelector<HTMLElement>(selector);
@@ -52,4 +67,28 @@ test('spanish locale layout does not overflow on tablet viewport', async ({ page
 
   await expect(page.locator('.app')).toBeVisible();
   await assertNoHorizontalOverflow(page);
+});
+
+test('spanish route-shell layout does not overflow across all routes on mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await initLocalizedRouteShell(page, 'es');
+  const routes = ['overview', 'triage', 'diagnose', 'coordinate', 'settings'] as const;
+
+  for (const route of routes) {
+    await page.goto(`/?routes=1&route=${route}`);
+    await expect(page.locator(`[data-route-panel="${route}"]`)).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+  }
+});
+
+test('spanish route-shell layout does not overflow across all routes on tablet viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 1200 });
+  await initLocalizedRouteShell(page, 'es');
+  const routes = ['overview', 'triage', 'diagnose', 'coordinate', 'settings'] as const;
+
+  for (const route of routes) {
+    await page.goto(`/?routes=1&route=${route}`);
+    await expect(page.locator(`[data-route-panel="${route}"]`)).toBeVisible();
+    await assertNoHorizontalOverflow(page);
+  }
 });

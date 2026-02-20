@@ -18,6 +18,15 @@ async function initStorage(page: import('@playwright/test').Page) {
   });
 }
 
+async function initRouteShellStorage(page: import('@playwright/test').Page) {
+  await initStorage(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', 'true');
+    window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify('evaluate'));
+    window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('completed'));
+  });
+}
+
 async function runAxe(page: import('@playwright/test').Page, context = '.app') {
   await page.addScriptTag({ path: axeSourcePath });
   return page.evaluate(async (target) => {
@@ -62,6 +71,16 @@ test('mobile viewport has no detectable a11y violations', async ({ page }) => {
   await initStorage(page);
   await page.goto('/');
   await expect(page.locator('.app')).toBeVisible();
+  const results = await runAxe(page);
+  expect(results.violations).toEqual([]);
+});
+
+test('route-shell overview landmarks and a11y remain clean', async ({ page }) => {
+  await initRouteShellStorage(page);
+  await page.goto('/?routes=1&route=overview');
+  await expect(page.locator('[data-route-panel="overview"]')).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Workspace navigation' })).toBeVisible();
+  await expect(page.getByRole('main')).toBeVisible();
   const results = await runAxe(page);
   expect(results.violations).toEqual([]);
 });

@@ -1,0 +1,40 @@
+.app.route-shell-enabled {
+  gap: var(--ux-rhythm-unit);
+}
+
+.app.route-shell-enabled .workspace-section-header {
+  margin-bottom: var(--ux-rhythm-unit);
+}
+
+.workspace-route-shell {
+  margin: var(--space-sm);
+  display: grid;
+  gap: var(--ux-surface-gap);
+}
+
+.route-context-grid {
+  display: grid;
+  gap: var(--ux-surface-gap);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1120px) {
+  .route-context-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace-route-shell {
+    margin: var(--space-xs);
+  }
+}
+
+@media (max-width: 720px) {
+  .app.route-shell-enabled {
+    gap: var(--space-sm);
+  }
+
+  .workspace-route-shell {
+    margin: 0;
+    gap: var(--space-sm);
+  }
+}

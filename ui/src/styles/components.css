@@ -1,0 +1,231 @@
+.route-outcome-card {
+  border-color: rgba(111, 210, 255, 0.24);
+}
+
+.route-outcome-card h3 {
+  margin: 0;
+  font-size: var(--ux-tier-2);
+}
+
+.route-outcome-card p {
+  margin: 0;
+  font-size: var(--ux-tier-3);
+}
+
+.route-outcome-subcopy {
+  margin-top: 6px !important;
+  color: #95abc7 !important;
+}
+
+.route-state-card {
+  border-color: rgba(123, 211, 137, 0.22);
+  display: grid;
+  gap: 8px;
+}
+
+.route-state-card h3 {
+  margin: 0;
+  font-size: var(--ux-tier-2);
+}
+
+.route-state-card p {
+  margin: 0;
+  font-size: var(--ux-tier-3);
+}
+
+.route-state-summary {
+  color: #9ec4df;
+  font-size: var(--ux-tier-4);
+}
+
+.route-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.route-state-actions .primary-button,
+.route-state-actions .ghost-button {
+  min-height: 44px;
+}
+
+.journey-action-card {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: var(--ux-surface-padding);
+  background: rgba(8, 13, 21, 0.64);
+  display: grid;
+  gap: 8px;
+}
+
+.journey-action-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.journey-action-card h3 {
+  margin: 0;
+  font-size: var(--ux-tier-2);
+}
+
+.journey-action-outcome,
+.journey-action-why {
+  margin: 0;
+  font-size: var(--ux-tier-3);
+  color: #b7c5da;
+}
+
+.journey-action-card.tone-success {
+  border-color: rgba(123, 211, 137, 0.34);
+}
+
+.journey-action-card.tone-warning {
+  border-color: rgba(240, 200, 109, 0.34);
+}
+
+.journey-action-card.tone-error {
+  border-color: rgba(240, 124, 130, 0.42);
+}
+
+.route-progress-strip {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: var(--ux-surface-padding);
+  background: rgba(7, 11, 19, 0.62);
+  display: grid;
+  gap: 8px;
+}
+
+.route-progress-strip h3 {
+  margin: 0;
+  font-size: var(--ux-tier-2);
+}
+
+.route-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: #c8d6e9;
+  font-size: var(--ux-tier-4);
+}
+
+.route-progress-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.route-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #5fa8f5, #7bd389);
+}
+
+.route-progress-resume {
+  margin: 0;
+  font-size: var(--ux-tier-4);
+  color: #b9d8ec;
+}
+
+.route-history-strip .workspace-feed {
+  max-height: 120px;
+}
+
+.workspace-route-shell .status-badge {
+  background: var(--ux-chip-neutral-bg);
+  border: 1px solid var(--ux-chip-neutral-border);
+  color: var(--ux-chip-neutral-text);
+  font-size: var(--ux-tier-4);
+}
+
+.workspace-route-shell .status-badge.status-source-async {
+  border-color: rgba(122, 164, 209, 0.5);
+}
+
+.workspace-route-shell .status-badge.status-source-export {
+  border-color: rgba(240, 200, 109, 0.5);
+}
+
+.route-execution-timeline {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.route-execution-item {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-left-width: 4px;
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(7, 12, 20, 0.62);
+  display: grid;
+  gap: 6px;
+}
+
+.route-execution-item.status-running {
+  border-left-color: var(--ux-chip-warning);
+}
+
+.route-execution-item.status-success {
+  border-left-color: var(--ux-chip-success);
+}
+
+.route-execution-item.status-error {
+  border-left-color: var(--ux-chip-danger);
+}
+
+.route-execution-item.status-queued,
+.route-execution-item.status-canceled {
+  border-left-color: var(--ux-chip-info);
+}
+
+.route-execution-item p {
+  margin: 4px 0 0;
+  color: #b5c2d8;
+  font-size: var(--ux-tier-4);
+}
+
+.route-execution-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #a7b7ce;
+  font-size: var(--ux-tier-4);
+}
+
+.route-execution-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.support-inline-panel {
+  position: fixed;
+  right: 16px;
+  top: 96px;
+  z-index: 60;
+  width: min(420px, 92vw);
+}
+
+.quick-actions {
+  gap: 8px;
+}
+
+.quick-actions .quick-action {
+  min-height: 44px;
+}
+
+:where(.primary-button, .ghost-button, .trace-select, .search-input, .search-select, input, select, textarea):focus-visible {
+  outline: none;
+  box-shadow: var(--ux-focus-ring);
+}
+
+:where(.primary-button, .ghost-button, .trace-select, .search-input, .search-select) {
+  min-height: 44px;
+}

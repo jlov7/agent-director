@@ -37,4 +37,24 @@ describe('Header', () => {
     expect(screen.getByText(/3\/7 missions/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy session handoff digest' })).toBeInTheDocument();
   });
+
+  it('uses minimal controls when route shell is enabled', () => {
+    render(
+      <Header
+        trace={trace}
+        mode="cinema"
+        missionCompletion={{ done: 3, total: 7, pct: 43 }}
+        runHealthScore={82}
+        routeShellEnabled
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Open command palette' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Select workspace')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Select workspace role')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Select theme')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Select motion profile')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Select density profile')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open support diagnostics' })).not.toBeInTheDocument();
+  });
 });

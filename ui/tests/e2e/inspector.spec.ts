@@ -41,7 +41,8 @@ test.describe('Inspector', () => {
     const rawToggle = page.getByLabel('Reveal raw (dangerous)');
     await expect(rawToggle).toBeDisabled();
 
-    await page.locator('.toolbar').getByLabel('Safe export').uncheck();
+    await page.locator('.toolbar').getByLabel('Safe export').click();
+    await page.getByRole('button', { name: 'Confirm' }).click();
     await expect(rawToggle).toBeEnabled();
   });
 

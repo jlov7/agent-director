@@ -19,8 +19,15 @@
 - **Story mode** auto-runs a guided walkthrough for demos and onboarding.
 - **Command palette** (Cmd/Ctrl + K) exposes every action, mode, and safety toggle.
 - **Command palette intelligence v2** ranks commands by context, recency, pin state, and query intent.
-- **Quick actions dock** keeps critical controls within reach during live demos (and can collapse to a single button).
-- **Explain mode** adds contextual callouts on hover for every major control.
+- **Quick actions dock** is now contextual and capped to four actions to reduce cognitive load.
+- **Guide/Command/Explain** duplication is removed from overlapping surfaces in route-shell mode.
+
+## Route-shell model (v2)
+- Canonical routes: `Review`, `Triage`, `Diagnose`, `Coordinate`, `Configure`.
+- Each route has explicit outcome copy, progress indicator, resume marker, and route-specific state handling (empty/success/failure).
+- Route command actions are scoped and re-grouped into task-oriented palette categories.
+- Support diagnostics entry is contextual in route mode (recovery points) instead of global-first.
+- Route rollout is staged through a cohort feature flag (`off`/`internal`/`pilot`/`ga`) in settings.
 
 ## SaaS workspace control layer
 - **Global workspace nav** adds four contextual lanes: Journey, Analysis, Collaboration, and Operations.
@@ -63,7 +70,7 @@ flowchart LR
 ## Progressive disclosure
 - Step details load only on selection.
 - Sensitive payloads are redacted by default.
-- Safe export disables raw mode and reveal paths.
+- Safe export disables raw mode and reveal paths; disabling safe export requires confirmation and supports undo.
 - Matrix exports include explicit redaction metadata when safe export is enabled.
 
 ## Matrix workflow
