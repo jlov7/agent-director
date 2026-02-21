@@ -27,6 +27,7 @@ export default defineConfig({
     env: {
       VITE_HIDE_BUILD_DATE: '1',
       VITE_FORCE_DEMO: '1',
+      VITE_UX_REBOOT_ROUTES: '0',
     },
   },
 });

@@ -8,7 +8,10 @@ import {
   parseUxRebootRoute,
 } from './routeConfig';
 
-const ROUTE_ENV_FLAG_ENABLED = import.meta.env.VITE_UX_REBOOT_ROUTES === '1';
+const ROUTE_ENV_FLAG_ENABLED =
+  import.meta.env.MODE === 'test'
+    ? import.meta.env.VITE_UX_REBOOT_ROUTES === '1'
+    : import.meta.env.VITE_UX_REBOOT_ROUTES !== '0';
 
 function readStorageRouteShellFlag(): boolean {
   if (typeof window === 'undefined') return false;

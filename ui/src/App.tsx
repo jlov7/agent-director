@@ -764,7 +764,11 @@ export default function App() {
     } catch {
       storageEnabled = false;
     }
-    const envEnabled = import.meta.env.VITE_UX_REBOOT_ROUTES === '1';
+    // Reboot routes are default-on outside tests; explicit env `0` is the opt-out for emergency rollback.
+    const envEnabled =
+      import.meta.env.MODE === 'test'
+        ? import.meta.env.VITE_UX_REBOOT_ROUTES === '1'
+        : import.meta.env.VITE_UX_REBOOT_ROUTES !== '0';
     return { enabled: envEnabled || queryEnabled || storageEnabled || cohortEnabled, route, cohort };
   }, [uxRebootCohort]);
   const routeShellEnabled = routeShell.enabled;
