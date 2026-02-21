@@ -943,6 +943,7 @@ export default function App() {
   const routePerfBudgetSignatureRef = useRef<string>('');
   const routeAsyncAnnouncementRef = useRef<string>('');
   const staleSessionRecoveredRef = useRef(false);
+  const suppressNextExpiryWarningRef = useRef(false);
   const initialUrlStateRef = useRef(
     typeof window === 'undefined' ? parseUrlAppState('') : parseUrlAppState(window.location.search)
   );
@@ -1492,6 +1493,7 @@ export default function App() {
     if (!sessionState.expired) return;
     if (staleSessionRecoveredRef.current) return;
     staleSessionRecoveredRef.current = true;
+    suppressNextExpiryWarningRef.current = true;
     setSessionExpiresAt(Date.now() + 1000 * 60 * 60 * 4);
     if (!workspacePanelOpen) setWorkspacePanelOpen(true);
     if (workspaceRole === 'viewer') setWorkspaceRole('operator');
@@ -1517,11 +1519,14 @@ export default function App() {
   ]);
 
   useEffect(() => {
-    if (routeShellEnabled && sessionState.expired && !staleSessionRecoveredRef.current) return;
     if (sessionState.expired) {
+      if (suppressNextExpiryWarningRef.current) {
+        suppressNextExpiryWarningRef.current = false;
+        return;
+      }
       addNotification('Workspace session expired. Renew to continue write actions.', 'warning');
     }
-  }, [addNotification, routeShellEnabled, sessionState.expired]);
+  }, [addNotification, sessionState.expired]);
 
   useEffect(() => {
     if (!trace) return;
