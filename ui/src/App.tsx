@@ -942,6 +942,7 @@ export default function App() {
   const routePerfEnteredAtRef = useRef<number>(typeof performance !== 'undefined' ? performance.now() : Date.now());
   const routePerfBudgetSignatureRef = useRef<string>('');
   const routeAsyncAnnouncementRef = useRef<string>('');
+  const staleSessionRecoveredRef = useRef(false);
   const initialUrlStateRef = useRef(
     typeof window === 'undefined' ? parseUrlAppState('') : parseUrlAppState(window.location.search)
   );
@@ -1487,10 +1488,40 @@ export default function App() {
   }, [addNotification, gameplaySessionError]);
 
   useEffect(() => {
+    if (!routeShellEnabled) return;
+    if (!sessionState.expired) return;
+    if (staleSessionRecoveredRef.current) return;
+    staleSessionRecoveredRef.current = true;
+    setSessionExpiresAt(Date.now() + 1000 * 60 * 60 * 4);
+    if (!workspacePanelOpen) setWorkspacePanelOpen(true);
+    if (workspaceRole === 'viewer') setWorkspaceRole('operator');
+    if (onboardingStage === 'completed' || onboardingStage === 'skipped') setOnboardingStage('select');
+    addNotification('Recovered stale workspace session and reopened guided tools.', 'info');
+    trackProductEvent('ux.session.auto_recovered', {
+      source: 'stale_local_storage',
+      onboardingStage,
+      workspaceRole,
+    });
+  }, [
+    addNotification,
+    onboardingStage,
+    routeShellEnabled,
+    sessionState.expired,
+    setOnboardingStage,
+    setSessionExpiresAt,
+    setWorkspacePanelOpen,
+    setWorkspaceRole,
+    trackProductEvent,
+    workspacePanelOpen,
+    workspaceRole,
+  ]);
+
+  useEffect(() => {
+    if (routeShellEnabled && sessionState.expired && !staleSessionRecoveredRef.current) return;
     if (sessionState.expired) {
       addNotification('Workspace session expired. Renew to continue write actions.', 'warning');
     }
-  }, [addNotification, sessionState.expired]);
+  }, [addNotification, routeShellEnabled, sessionState.expired]);
 
   useEffect(() => {
     if (!trace) return;

@@ -117,6 +117,26 @@ describe('App journey telemetry', () => {
     });
   });
 
+  it('auto-recovers stale route-shell sessions from local storage', async () => {
+    const startedAt = Date.now();
+    window.localStorage.setItem('agentDirector.uxReboot.routes.v1', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.sessionExpiresAt.v1', JSON.stringify(startedAt - 60_000));
+    window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', JSON.stringify(false));
+    window.localStorage.setItem('agentDirector.workspaceRole.v1', JSON.stringify('viewer'));
+    window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('completed'));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(JSON.parse(window.localStorage.getItem('agentDirector.workspacePanelOpen.v1') ?? 'false')).toBe(true);
+      expect(JSON.parse(window.localStorage.getItem('agentDirector.workspaceRole.v1') ?? '"viewer"')).toBe('operator');
+      expect(JSON.parse(window.localStorage.getItem('agentDirector.onboarding.stage.v1') ?? '"completed"')).toBe('select');
+      expect(JSON.parse(window.localStorage.getItem('agentDirector.sessionExpiresAt.v1') ?? '0')).toBeGreaterThan(startedAt);
+    });
+
+    expect(screen.getByText('What are you here to do?')).toBeInTheDocument();
+  });
+
   it('uses orchestrated onboarding in route shell and records safe-skip abandonment', async () => {
     window.localStorage.setItem('agentDirector.uxReboot.routes.v1', JSON.stringify(true));
 

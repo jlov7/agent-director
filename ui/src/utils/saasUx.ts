@@ -49,6 +49,7 @@ export type ProductEventName =
   | 'ux.route.entered'
   | 'ux.route.checkpoint'
   | 'ux.route.perf_budget'
+  | 'ux.session.auto_recovered'
   | 'ux.error.boundary'
   | 'ux.error.window'
   | 'ux.perf.filter_ms';
