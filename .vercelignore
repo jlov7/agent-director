@@ -1,0 +1,16 @@
+# Upload only what production build needs.
+*
+!vercel.json
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!ui/**
+
+# Exclude local/build/test artifacts even under ui/
+ui/node_modules
+ui/dist
+ui/test-results
+ui/playwright-report
+ui/.lighthouseci
+ui/tests
+ui/scripts
