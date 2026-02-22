@@ -4,6 +4,7 @@
 !package.json
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
+!ui
 !ui/**
 
 # Exclude local/build/test artifacts even under ui/
