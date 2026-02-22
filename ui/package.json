@@ -13,11 +13,15 @@
     "test": "vitest --run",
     "test:e2e": "playwright test",
     "test:e2e:review": "playwright test --config playwright.review.config.ts",
+    "test:e2e:visual-matrix": "playwright test --config playwright.visual.config.ts",
     "scan:check": "node ./scripts/scan_check.mjs",
     "lhci": "bash ./scripts/lhci.sh",
     "percy:playwright": "percy exec -- playwright test tests/e2e/visual.spec.ts tests/e2e/ux-review.spec.ts"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/space-grotesk": "^5.2.10",
+    "@fontsource/unbounded": "^5.2.8",
     "dagre": "^0.8.5",
     "framer-motion": "^11.4.0",
     "react": "^18.3.1",
@@ -25,7 +29,6 @@
     "reactflow": "^11.11.4"
   },
   "devDependencies": {
-    "axe-core": "^4.11.1",
     "@eslint/js": "^9.5.0",
     "@lhci/cli": "^0.13.0",
     "@percy/cli": "^1.31.1",
@@ -39,6 +42,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.1",
+    "axe-core": "^4.11.1",
     "eslint": "^9.5.0",
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^5.1.0",

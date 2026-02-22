@@ -24,6 +24,8 @@ async function initRouteShellStorage(page: import('@playwright/test').Page) {
     window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', 'true');
     window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify('evaluate'));
     window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('completed'));
+    window.localStorage.setItem('agentDirector.routeShell.fullWorkspaceOptIn.v1', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.routeShell.canvasOpen.v1', JSON.stringify(true));
   });
 }
 
@@ -81,6 +83,28 @@ test('route-shell overview landmarks and a11y remain clean', async ({ page }) =>
   await expect(page.locator('[data-route-panel="overview"]')).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Workspace navigation' })).toBeVisible();
   await expect(page.getByRole('main')).toBeVisible();
+  const results = await runAxe(page);
+  expect(results.violations).toEqual([]);
+});
+
+test('contrast theme remains accessible', async ({ page }) => {
+  await initRouteShellStorage(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('agentDirector.themeMode', JSON.stringify('contrast'));
+  });
+  await page.goto('/?routes=1&route=triage');
+  await expect(page.locator('[data-route-panel="triage"]')).toBeVisible();
+  const results = await runAxe(page);
+  expect(results.violations).toEqual([]);
+});
+
+test('reduced-motion mode remains fully accessible', async ({ page }) => {
+  await initRouteShellStorage(page);
+  await page.addInitScript(() => {
+    window.localStorage.setItem('agentDirector.motionMode', JSON.stringify('minimal'));
+  });
+  await page.goto('/?routes=1&route=diagnose');
+  await expect(page.locator('[data-route-panel="diagnose"]')).toBeVisible();
   const results = await runAxe(page);
   expect(results.violations).toEqual([]);
 });

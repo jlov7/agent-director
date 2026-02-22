@@ -1,49 +1,49 @@
 ## Current Task
 
-Execute the SaaS UX Reboot plan end-to-end, one task at a time, with measurable UX simplification evidence.
+Execute the full Front-End 100/100 excellence backlog end-to-end with persistent tracking and evidence-first completion gates.
 
 ## Status
 
-Completed
+Completed (FE-001..FE-092 closed with evidence and full gate verification; closure gates refreshed on 2026-02-22).
 
 ## Plan
 
-1. [x] UXR-001..UXR-003: tracker + ExecPlan sync + baseline complexity artifact.
-2. [x] UXR-004..UXR-006: journey metric schema + first-meaningful/first-success/onboarding-exit telemetry.
-3. [x] UXR-007..UXR-009: route architecture contract + route-ready shell + smoke E2E.
-4. [x] UXR-010..UXR-015: baseline journey durations + done definition + migration guardrails + CTA/control budget assertions + refreshed evidence.
-5. [x] UXR-016..UXR-030: IA/nav simplification complete (route-shell routing, contextual mode switching, route-intent tests, mobile route nav, IA v2 map).
-6. [x] UXR-031..UXR-045: onboarding + first-time value redesign complete.
-7. [x] UXR-046..UXR-070: core persona journeys complete (route outcomes, route cards, state handling, scoped support entry, keyboard flows, canonical-journey E2E, journey delta artifact).
-8. [x] UXR-071..UXR-085: visual hierarchy + interaction simplification complete.
-9. [x] UXR-086..UXR-100: a11y/perf/trust hardening + rollout/cleanup closure complete.
+1. [x] Create exhaustive master tracker at `docs/plans/2026-02-22-frontend-100-excellence-master-plan.md`.
+2. [x] Enable deterministic visual verification command + artifacts (`verify:visual`).
+3. [x] Add global/repo protocol entries for deterministic visual verification.
+4. [x] Add single frontend gate command (`pnpm verify:frontend` / `make verify-frontend`) and verify it passes.
+5. [x] Complete tranche 1 infrastructure closures: FE-057, FE-058, FE-065, FE-068, FE-069.
+6. [x] Complete FE-067 by reusing geometry assertion helper across additional visual suites.
+7. [x] Publish reusable protocol/template artifacts: FE-085, FE-087, FE-088.
+8. [x] Complete FE-066 and close FE-001..FE-092 with verification evidence.
 
 ## Decisions Made
 
-- Keep migration additive and route-flagged to protect existing release stability.
-- Establish objective UX budget assertions before heavy IA changes.
-- Require measured evidence artifacts (`artifacts/ux-baseline.json`) as completion criteria.
-- In route-shell mode, remove global mode strip and move analysis mode switching into contextual surface.
-- Onboarding in route-shell mode is now orchestrated as a single decision + three-step first-win checklist with optional tour and explicit safe-skip/start-over controls.
-- Route-shell journeys now include explicit empty/success/failure states with direct recovery controls, and support diagnostics entry is contextual in route mode.
-- Visual system now uses layered CSS (`tokens/layout/components`) with design-lint checks for typography tiers, spacing rhythm, and heavy-treatment limits.
+- Use the master plan as the single source of truth for all FE-001..FE-092 statuses.
+- Enforce machine-readable evidence for completion (`artifacts/visual-verification`, `ui/test-results`, gate outputs).
+- Run visual verification as a first-class gate, not an optional review step.
+- Use browser-scoped snapshot baselines in matrix runs (`{projectName}` in snapshot path) to prevent cross-browser overwrite.
+- Use strict geometry assertions with browser-specific screenshot diff budgets to reduce false-positive raster drift.
 
 ## Open Questions
 
-- None blocking for current phase.
+- None currently blocking tranche 1 execution.
 
-## Verification Evidence (latest)
+## Validation Targets
 
+- `pnpm -C ui lint`
 - `pnpm -C ui typecheck`
-- `pnpm -C ui test -- ui/src/routes/__tests__/WorkspaceRoute.test.tsx ui/src/components/__tests__/Header.test.tsx ui/src/App.test.tsx`
-- `pnpm -C ui test:e2e tests/e2e/inspector.spec.ts tests/e2e/flow-mode.spec.ts tests/e2e/matrix.spec.ts tests/e2e/route-journeys.spec.ts`
-- `pnpm -C ui design:lint`
-- `pnpm -C ui test:e2e tests/e2e/visual.spec.ts tests/e2e/ux-review.spec.ts`
-- `pnpm -C ui scan:check`
+- `pnpm verify:visual`
+- `pnpm -C ui exec playwright test --config playwright.visual.config.ts`
 - `make verify`
-- `make verify-strict`
 - `make verify-ux`
 - `make doctor`
 - `make scorecard`
-- `make release-safety`
-- `make vercel-check`
+
+## Validation Evidence (2026-02-22)
+
+- `pnpm verify:frontend` -> `FRONTEND_VERIFY_STATUS=PASS`
+- `make verify` -> pass
+- `make verify-ux` -> pass
+- `make doctor` -> `Overall status: pass`
+- `make scorecard` -> `Total score: 70/70 (all perfect: True)`

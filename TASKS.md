@@ -2,6 +2,53 @@
 
 Below is the complete, prioritized list of "perfecting" work. Each item is framed as a checkable task. We can tackle them in batches instead of one‑by‑one.
 
+## Front-End 100/100 Excellence Program (Active)
+Source plan: `docs/plans/2026-02-22-frontend-100-excellence-master-plan.md`
+
+- [x] FE-057 Cross-browser deterministic visual matrix runnable in Chromium/Firefox/WebKit
+- [x] FE-058 Deterministic viewport+DPR matrix expanded to desktop/tablet/mobile
+- [x] FE-065 Convert passive visual captures to strict screenshot assertions
+- [x] FE-068 Emit strict machine-readable visual assertion payloads
+- [x] FE-069 Emit machine-readable visual artifact index
+- [x] FE-002 Single frontend release gate command (include all frontend checks)
+- [x] FE-066 Extend deterministic controls to all dynamic visual surfaces
+- [x] FE-067 Reuse geometry assertion helper across multiple visual suites
+- [x] FE-085 Publish portable cross-repo `verify-visual` template
+- [x] FE-087 Finalize and publish standard debug API schema
+- [x] FE-088 Finalize global Codex visual protocol versioning rollout
+
+## UX Simplification V2 Program (Active)
+Source plan: `docs/plans/2026-02-21-saas-ux-simplification-v2-plan.md`
+
+- [x] UXR2-000 Create world-class UX simplification v2 execution plan with full UXR2-001..UXR2-120 ledger
+- [x] UXR2-Batch-A Execute UXR2-001..UXR2-008 (baseline instrumentation + first-click maps)
+- [x] UXR2-Batch-B Execute UXR2-009..UXR2-016 (duplication/dead-end/trust baseline artifacts)
+- [x] UXR2-Batch-C Execute UXR2-017..UXR2-024 (IA constraints + progressive disclosure scaffolding)
+- [x] UXR2-Batch-D Execute UXR2-025..UXR2-036 (IA behavior, route templates, and IA regression tests)
+- [x] UXR2-Batch-E Execute UXR2-037..UXR2-056 (onboarding/first-value/progressive disclosure redesign)
+- [x] UXR2-Batch-F Execute UXR2-057..UXR2-080 (persona route journeys and canonical flow tests)
+- [x] UXR2-Batch-G Execute UXR2-081..UXR2-098 (visual hierarchy and cognitive-load reduction)
+- [x] UXR2-Batch-H Execute UXR2-099..UXR2-110 (trust, accessibility, performance hardening)
+- [x] UXR2-Batch-I Execute UXR2-111..UXR2-120 (docs/demo readiness, rollout evidence, final report)
+
+## UX Focused-Mode V3 Closure (Active)
+Source plan: `docs/plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md`
+
+- [x] UXR3-001 Research world-class SaaS disclosure/onboarding/navigation guidance and map to product constraints
+- [x] UXR3-002 Implement focused route mode as post-onboarding default with explicit full-canvas opt-in
+- [x] UXR3-003 Implement reversible full-canvas toggle and route-action-driven canvas opening
+- [x] UXR3-004 Simplify route-shell header/actions for focused mode and keep quick-help discoverable
+- [x] UXR3-005 Add unit/E2E regressions for focused/full mode transitions
+- [x] UXR3-006 Sync docs/report/checklists and run release verification+deploy evidence
+
+## UX Focused-Mode V3b Closure (Active)
+- [x] UXR3B-001 Hide first-run route-shell scaffolding (`nav`/orientation/workspace panels) during onboarding `select`
+- [x] UXR3B-002 Hide route-shell insight strip outside explicit analysis-canvas mode
+- [x] UXR3B-003 Preserve onboarding completion state during stale-session auto-recovery
+- [x] UXR3B-004 Update unit + E2E coverage for new first-run and guided flow contracts
+- [x] UXR3B-005 Refresh screenshots/runbooks/reports for review-day handoff
+- [x] UXR3B-006 Redeploy production and verify alias readiness
+
 ## Launch Tomorrow — Exhaustive Readiness Sweep (Active)
 - [x] LTX-000 Create launch execution plan `docs/plans/2026-02-20-launch-readiness-execution-plan.md`
 - [x] LTX-001 Baseline workspace hygiene + toolchain verification

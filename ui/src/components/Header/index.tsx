@@ -379,9 +379,9 @@ export default function Header({
             type="button"
             onClick={onRenewSession}
             aria-label="Renew workspace session"
-            title="Renew workspace session"
+            title="Renew workspace access"
           >
-            Renew Session
+            Renew access
           </button>
           <button
             className="ghost-button"
@@ -390,7 +390,7 @@ export default function Header({
             aria-label="Copy live session link"
             title="Copy live session link"
           >
-            Share
+            Share link
           </button>
           <button
             className="ghost-button"
@@ -399,9 +399,9 @@ export default function Header({
             aria-label="Copy session handoff digest"
             title="Copy session handoff digest"
           >
-            Handoff
+            Copy handoff
           </button>
-          {!routeShellEnabled ? (
+          {!routeShellEnabled && onOpenSupport ? (
             <button
               className="ghost-button"
               type="button"

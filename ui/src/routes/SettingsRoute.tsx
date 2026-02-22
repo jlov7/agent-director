@@ -1,6 +1,8 @@
 import type { FeatureFlags } from '../utils/saasUx';
+import type { WorkspaceRouteStatus } from './workspaceRouteTypes';
 
 type SettingsRouteProps = {
+  status: WorkspaceRouteStatus;
   workspaceRole: 'viewer' | 'operator' | 'admin';
   themeMode: 'studio' | 'focus' | 'contrast';
   motionMode: 'cinematic' | 'balanced' | 'minimal';
@@ -25,6 +27,7 @@ type SettingsRouteProps = {
 };
 
 export default function SettingsRoute({
+  status,
   workspaceRole,
   themeMode,
   motionMode,
@@ -48,17 +51,35 @@ export default function SettingsRoute({
   onToggleFeatureFlag,
 }: SettingsRouteProps) {
   const trustSummary = safeExport
-    ? 'Safe export is enabled. Raw payload controls are redacted by default.'
-    : 'Safe export is disabled. Raw payload controls may expose sensitive context.';
+    ? 'Safe export is ON. Sensitive payload fields stay redacted unless explicitly revealed.'
+    : 'Safe export is OFF. Exports may include sensitive payload context.';
   const roleSummary =
     workspaceRole === 'viewer'
-      ? 'Viewer role can inspect but cannot mutate sensitive workflow actions.'
+      ? 'Viewer can inspect, but cannot execute write actions.'
       : workspaceRole === 'operator'
-        ? 'Operator role can execute route actions with confirmation on high-risk changes.'
-        : 'Admin role can manage all workspace controls and feature switches.';
+        ? 'Operator can execute route actions; high-impact changes require explicit confirmation.'
+        : 'Admin can manage workspace defaults, trust controls, and rollout switches.';
+  const nextTrustStepLabel = safeExport ? 'Safe export already enabled' : 'Enable safe export';
+  const nextTrustStepAction = safeExport ? undefined : onToggleSafeExport;
 
   return (
     <div className="workspace-context-grid route-context-grid" data-route-panel="settings">
+      <article className="workspace-card route-state-card route-focal-card">
+        <h3>Settings state</h3>
+        {status === null ? <p>No run context loaded. Start by confirming trust defaults before sharing outputs.</p> : null}
+        {status === 'loading' ? <p>Settings context is loading. Confirm trust defaults as soon as controls are ready.</p> : null}
+        {status === 'failed' ? (
+          <p>Run failed. Confirm trust defaults first, then open support from the failing route.</p>
+        ) : null}
+        {status === 'running' ? <p>Run is active. Keep trust defaults stable while responders operate.</p> : null}
+        {status === 'completed' ? <p>Run is complete. Confirm sharing defaults before final handoff.</p> : null}
+        <div className="route-state-actions">
+          <button className="primary-button" type="button" onClick={nextTrustStepAction} disabled={!nextTrustStepAction}>
+            {nextTrustStepLabel}
+          </button>
+        </div>
+      </article>
+
       <article className="workspace-card">
         <h3>Interface defaults</h3>
         <div className="workspace-inline-form">
@@ -165,6 +186,18 @@ export default function SettingsRoute({
         <p>{trustSummary}</p>
         <p className="route-state-summary">Role constraints: {roleSummary}</p>
       </article>
+
+      {!safeExport ? (
+        <article className="workspace-card route-state-card route-education-card">
+          <h3>Why this matters now</h3>
+          <p>Enable safe export before sharing diagnostics to reduce accidental sensitive-data exposure.</p>
+          <div className="route-state-actions">
+            <button className="primary-button" type="button" onClick={onToggleSafeExport}>
+              Enable safe export
+            </button>
+          </div>
+        </article>
+      ) : null}
     </div>
   );
 }

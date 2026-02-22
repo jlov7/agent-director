@@ -120,6 +120,7 @@ describe('WorkspaceRoute', () => {
       />
     );
 
+    fireEvent.click(screen.getByRole('button', { name: 'Show execution history' }));
     expect(screen.getByText('Execution timeline')).toBeInTheDocument();
     expect(screen.getByText('Replay matrix run')).toBeInTheDocument();
     expect(screen.getByText('Narrative export')).toBeInTheDocument();

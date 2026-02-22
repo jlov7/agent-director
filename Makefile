@@ -7,6 +7,15 @@ verify-strict:
 verify-ux:
 	./scripts/verify-ux.sh
 
+verify-frontend:
+	./scripts/verify-frontend.sh
+
+verify-visual:
+	./scripts/verify-visual.sh
+
+verify-visual-flake:
+	node ./scripts/visual_flake_detector.mjs --runs=2
+
 doctor:
 	python3 ./scripts/doctor.py
 

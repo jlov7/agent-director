@@ -11,7 +11,7 @@ type TriageRouteProps = {
 export default function TriageRoute({ status, supportEnabled, lastCompletedActionId, onRouteAction }: TriageRouteProps) {
   return (
     <div className="workspace-context-grid route-context-grid" data-route-panel="triage">
-      <article className="workspace-card route-state-card">
+      <article className="workspace-card route-state-card route-focal-card">
         <h3>Triage state</h3>
         {status === null ? (
           <>
@@ -26,6 +26,16 @@ export default function TriageRoute({ status, supportEnabled, lastCompletedActio
             </div>
           </>
         ) : null}
+        {status === 'loading' ? (
+          <>
+            <p>Incident data is loading. Start with observe so the triage queue stays deterministic.</p>
+            <div className="route-state-actions">
+              <button className="primary-button" type="button" onClick={() => onRouteAction('triage-observe-incident')}>
+                Observe now
+              </button>
+            </div>
+          </>
+        ) : null}
         {status === 'failed' ? (
           <div className="workspace-inline-form">
             <p>Failure detected. Run recovery in this order: observe, isolate, validate, share.</p>
@@ -36,9 +46,14 @@ export default function TriageRoute({ status, supportEnabled, lastCompletedActio
               Isolate cause
             </button>
             {supportEnabled ? (
-              <button className="ghost-button" type="button" onClick={() => onRouteAction('triage-open-support')}>
-                Open support diagnostics
-              </button>
+              <>
+                <button className="ghost-button" type="button" onClick={() => onRouteAction('triage-open-support')}>
+                  Open support diagnostics
+                </button>
+                <p className="route-state-summary">
+                  Open support diagnostics only if isolate or validate cannot complete.
+                </p>
+              </>
             ) : null}
           </div>
         ) : null}
@@ -57,7 +72,10 @@ export default function TriageRoute({ status, supportEnabled, lastCompletedActio
           </>
         ) : null}
         {status === 'running' ? (
-          <p>Use the task sequence below to keep triage deterministic and handoff-ready.</p>
+          <>
+            <p>Use the task sequence below to keep triage deterministic and handoff-ready.</p>
+            <p className="route-state-summary">Keyboard hint: use keys 1-4 to run observe, isolate, validate, and share.</p>
+          </>
         ) : null}
       </article>
 

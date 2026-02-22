@@ -1,6 +1,11 @@
 {
   "name": "agent-director-workspace",
   "private": true,
+  "scripts": {
+    "verify:frontend": "./scripts/verify-frontend.sh",
+    "verify:visual": "./scripts/verify-visual.sh",
+    "verify:visual:flake": "node ./scripts/visual_flake_detector.mjs --runs=2"
+  },
   "packageManager": "pnpm@10.29.3",
   "engines": {
     "node": ">=20"

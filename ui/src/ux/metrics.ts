@@ -6,6 +6,7 @@ export type JourneyMetricName =
   | 'journey.first_success'
   | 'journey.onboarding.exit'
   | 'journey.onboarding.first_value'
+  | 'journey.onboarding.confident_action'
   | 'journey.onboarding.abandon';
 
 export type JourneyMetricEvent = {
@@ -19,6 +20,7 @@ const JOURNEY_METRIC_NAMES: JourneyMetricName[] = [
   'journey.first_success',
   'journey.onboarding.exit',
   'journey.onboarding.first_value',
+  'journey.onboarding.confident_action',
   'journey.onboarding.abandon',
 ];
 

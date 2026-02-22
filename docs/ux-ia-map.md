@@ -1,6 +1,6 @@
 # UX Information Architecture Map
 
-Last updated: 2026-02-20
+Last updated: 2026-02-21
 
 ## Top User Intents
 1. Understand this run.
@@ -30,9 +30,19 @@ Last updated: 2026-02-20
 | `Configure` workspace section | `settings` | `Configure` | Consolidated setup/preferences controls. |
 | Global toolbar mode tabs | analysis context panel | `Analysis tools` | Mode switching moved out of always-visible global strip in route-shell mode. |
 
+## IA v3 Route Contract (Strict)
+
+| Route | Purpose (one sentence) | Success Signal (one measurable outcome) | Explicit Exclusions (not for this screen) |
+|---|---|---|---|
+| `overview` | Understand health and top risk quickly before deeper action. | Health reviewed and top-risk step inspected or handoff shared. | Deep causal graph tuning, feature-flag operations. |
+| `triage` | Resolve urgent incidents in deterministic sequence. | Observe -> Isolate -> Validate -> Share completed. | Long-form settings configuration, exploratory matrix authoring. |
+| `diagnose` | Build evidence-backed root-cause findings. | Baseline/hypothesis checkpoints recorded and findings shared. | Ownership assignment workflows and rollout controls. |
+| `coordinate` | Keep ownership and handoff continuity aligned. | Live context shared, digest copied, and checkpoint snapshot captured. | Low-level replay parameter tuning and route feature toggles. |
+| `settings` | Configure safe defaults for repeatable operation. | Trust and interface controls persisted with role-appropriate access. | Incident triage execution and root-cause narrative work. |
+
 ## Route Transition Rules
 
-- Route transitions update the canonical breadcrumb (`Workspace / <Route> / <Mode>`).
+- Route transitions update the canonical breadcrumb (`Workspace / <Route> / <Intent>`).
 - Route transitions map directly to a single active workspace section.
 - Validation-focused transitions are gated to analysis routes rather than global navigation.
 
@@ -40,6 +50,7 @@ Last updated: 2026-02-20
 - Use action-first labels (`Review`, `Triage`, `Diagnose`, `Coordinate`, `Configure`) for route-shell navigation.
 - Keep exactly one primary CTA per workspace section header.
 - Keep advanced/diagnostic controls behind explicit progressive disclosure.
+- Guided-first disclosure mode is default while onboarding is incomplete; after completion, focused mode remains default and users explicitly open full analysis canvas when needed.
 
 ## Orientation Rules
 - Every workspace section must expose:

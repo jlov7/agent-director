@@ -14,7 +14,7 @@ export default function OverviewRoute({ status, runHealthScore, lastCompletedAct
 
   return (
     <div className="workspace-context-grid route-context-grid" data-route-panel="overview">
-      <article className="workspace-card route-state-card">
+      <article className="workspace-card route-state-card route-focal-card">
         <h3>Overview state</h3>
         {status === null ? (
           <>
@@ -25,6 +25,16 @@ export default function OverviewRoute({ status, runHealthScore, lastCompletedAct
               </button>
               <button className="ghost-button" type="button" onClick={() => onRouteAction('overview-inspect-risk')}>
                 Inspect top risk
+              </button>
+            </div>
+          </>
+        ) : null}
+        {status === 'loading' ? (
+          <>
+            <p>Run context is loading. Start by reviewing run health as soon as data appears.</p>
+            <div className="route-state-actions">
+              <button className="primary-button" type="button" onClick={() => onRouteAction('overview-review-health')}>
+                Review run health
               </button>
             </div>
           </>

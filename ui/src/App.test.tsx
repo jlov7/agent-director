@@ -130,11 +130,11 @@ describe('App journey telemetry', () => {
     await waitFor(() => {
       expect(JSON.parse(window.localStorage.getItem('agentDirector.workspacePanelOpen.v1') ?? 'false')).toBe(true);
       expect(JSON.parse(window.localStorage.getItem('agentDirector.workspaceRole.v1') ?? '"viewer"')).toBe('operator');
-      expect(JSON.parse(window.localStorage.getItem('agentDirector.onboarding.stage.v1') ?? '"completed"')).toBe('select');
+      expect(JSON.parse(window.localStorage.getItem('agentDirector.onboarding.stage.v1') ?? '"completed"')).toBe('completed');
       expect(JSON.parse(window.localStorage.getItem('agentDirector.sessionExpiresAt.v1') ?? '0')).toBeGreaterThan(startedAt);
     });
 
-    expect(screen.getByText('What are you here to do?')).toBeInTheDocument();
+    expect(screen.getByText('First win complete')).toBeInTheDocument();
   });
 
   it('uses orchestrated onboarding in route shell and records safe-skip abandonment', async () => {
@@ -143,6 +143,9 @@ describe('App journey telemetry', () => {
     render(<App />);
 
     expect(screen.getByText('What are you here to do?')).toBeInTheDocument();
+    expect(screen.queryByText('Top latency')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Review' })).not.toBeInTheDocument();
+    expect(document.querySelector('.toolbar')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
 
     await waitFor(() => {
@@ -152,14 +155,29 @@ describe('App journey telemetry', () => {
     expect(screen.getByText('Skipped for now')).toBeInTheDocument();
   });
 
+  it('keeps completed route-shell sessions in focused mode until analysis canvas is explicitly opened', async () => {
+    window.localStorage.setItem('agentDirector.uxReboot.routes.v1', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('completed'));
+    window.localStorage.setItem('agentDirector.routeShell.fullWorkspaceOptIn.v1', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', JSON.stringify(true));
+
+    render(<App />);
+
+    expect(document.querySelector('.toolbar')).toBeNull();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Open analysis canvas' })[0]);
+    await waitFor(() => {
+      expect(document.querySelector('.toolbar')).not.toBeNull();
+    });
+  });
+
   it('records first-value onboarding telemetry for selected path in route shell', async () => {
     window.localStorage.setItem('agentDirector.uxReboot.routes.v1', JSON.stringify(true));
     window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify('investigate'));
 
     render(<App />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Start first win' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Open flow mode' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Start first win' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Open flow mode' })[0]);
 
     await waitFor(() => {
       const events = readJourneyMetrics(window.localStorage);

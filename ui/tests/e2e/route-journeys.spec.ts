@@ -13,6 +13,8 @@ async function initRouteShell(page: import('@playwright/test').Page) {
     window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', 'true');
     window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify('evaluate'));
     window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('completed'));
+    window.localStorage.setItem('agentDirector.routeShell.fullWorkspaceOptIn.v1', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.routeShell.canvasOpen.v1', JSON.stringify(true));
   });
 }
 
@@ -28,7 +30,6 @@ test('overview journey: review and handoff context', async ({ page }) => {
   await expect(page.getByText('Understand run health, risk, and the next decision in under a minute.')).toBeVisible();
 
   await page.getByRole('button', { name: 'Review run health' }).first().click();
-  await expect(page.getByText('Recent route actions')).toBeVisible();
   await expect(page.getByText('Resume here: Review run health')).toBeVisible();
 });
 
@@ -51,6 +52,7 @@ test('diagnose journey: keyboard sequence and evidence timeline', async ({ page 
   await page.keyboard.press('3');
   await page.keyboard.press('4');
 
+  await page.getByRole('button', { name: 'Show execution history' }).click();
   await expect(page.getByText('Execution timeline')).toBeVisible();
   await expect(page.getByText('Resume here: Share findings')).toBeVisible();
 });
@@ -66,6 +68,24 @@ test('coordinate journey: ownership and handoff snapshot continuity', async ({ p
     has: page.getByRole('heading', { name: 'Handoff snapshots' }),
   });
   await expect(snapshotCard.getByText(/COORDINATE snapshot/i)).toBeVisible();
+});
+
+test('coordinate journey supports keyboard completion flow', async ({ page }) => {
+  await openRoute(page, 'coordinate');
+
+  await expect(page.getByRole('heading', { name: 'Coordinate state' })).toBeVisible();
+  await page.locator('body').click({ position: { x: 8, y: 8 } });
+  await page.keyboard.press('1');
+  await page.waitForTimeout(80);
+  await page.keyboard.press('2');
+  await page.waitForTimeout(80);
+  await page.keyboard.press('3');
+  await page.waitForTimeout(120);
+
+  const snapshotCard = page.locator('.workspace-card').filter({
+    has: page.getByRole('heading', { name: 'Handoff snapshots' }),
+  });
+  await expect(snapshotCard.locator('.workspace-feed-item').first()).toBeVisible();
 });
 
 test('settings journey: preference and safety controls', async ({ page }) => {

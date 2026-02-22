@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import RouteProgressStrip from '../components/journeys/RouteProgressStrip';
 import CoordinateRoute from './CoordinateRoute';
 import DiagnoseRoute from './DiagnoseRoute';
@@ -14,6 +14,20 @@ const ROUTE_OUTCOME_COPY: Record<UxRebootRoute, string> = {
   diagnose: 'Produce evidence-backed root-cause findings and validated next actions.',
   coordinate: 'Keep ownership, handoff, and collaboration continuity aligned.',
   settings: 'Configure safe defaults and controls for predictable operation.',
+};
+const ROUTE_SUCCESS_COPY: Record<UxRebootRoute, string> = {
+  overview: 'One clear health and risk decision is recorded for this run.',
+  triage: 'Incident path reaches validated fix and handoff-ready state.',
+  diagnose: 'Hypothesis is validated with exportable evidence.',
+  coordinate: 'Ownership and handoff snapshot are both captured.',
+  settings: 'Trust defaults and feature controls are explicitly confirmed.',
+};
+const ROUTE_EXCLUSION_COPY: Record<UxRebootRoute, string> = {
+  overview: 'Deep replay matrix editing belongs in Diagnose.',
+  triage: 'Long-form narrative exports belong in Diagnose.',
+  diagnose: 'Ownership handoff operations belong in Coordinate.',
+  coordinate: 'Feature flag and locale configuration belong in Settings.',
+  settings: 'Incident execution steps belong in Triage and Diagnose.',
 };
 
 const ROUTE_LABEL: Record<UxRebootRoute, string> = {
@@ -64,21 +78,25 @@ function WorkspaceRoute({
   onRolloutCohortChange,
   onToggleFeatureFlag,
 }: WorkspaceRouteProps) {
-  const routeHistory = useMemo(
-    () => actionHistory.filter((entry) => entry.route === route),
-    [actionHistory, route]
-  );
   const routeTitleId = `workspace-route-${route}`;
 
   return (
-    <section className="workspace-route-shell" aria-labelledby={routeTitleId}>
+    <section className="workspace-route-shell motion-route-enter" aria-labelledby={routeTitleId}>
       <h2 id={routeTitleId} className="sr-only">
         {ROUTE_LABEL[route]} route workspace
       </h2>
-      <article className="workspace-card route-outcome-card">
+      <article className="workspace-card route-outcome-card route-education-card">
         <h3>Route outcome</h3>
         <p>{ROUTE_OUTCOME_COPY[route]}</p>
         <p className="route-outcome-subcopy">Role context: {workspaceRole}. Keep one intent active until complete.</p>
+        <ul className="route-contract-list">
+          <li>
+            <strong>Success:</strong> {ROUTE_SUCCESS_COPY[route]}
+          </li>
+          <li>
+            <strong>Not this screen:</strong> {ROUTE_EXCLUSION_COPY[route]}
+          </li>
+        </ul>
       </article>
 
       <RouteProgressStrip
@@ -87,20 +105,6 @@ function WorkspaceRoute({
         total={routeProgress.total}
         lastCompletedAction={lastCompletedAction}
       />
-
-      {routeHistory.length > 0 ? (
-        <article className="workspace-card route-history-strip" aria-label="Route action history">
-          <h3>Recent route actions</h3>
-          <div className="workspace-feed">
-            {routeHistory.slice(0, 6).map((entry) => (
-              <div key={entry.id} className="workspace-feed-item">
-                <span>{new Date(entry.at).toLocaleTimeString()}</span>
-                <span>{entry.label}</span>
-              </div>
-            ))}
-          </div>
-        </article>
-      ) : null}
 
       {route === 'overview' ? (
         <OverviewRoute
@@ -149,6 +153,7 @@ function WorkspaceRoute({
 
       {route === 'settings' ? (
         <SettingsRoute
+          status={status}
           workspaceRole={workspaceRole}
           themeMode={themeMode}
           motionMode={motionMode}

@@ -7,6 +7,7 @@ export type StepNodeData = {
   step: StepSummary;
   diffStatus?: 'changed' | 'removed' | 'added' | null;
   ghost?: boolean;
+  debug?: boolean;
 };
 
 export function StepNode({ data }: NodeProps<StepNodeData>) {
@@ -14,6 +15,7 @@ export function StepNode({ data }: NodeProps<StepNodeData>) {
   const costLabel = stepCostLabel(step);
   const diffClass = data.diffStatus ? `diff-${data.diffStatus}` : '';
   const ghostClass = data.ghost ? 'ghost-node' : '';
+  const debugClass = data.debug ? 'debug-node' : '';
   const typeLabel = step.type.replace('_', ' ').toUpperCase();
   const tokenLabel = step.metrics?.tokensTotal != null ? `${step.metrics.tokensTotal} tokens` : null;
   const durationLabel = step.durationMs != null ? `${step.durationMs}ms` : null;
@@ -21,7 +23,7 @@ export function StepNode({ data }: NodeProps<StepNodeData>) {
   const helpBody = `Click to inspect or replay this step.${helpBits ? ` ${helpBits}.` : ''}`;
   return (
     <div
-      className={`flow-node step-${step.type} ${diffClass} ${ghostClass}`}
+      className={`flow-node step-${step.type} ${diffClass} ${ghostClass} ${debugClass}`}
       data-help
       data-help-title={`${step.name} · ${typeLabel}`}
       data-help-body={helpBody}
@@ -40,6 +42,7 @@ export function StepNode({ data }: NodeProps<StepNodeData>) {
         {step.durationMs != null ? <span>{step.durationMs}ms</span> : null}
         {costLabel ? <span>{costLabel}</span> : null}
       </div>
+      {data.debug ? <span aria-hidden="true" className="flow-node-debug-anchor" /> : null}
     </div>
   );
 }

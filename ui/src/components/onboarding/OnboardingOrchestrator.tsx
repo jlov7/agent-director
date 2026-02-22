@@ -9,6 +9,7 @@ type OnboardingOrchestratorProps = {
   steps: FirstWinStep[];
   explainEnabled: boolean;
   recommendedActionLabel: string;
+  helpHref?: string;
   onPathChange: (path: OnboardingPath) => void;
   onStart: () => void;
   onSkipSafely: () => void;
@@ -24,6 +25,7 @@ export default function OnboardingOrchestrator({
   steps,
   explainEnabled,
   recommendedActionLabel,
+  helpHref = '/help.html',
   onPathChange,
   onStart,
   onSkipSafely,
@@ -49,6 +51,9 @@ export default function OnboardingOrchestrator({
           <button className="ghost-button" type="button" onClick={onStartTour}>
             Help me around
           </button>
+          <a className="ghost-button" href={helpHref} target="_blank" rel="noreferrer">
+            Open quick help
+          </a>
         </div>
       </section>
     );
@@ -70,6 +75,9 @@ export default function OnboardingOrchestrator({
           <button className="ghost-button" type="button" onClick={onStartOver}>
             Start over
           </button>
+          <a className="ghost-button" href={helpHref} target="_blank" rel="noreferrer">
+            Open quick help
+          </a>
         </div>
       </section>
     );

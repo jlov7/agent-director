@@ -7,6 +7,24 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - UXR-001 through UXR-100 are closed with current evidence artifacts and verification runs.
 - No open P0/P1 UX reboot gaps remain.
 
+## UX Simplification V2 Status (2026-02-21)
+
+- UXR2-001 through UXR2-120 are closed with refreshed evidence and full gate bundle passes.
+- Verification evidence refreshed on 2026-02-21: `make verify`, `make verify-ux`, `make doctor`, and `make scorecard` all passing.
+
+## UX Focused-Mode V3 Status (2026-02-21)
+
+- Residual density/confusion feedback addressed via focused-mode route-shell architecture (full canvas now explicit/reversible).
+- New focused/full disclosure behavior is covered by unit and E2E regression tests.
+- No new open P0/P1 gaps were introduced by the V3 closure tranche.
+
+## UX Focused-Mode V3b Status (2026-02-21)
+
+- First-run route-shell now renders as a clean onboarding gateway with heavy operational surfaces hidden until user intent is explicit.
+- Route-shell insight strip is now analysis-canvas scoped, reducing focused-mode density.
+- Stale session recovery now preserves completed onboarding progress (no forced reset to selection stage).
+- Verification and release gates re-run after V3b changes: `make verify`, `make verify-ux`, `make doctor`, `make scorecard`, `make release-safety`, and `make vercel-check` all passing.
+
 ## P0
 
 ### GAP-P0-001: Missing strict, repeatable doctor command with machine-readable evidence

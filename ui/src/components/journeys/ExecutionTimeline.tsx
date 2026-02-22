@@ -42,6 +42,7 @@ export default function ExecutionTimeline({
               <p>{item.detail}</p>
             </div>
             <div className="route-execution-meta">
+              <span className={`status-badge status-${item.status}`}>{item.status}</span>
               <span className={`status-badge status-source-${item.source}`}>{item.source}</span>
               <span>{new Date(item.updatedAt).toLocaleTimeString()}</span>
             </div>

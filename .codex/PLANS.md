@@ -1,3 +1,140 @@
+# Front-End 100/100 Excellence ExecPlan
+
+## Purpose / Big Picture
+
+Drive the UI from already-strong quality to exceptional `100/100` by executing the full FE-001..FE-092 backlog with deterministic evidence and strict completion gates.
+
+## Scope
+
+- In scope: all front-end quality domains in `docs/plans/2026-02-22-frontend-100-excellence-master-plan.md` (governance, IA/UX, visual system, a11y, performance, cross-browser, visual verification infra, security/privacy UX, and global Codex reuse).
+- Out of scope: backend contract changes not required to satisfy front-end acceptance criteria.
+
+## Progress
+
+- [x] Initialize exhaustive master tracker (FE-001..FE-092) with acceptance criteria and evidence fields.
+- [x] Establish deterministic visual verification foundation and command (`pnpm verify:visual` / `make verify-visual`).
+- [x] Add and validate single frontend gate command (`pnpm verify:frontend` / `make verify-frontend`).
+- [x] Record repo and global verification protocol updates.
+- [x] Execute tranche 1 completion items (FE-057, FE-058, FE-065, FE-068, FE-069).
+- [x] Complete FE-067 helper reuse across multiple visual suites.
+- [x] Publish reusable protocol/template artifacts (FE-085, FE-087, FE-088).
+- [x] Continue tranche-by-tranche execution until FE-001..FE-092 are complete.
+
+## Surprises & Discoveries
+
+- Visual determinism issues were dominated by environmental mismatch and non-asserting screenshot captures; deterministic debug and screenshot assertions materially improved confidence.
+- Cross-browser matrix required browser-scoped snapshot paths; shared filenames silently overwrite baselines.
+- Narrow viewport coverage exposed a real clipping defect in flow layout settlement, fixed by deterministic fit retries before `__READY`.
+
+## Decision Log
+
+- Use a single master file for exhaustive tracking to prevent task loss during multi-session execution.
+- Require machine-verifiable PASS/FAIL evidence for every frontend completion claim.
+- Prioritize infrastructure tasks first so subsequent UX/design work benefits from stronger guardrails.
+- Split matrix screenshot baselines by Playwright project name to eliminate cross-browser baseline collisions.
+- Apply browser-specific diff budgets only for screenshot raster variance; keep geometry assertions strict and universal.
+
+## Validation Plan
+
+- Per tranche: `pnpm -C ui lint`, `pnpm -C ui typecheck`, targeted E2E/visual suites.
+- Cross-browser tranche gate: `pnpm -C ui exec playwright test --config playwright.visual.config.ts`.
+- Milestone gates: `pnpm verify:visual`, `make verify`, `make verify-ux`.
+- Program closure gates: `make doctor`, `make scorecard`.
+
+## Outcomes & Retrospective
+
+Completed.
+- FE-001..FE-092 are marked done with repository-grounded evidence in `docs/frontend-100-closure-evidence.md`.
+- Deterministic visual verification now includes cross-browser matrix, machine-readable assertion artifacts, flake detection, and artifact viewing.
+- Frontend release gate is unified under `pnpm verify:frontend` / `make verify-frontend` and includes performance + visual checks.
+- Final closure refresh on 2026-02-22 is green: `pnpm verify:frontend`, `make verify`, `make verify-ux`, `make doctor`, and `make scorecard` (`70/70`).
+
+---
+
+# UX Focused-Mode V3b ExecPlan
+
+## Purpose / Big Picture
+
+Finish the simplification loop by making first-run route-shell feel intentionally minimal and by removing stale-session regressions that made UX appear unchanged.
+
+## Scope
+
+- In scope: onboarding `select` surface density reduction, insight-strip disclosure tightening, stale-session behavior, test updates, docs/screenshots, and production deploy verification.
+- Out of scope: backend/service contracts and non-UX feature additions.
+
+## Progress
+
+- [x] Hide route navigation, orientation, and workspace scaffolding during onboarding `select`.
+- [x] Move route-shell insight strip behind analysis-canvas opt-in.
+- [x] Preserve onboarding progress during stale session auto-recovery.
+- [x] Update App/unit/E2E onboarding regressions for new flow.
+- [x] Refresh docs/screenshots, run full gates, deploy to production alias.
+
+## Decision Log
+
+- Prioritize visible first-load clarity over retaining secondary controls on screen.
+- Keep advanced workspace opt-in in guided `active` stage, not `select`.
+- Treat session expiry recovery as continuity restoration, not onboarding reset.
+
+## Validation Plan
+
+- `make verify`
+- `make verify-ux`
+- `make doctor`
+- `make scorecard`
+- `make release-safety`
+- `make vercel-check`
+
+## Outcomes & Retrospective
+
+Completed.
+- Production now serves the simplified first-run gateway and focused disclosure behavior.
+- Verification and release safety gates remain green after UX density reductions.
+
+---
+
+# UX Focused-Mode V3 ExecPlan
+
+## Purpose / Big Picture
+
+Close the last high-friction UX feedback by making route-shell execution calm-by-default (focused mode), while preserving one-click access to full analysis power.
+
+## Scope
+
+- In scope: route-shell disclosure architecture, action-driven canvas expansion, onboarding continuity, telemetry, tests, and docs.
+- Out of scope: backend/service contract changes and non-UX feature additions.
+
+## Progress
+
+- [x] Synthesize world-class SaaS UX research into concrete constraints.
+- [x] Implement focused-mode default for completed route-shell sessions.
+- [x] Implement reversible full-canvas toggle and route-action-triggered expansion.
+- [x] Add focused-mode unit + E2E regression coverage.
+- [x] Sync docs/report/tracker artifacts with V3 closure.
+
+## Decision Log
+
+- Keep full analysis canvas available, but never auto-dump users into it after onboarding completion.
+- Trigger deep canvas only when user intent or route action requires step-level detail.
+- Preserve quick-help and command access even in focused mode.
+
+## Validation Plan
+
+- `pnpm -C ui test -- src/App.test.tsx`
+- `pnpm -C ui test:e2e -- tests/e2e/onboarding.spec.ts tests/e2e/basic.spec.ts tests/e2e/route-journeys.spec.ts tests/e2e/keyboard.spec.ts`
+- `pnpm -C ui typecheck`
+- `pnpm -C ui lint`
+- Full gate bundle + deployment verification in final pass.
+
+## Outcomes & Retrospective
+
+Completed.
+- Route-shell now defaults to focused, progressive disclosure behavior after onboarding completion.
+- Full analysis surface is explicit/reversible and validated by tests.
+- Plan/report/docs are aligned for external sharing.
+
+---
+
 # SaaS UX Reboot ExecPlan
 
 ## Purpose / Big Picture
@@ -39,6 +176,47 @@ Completed.
 - Reboot program delivered route-first journeys, contextual onboarding, visual simplification, and hardening gates with measurable artifacts.
 - Added canonical route E2E regressions, visual snapshots, scan proxy, route perf budgets, and trust-state confirmation/undo protections.
 - Updated release gate criteria and tracker artifacts to close UXR-001..UXR-100.
+
+---
+
+# SaaS UX Simplification V2 ExecPlan
+
+## Purpose / Big Picture
+
+Deliver a true simplification pass that reduces first-run cognitive load, introduces stronger progressive disclosure, and restructures journeys so users understand what to do next without decoding dense control surfaces.
+
+## Scope
+
+- In scope: frontend IA decomposition, route-level progressive disclosure, onboarding/first-value redesign, persona route sequencing, hierarchy cleanup, trust/a11y/perf UX hardening, and documentation alignment.
+- Out of scope: backend protocol rewrites and non-UX feature expansion.
+
+## Progress
+
+- [x] Create comprehensive implementation plan with full task ledger (`docs/plans/2026-02-21-saas-ux-simplification-v2-plan.md`).
+- [x] Sync active tracker in `TASKS.md`.
+- [x] Execute Batch A (`UXR2-001..UXR2-008`) and publish `artifacts/uxr2-baseline.json`.
+- [x] Execute Batch B (`UXR2-009..UXR2-016`) and extend baseline artifact with cognitive-load + trust findings.
+- [x] Execute Batch C (`UXR2-017..UXR2-024`) and land guided-first IA scaffolding.
+- [x] Execute remaining Batch D..I items and close UXR2-001..UXR2-120.
+- [x] Run full gate bundle (`make verify`, `make verify-ux`, `make doctor`, `make scorecard`) with passing evidence.
+
+## Decision Log
+
+- Use measurable simplification metrics (CTA count, above-fold density, first-click clarity, TTFV) instead of subjective “looks cleaner” judgments.
+- Keep execution in bounded batches with verification after each to maintain deployable stability.
+- Treat progressive disclosure as structural IA behavior, not cosmetic hiding.
+
+## Validation Plan
+
+- Batch checks: `pnpm -C ui typecheck`, `pnpm -C ui test`, targeted `pnpm -C ui test:e2e`.
+- Milestone checks: `make verify`.
+- Gate checks: `make verify-ux`, `make doctor`, `make scorecard`.
+
+## Outcomes & Retrospective
+
+Completed.
+- Closed UXR2-001..UXR2-120 with route-level simplification, progressive disclosure, trust-language hardening, and refreshed docs/screenshots/GIF assets.
+- Validation suite is green with fresh evidence (`make verify`, `make verify-ux`, `make doctor`, `make scorecard`).
 
 ---
 

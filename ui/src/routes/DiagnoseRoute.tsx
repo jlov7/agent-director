@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import ExecutionTimeline, { type RouteTimelineItem } from '../components/journeys/ExecutionTimeline';
 import JourneyActionCard from '../components/journeys/JourneyActionCard';
 import type { WorkspaceRouteStatus } from './workspaceRouteTypes';
@@ -21,9 +22,11 @@ export default function DiagnoseRoute({
   onResumeAsyncAction,
   onRetryExportTask,
 }: DiagnoseRouteProps) {
+  const [timelineOpen, setTimelineOpen] = useState(false);
+
   return (
     <div className="workspace-context-grid route-context-grid" data-route-panel="diagnose">
-      <article className="workspace-card route-state-card">
+      <article className="workspace-card route-state-card route-focal-card">
         <h3>Diagnose state</h3>
         {status === null ? (
           <>
@@ -34,6 +37,16 @@ export default function DiagnoseRoute({
               </button>
               <button className="ghost-button" type="button" onClick={() => onRouteAction('diagnose-isolate-cause')}>
                 Isolate causal chain
+              </button>
+            </div>
+          </>
+        ) : null}
+        {status === 'loading' ? (
+          <>
+            <p>Diagnosis context is loading. Begin with baseline observation once timeline data is ready.</p>
+            <div className="route-state-actions">
+              <button className="primary-button" type="button" onClick={() => onRouteAction('diagnose-observe-baseline')}>
+                Observe baseline
               </button>
             </div>
           </>
@@ -66,7 +79,10 @@ export default function DiagnoseRoute({
           </>
         ) : null}
         {status === 'running' ? (
-          <p>Run is live. Update diagnosis checkpoints as evidence changes.</p>
+          <>
+            <p>Run is live. Update diagnosis checkpoints as evidence changes.</p>
+            <p className="route-state-summary">Keyboard hint: use keys 1-4 to execute observe, isolate, validate, and share.</p>
+          </>
         ) : null}
       </article>
 
@@ -103,12 +119,24 @@ export default function DiagnoseRoute({
         resume={lastCompletedActionId === 'diagnose-share-findings'}
       />
 
-      <ExecutionTimeline
-        items={timelineItems}
-        onRetryAsyncAction={onRetryAsyncAction}
-        onResumeAsyncAction={onResumeAsyncAction}
-        onRetryExportTask={onRetryExportTask}
-      />
+      <article className="workspace-card">
+        <h3>Execution history</h3>
+        <p>Open detailed async/export timeline only when you need recovery evidence.</p>
+        <div className="route-state-actions">
+          <button className="ghost-button" type="button" onClick={() => setTimelineOpen((prev) => !prev)}>
+            {timelineOpen ? 'Hide execution history' : 'Show execution history'}
+          </button>
+        </div>
+      </article>
+
+      {timelineOpen ? (
+        <ExecutionTimeline
+          items={timelineItems}
+          onRetryAsyncAction={onRetryAsyncAction}
+          onResumeAsyncAction={onResumeAsyncAction}
+          onRetryExportTask={onRetryExportTask}
+        />
+      ) : null}
     </div>
   );
 }

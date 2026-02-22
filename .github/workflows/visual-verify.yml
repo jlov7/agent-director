@@ -1,0 +1,89 @@
+name: visual-verify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ui/**'
+      - 'scripts/verify-visual.sh'
+      - 'scripts/visual_artifact_index.mjs'
+      - '.github/workflows/visual-verify.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'ui/**'
+      - 'scripts/verify-visual.sh'
+      - 'scripts/visual_artifact_index.mjs'
+      - '.github/workflows/visual-verify.yml'
+  workflow_dispatch:
+
+jobs:
+  visual-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.3
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install UI deps
+        run: pnpm -C ui install
+
+      - name: Install Playwright browser
+        run: pnpm -C ui exec playwright install --with-deps ${{ matrix.project }}
+
+      - name: Run visual verification (${{ matrix.project }})
+        env:
+          VITE_GIT_SHA: ${{ github.sha }}
+        run: pnpm -C ui exec playwright test --config playwright.visual.config.ts --project ${{ matrix.project }}
+
+      - name: Build visual artifact index
+        if: always()
+        run: node scripts/visual_artifact_index.mjs
+
+      - name: Upload visual artifacts (${{ matrix.project }})
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-verify-${{ matrix.project }}
+          path: |
+            artifacts/visual-verification
+            ui/test-results
+            ui/playwright-report
+
+      - name: Comment PR with visual failure summary
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              `Visual verification failed for \`${{ matrix.project }}\`.`,
+              '',
+              '- Download artifact: `visual-verify-${{ matrix.project }}`',
+              '- Inspect `artifacts/visual-verification/index.md` for assertion and watermark status',
+              '- Inspect `ui/test-results/*-diff.png` for screenshot diffs',
+              '',
+              'Reproduce locally:',
+              '```bash',
+              'pnpm -C ui test:e2e:visual-matrix',
+              'pnpm verify:visual',
+              '```',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

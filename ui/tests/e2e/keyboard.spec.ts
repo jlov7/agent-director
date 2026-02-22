@@ -23,6 +23,8 @@ async function initRouteShellStorage(page: import('@playwright/test').Page) {
     window.localStorage.setItem('agentDirector.workspacePanelOpen.v1', 'true');
     window.localStorage.setItem('agentDirector.onboarding.path.v1', JSON.stringify('evaluate'));
     window.localStorage.setItem('agentDirector.onboarding.stage.v1', JSON.stringify('completed'));
+    window.localStorage.setItem('agentDirector.routeShell.fullWorkspaceOptIn.v1', JSON.stringify(true));
+    window.localStorage.setItem('agentDirector.routeShell.canvasOpen.v1', JSON.stringify(true));
   });
 }
 
@@ -100,8 +102,9 @@ test.describe('Keyboard shortcuts', () => {
 
     await page.getByRole('button', { name: 'Coordinate workspace route' }).focus();
     await page.keyboard.press('Enter');
-    await page.getByRole('button', { name: 'Capture snapshot', exact: true }).focus();
-    await page.keyboard.press('Enter');
+    await page.keyboard.press('1');
+    await page.keyboard.press('2');
+    await page.keyboard.press('3');
     await expect(page.locator('.workspace-card').filter({ hasText: 'Handoff snapshots' })).toContainText(/snapshot/i);
 
     await page.getByRole('button', { name: 'Configure workspace route' }).focus();
@@ -112,5 +115,23 @@ test.describe('Keyboard shortcuts', () => {
     await page.getByRole('button', { name: 'Confirm' }).focus();
     await page.keyboard.press('Enter');
     await expect(safeExportToggle).not.toBeChecked();
+  });
+
+  test('skip link moves focus to main content', async ({ page }) => {
+    await initRouteShellStorage(page);
+    await page.goto('/?routes=1&route=overview');
+    await page.locator('body').click({ position: { x: 10, y: 10 } });
+
+    for (let i = 0; i < 6; i += 1) {
+      await page.keyboard.press('Tab');
+      const focusedSkip = await page.evaluate(() => document.activeElement?.classList.contains('skip-link') === true);
+      if (focusedSkip) break;
+    }
+    const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+    await expect(skipLink).toBeFocused();
+    await page.keyboard.press('Enter');
+
+    const activeIsMain = await page.evaluate(() => document.activeElement?.id === 'main-content');
+    expect(activeIsMain).toBe(true);
   });
 });

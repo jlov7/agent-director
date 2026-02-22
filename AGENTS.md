@@ -44,8 +44,21 @@ Ship a production-ready v1 of Agent Director with coherent end-to-end journeys, 
 - Full verification: `make verify`
 - Strict verification: `make verify-strict`
 - UX verification: `make verify-ux`
+- Frontend verification gate (lint/type/unit/e2e/visual/matrix): `make verify-frontend` or `pnpm verify:frontend`
+- Deterministic visual verification (flow graph + geometry + snapshots): `make verify-visual` or `pnpm verify:visual`
 - Doctor loop evidence: `make doctor`
 - 10/10 scorecards: `make scorecard`
+
+## Mandatory Visual Verification Protocol
+- Follow `docs/visual-verification-protocol.md` (`v1.0.0`) as the canonical contract for deterministic visual QA.
+- For visual-critical UI changes, run deterministic visual verification before claiming completion.
+- Use `make verify-visual` (or `pnpm verify:visual`) so the suite runs with fixed seed/static/ticks/debug controls.
+- For browser-engine drift coverage, run `pnpm -C ui test:e2e:visual-matrix` (Chromium/Firefox/WebKit) and keep per-browser baselines isolated by project name.
+- Treat any geometry assertion failure (`overlaps`, `clipped`, `invalid`, `zeroSized`) as release-blocking.
+- Treat any screenshot diff failure as release-blocking until either the regression is fixed or a baseline update is intentionally reviewed.
+- Keep freeze styles deterministic (`stylePath`) and use the dedicated visual stylesheet for contract snapshots.
+- Preserve generated evidence under `artifacts/visual-verification` and `ui/test-results` for review.
+- For new repos, bootstrap from `scripts/templates/verify-visual.template.sh` and adapt paths/env vars.
 
 ## Quality Bar
 - No regressions in `make verify`.

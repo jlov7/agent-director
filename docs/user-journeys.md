@@ -89,6 +89,7 @@ Success checkpoints:
 | Failure pattern | Recovery path |
 |---|---|
 | User overwhelmed on first view | Guided tour + Story mode + Explain mode |
+| User overwhelmed after onboarding completion | Focused mode default + explicit "Open analysis canvas" toggle |
 | Confusion in dense traces | Insight Strip + mode-specific quick actions |
 | Long-running action uncertainty | Async action rail with retry/resume states |
 | Unsafe sharing risk | Enable Safe export and verify redaction metadata |

@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import JourneyActionCard from '../components/journeys/JourneyActionCard';
 import type { RouteActionHistoryEntry, RouteSnapshot, WorkspaceRouteStatus } from './workspaceRouteTypes';
 
@@ -26,9 +27,31 @@ export default function CoordinateRoute({
   onHandoffOwnerChange,
   onRouteAction,
 }: CoordinateRouteProps) {
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const mergedHistory = useMemo(
+    () =>
+      [
+        ...actionHistory.map((entry) => ({
+          id: `route-${entry.id}`,
+          at: entry.at,
+          message: entry.label,
+          source: 'route' as const,
+        })),
+        ...activityFeed.map((entry) => ({
+          id: `collab-${entry.id}`,
+          at: new Date(entry.timestamp).toISOString(),
+          message: entry.message,
+          source: 'collaboration' as const,
+        })),
+      ]
+        .sort((left, right) => Date.parse(right.at) - Date.parse(left.at))
+        .slice(0, 10),
+    [actionHistory, activityFeed]
+  );
+
   return (
     <div className="workspace-context-grid route-context-grid" data-route-panel="coordinate">
-      <article className="workspace-card route-state-card">
+      <article className="workspace-card route-state-card route-focal-card">
         <h3>Coordinate state</h3>
         {status === null ? (
           <>
@@ -39,6 +62,16 @@ export default function CoordinateRoute({
               </button>
               <button className="ghost-button" type="button" onClick={() => onRouteAction('coordinate-copy-handoff')}>
                 Copy handoff digest
+              </button>
+            </div>
+          </>
+        ) : null}
+        {status === 'loading' ? (
+          <>
+            <p>Coordination context is loading. Confirm owners first so handoff continuity is preserved.</p>
+            <div className="route-state-actions">
+              <button className="primary-button" type="button" onClick={() => onRouteAction('coordinate-share-live')}>
+                Share live context
               </button>
             </div>
           </>
@@ -70,7 +103,12 @@ export default function CoordinateRoute({
             </div>
           </>
         ) : null}
-        {status === 'running' ? <p>Run is active. Keep ownership current and checkpoint snapshots as context evolves.</p> : null}
+        {status === 'running' ? (
+          <>
+            <p>Run is active. Keep ownership current and checkpoint snapshots as context evolves.</p>
+            <p className="route-state-summary">Keyboard hint: use keys 1-3 to share, copy handoff, and capture snapshot.</p>
+          </>
+        ) : null}
       </article>
 
       <article className="workspace-card">
@@ -119,15 +157,12 @@ export default function CoordinateRoute({
       />
 
       <article className="workspace-card">
-        <h3>Action history</h3>
-        {actionHistory.length === 0 ? <p>No route actions recorded yet.</p> : null}
-        <div className="workspace-feed">
-          {actionHistory.slice(0, 8).map((entry) => (
-            <div key={entry.id} className="workspace-feed-item">
-              <span>{new Date(entry.at).toLocaleTimeString()}</span>
-              <span>{entry.label}</span>
-            </div>
-          ))}
+        <h3>Coordination history</h3>
+        <p>Open detailed route and collaboration history only when you need deeper context.</p>
+        <div className="route-state-actions">
+          <button className="ghost-button" type="button" onClick={() => setHistoryOpen((prev) => !prev)}>
+            {historyOpen ? 'Hide history details' : 'Show history details'}
+          </button>
         </div>
       </article>
 
@@ -144,18 +179,22 @@ export default function CoordinateRoute({
         </div>
       </article>
 
-      <article className="workspace-card">
-        <h3>Collaboration activity</h3>
-        {activityFeed.length === 0 ? <p>No collaboration events yet.</p> : null}
-        <div className="workspace-feed">
-          {activityFeed.slice(0, 8).map((entry) => (
-            <div key={entry.id} className="workspace-feed-item">
-              <span>{new Date(entry.timestamp).toLocaleTimeString()}</span>
-              <span>{entry.message}</span>
-            </div>
-          ))}
-        </div>
-      </article>
+      {historyOpen ? (
+        <article className="workspace-card route-education-card">
+          <h3>History details</h3>
+          {mergedHistory.length === 0 ? <p>No route or collaboration history recorded yet.</p> : null}
+          <div className="workspace-feed">
+            {mergedHistory.map((entry) => (
+              <div key={entry.id} className="workspace-feed-item">
+                <span>{new Date(entry.at).toLocaleTimeString()}</span>
+                <span>
+                  [{entry.source === 'route' ? 'Route' : 'Collab'}] {entry.message}
+                </span>
+              </div>
+            ))}
+          </div>
+        </article>
+      ) : null}
     </div>
   );
 }

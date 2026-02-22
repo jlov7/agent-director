@@ -17,10 +17,34 @@
   color: #95abc7 !important;
 }
 
+.route-contract-list {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 6px;
+  color: #afc2da;
+  font-size: var(--ux-tier-4);
+}
+
+.route-contract-list li {
+  line-height: 1.45;
+}
+
 .route-state-card {
   border-color: rgba(123, 211, 137, 0.22);
   display: grid;
   gap: 8px;
+}
+
+.route-focal-card {
+  border-color: rgba(112, 186, 255, 0.44);
+  background: linear-gradient(145deg, rgba(14, 24, 38, 0.9), rgba(9, 17, 29, 0.82));
+  box-shadow: 0 10px 24px rgba(6, 12, 22, 0.32);
+}
+
+.route-education-card {
+  border-color: rgba(170, 205, 255, 0.22);
+  background: rgba(10, 17, 28, 0.7);
 }
 
 .route-state-card h3 {
@@ -47,6 +71,10 @@
 .route-state-actions .primary-button,
 .route-state-actions .ghost-button {
   min-height: 44px;
+}
+
+.route-state-actions .ghost-button {
+  border-color: rgba(136, 190, 250, 0.38);
 }
 
 .journey-action-card {
@@ -150,6 +178,27 @@
 
 .workspace-route-shell .status-badge.status-source-export {
   border-color: rgba(240, 200, 109, 0.5);
+}
+
+.workspace-route-shell .status-badge.status-success {
+  color: #c9f4df;
+  border-color: rgba(123, 211, 137, 0.58);
+}
+
+.workspace-route-shell .status-badge.status-running {
+  color: #ffe5ad;
+  border-color: rgba(240, 200, 109, 0.58);
+}
+
+.workspace-route-shell .status-badge.status-error {
+  color: #ffd7db;
+  border-color: rgba(240, 124, 130, 0.6);
+}
+
+.workspace-route-shell .status-badge.status-queued,
+.workspace-route-shell .status-badge.status-canceled {
+  color: #d2def3;
+  border-color: rgba(122, 164, 209, 0.55);
 }
 
 .route-execution-timeline {

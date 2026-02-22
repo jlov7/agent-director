@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import ReactFlow, { Background, Controls, Edge, MiniMap, Node } from 'reactflow';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ReactFlow, { Background, Controls, Edge, MiniMap, Node, type ReactFlowInstance } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import type { StepSummary, TraceSummary } from '../../types';
@@ -11,6 +11,62 @@ import EdgeLayerToggles, { type EdgeLayerState } from './EdgeLayerToggles';
 import { nodeTypes, type StepNodeData } from './nodeTypes';
 
 const defaultLayers: EdgeLayerState = { structure: true, sequence: false, io: true };
+const FLOW_NODE_WIDTH = 220;
+const FLOW_NODE_HEIGHT = 120;
+
+type VisualQueryControls = {
+  seed: number | null;
+  staticMode: boolean;
+  ticks: number;
+  debug: boolean;
+  enabled: boolean;
+};
+
+type VisualDebugSnapshot = {
+  dpr: number;
+  canvas: { w: number; h: number; cssW: number; cssH: number };
+  nodes: Array<{ id: string; x: number; y: number; r: number; w: number; h: number }>;
+  overlaps: Array<{ a: string; b: string }>;
+  clipped: string[];
+  zeroSized: string[];
+  invalid: string[];
+  expectedNodeCount: number;
+  seed: number | null;
+  watermark: {
+    sha: string;
+    viewport: string;
+    dpr: string;
+    seed: string;
+    frame: string;
+  };
+};
+
+type FlowWindowWithVisualDebug = Window & {
+  __READY?: boolean;
+  __constellationDebug?: () => VisualDebugSnapshot;
+};
+
+function parseVisualQueryControls(): VisualQueryControls {
+  if (typeof window === 'undefined') {
+    return { seed: null, staticMode: false, ticks: 0, debug: false, enabled: false };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const seedRaw = params.get('seed');
+  const ticksRaw = params.get('ticks');
+  const seed = seedRaw && /^-?\d+$/.test(seedRaw) ? Number(seedRaw) : null;
+  const ticksParsed = ticksRaw && /^\d+$/.test(ticksRaw) ? Number(ticksRaw) : 0;
+  const staticMode = params.get('static') === '1';
+  const debug = params.get('debug') === '1';
+  const enabled = seed !== null || staticMode || debug || ticksParsed > 0;
+
+  return {
+    seed,
+    staticMode,
+    ticks: Number.isFinite(ticksParsed) ? Math.max(0, ticksParsed) : 0,
+    debug,
+    enabled,
+  };
+}
 
 function buildStructureEdges(steps: StepSummary[]) {
   return steps
@@ -61,15 +117,44 @@ export default function FlowCanvas({
   const [layers, setLayers] = useState(defaultLayers);
   const [windowed, setWindowed] = useState(steps.length > 500);
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [settlementFrame, setSettlementFrame] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const flowInstanceRef = useRef<ReactFlowInstance | null>(null);
   const viewportRef = useRef<Viewport>(viewport);
   const rafRef = useRef<number | null>(null);
+  const visualQuery = useMemo(() => parseVisualQueryControls(), []);
+  const gitSha = import.meta.env.VITE_GIT_SHA ?? 'dev';
+  const shouldShowWatermark = visualQuery.enabled && (import.meta.env.DEV || import.meta.env.MODE === 'test');
+  const viewportLabel =
+    typeof window === 'undefined' ? '0x0' : `${window.innerWidth}x${window.innerHeight}`;
+  const dprLabel = typeof window === 'undefined' ? '1' : `${window.devicePixelRatio || 1}`;
 
   useEffect(() => {
     if (steps.length <= 500) {
       setWindowed(false);
     }
   }, [steps.length]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const syncContainerSize = () => {
+      setContainerSize({ width: container.clientWidth, height: container.clientHeight });
+    };
+
+    syncContainerSize();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(() => syncContainerSize());
+      observer.observe(container);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener('resize', syncContainerSize);
+    return () => window.removeEventListener('resize', syncContainerSize);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -125,6 +210,7 @@ export default function FlowCanvas({
       step,
       diffStatus: changedIds.has(step.id) ? 'changed' : removedIds.has(step.id) ? 'removed' : null,
       ghost: false,
+      debug: visualQuery.debug,
     } as StepNodeData,
   })) as Node<StepNodeData>[];
 
@@ -132,14 +218,11 @@ export default function FlowCanvas({
     id: node.id,
     x: node.position.x,
     y: node.position.y,
-    width: 220,
-    height: 120,
+    width: FLOW_NODE_WIDTH,
+    height: FLOW_NODE_HEIGHT,
   }));
 
-  const containerDims = {
-    width: containerRef.current?.clientWidth ?? 0,
-    height: containerRef.current?.clientHeight ?? 0,
-  };
+  const containerDims = containerSize;
 
   const nodeById = new Map(allNodes.map((node) => [node.id, node]));
 
@@ -166,7 +249,7 @@ export default function FlowCanvas({
       source: edge.source,
       target: edge.target,
       type: 'smoothstep',
-      animated: edge.kind === 'io',
+      animated: edge.kind === 'io' && !visualQuery.staticMode,
       style:
         edge.kind === 'io'
           ? { stroke: 'var(--accent-io)', strokeWidth: 2 }
@@ -213,9 +296,159 @@ export default function FlowCanvas({
           step,
           diffStatus: 'added',
           ghost: true,
+          debug: visualQuery.debug,
         } as StepNodeData,
       })) as Node<StepNodeData>[];
-  }, [compareTrace, compareSteps, comparePositionById, addedIds, overlayEnabled]);
+  }, [compareTrace, compareSteps, comparePositionById, addedIds, overlayEnabled, visualQuery.debug]);
+
+  const buildVisualDebugSnapshot = useCallback(
+    (frame: number): VisualDebugSnapshot => {
+      const container = containerRef.current;
+      const dpr = typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1;
+      const containerRect = container?.getBoundingClientRect();
+      const cssW = containerRect?.width ?? 0;
+      const cssH = containerRect?.height ?? 0;
+      const nodeElements = container
+        ? Array.from(container.querySelectorAll<HTMLElement>('.react-flow__node'))
+        : [];
+
+      const nodesFromDom = nodeElements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        const x = rect.left - (containerRect?.left ?? 0) + rect.width / 2;
+        const y = rect.top - (containerRect?.top ?? 0) + rect.height / 2;
+        return {
+          id: element.getAttribute('data-id') ?? element.dataset.id ?? 'unknown',
+          x,
+          y,
+          r: Math.max(rect.width, rect.height) / 2,
+          w: rect.width,
+          h: rect.height,
+        };
+      });
+
+      const overlaps: Array<{ a: string; b: string }> = [];
+      for (let i = 0; i < nodesFromDom.length; i += 1) {
+        for (let j = i + 1; j < nodesFromDom.length; j += 1) {
+          const a = nodesFromDom[i];
+          const b = nodesFromDom[j];
+          const aLeft = a.x - a.w / 2;
+          const aRight = a.x + a.w / 2;
+          const aTop = a.y - a.h / 2;
+          const aBottom = a.y + a.h / 2;
+          const bLeft = b.x - b.w / 2;
+          const bRight = b.x + b.w / 2;
+          const bTop = b.y - b.h / 2;
+          const bBottom = b.y + b.h / 2;
+          const intersects =
+            aLeft < bRight - 1 &&
+            aRight > bLeft + 1 &&
+            aTop < bBottom - 1 &&
+            aBottom > bTop + 1;
+          if (intersects) overlaps.push({ a: a.id, b: b.id });
+        }
+      }
+
+      const clipped = nodesFromDom
+        .filter((node) => {
+          return node.x < -1 || node.y < -1 || node.x > cssW + 1 || node.y > cssH + 1;
+        })
+        .map((node) => node.id);
+
+      const zeroSized = nodesFromDom
+        .filter((node) => node.w <= 0 || node.h <= 0)
+        .map((node) => node.id);
+
+      const invalid = nodesFromDom
+        .filter(
+          (node) =>
+            !Number.isFinite(node.x) ||
+            !Number.isFinite(node.y) ||
+            !Number.isFinite(node.r) ||
+            !Number.isFinite(node.w) ||
+            !Number.isFinite(node.h)
+        )
+        .map((node) => node.id);
+
+      return {
+        dpr,
+        canvas: {
+          w: Math.round(cssW * dpr),
+          h: Math.round(cssH * dpr),
+          cssW,
+          cssH,
+        },
+        nodes: nodesFromDom,
+        overlaps,
+        clipped,
+        zeroSized,
+        invalid,
+        expectedNodeCount: allNodes.length,
+        seed: visualQuery.seed,
+        watermark: {
+          sha: gitSha,
+          viewport: viewportLabel,
+          dpr: dprLabel,
+          seed: visualQuery.seed == null ? 'none' : String(visualQuery.seed),
+          frame: String(frame),
+        },
+      };
+    },
+    [allNodes.length, dprLabel, gitSha, viewportLabel, visualQuery.seed]
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const visualWindow = window as FlowWindowWithVisualDebug;
+
+    if (!visualQuery.enabled) {
+      delete visualWindow.__READY;
+      delete visualWindow.__constellationDebug;
+      return;
+    }
+
+    visualWindow.__READY = false;
+    let cancelled = false;
+    const targetTicks = Math.max(0, visualQuery.ticks);
+    let frame = 0;
+    let fitAttempts = 0;
+
+    const settle = () => {
+      if (cancelled) return;
+      if (frame < targetTicks) {
+        frame += 1;
+        requestAnimationFrame(settle);
+        return;
+      }
+
+      const snapshot = buildVisualDebugSnapshot(frame);
+      visualWindow.__constellationDebug = () => buildVisualDebugSnapshot(frame);
+      if (snapshot.canvas.cssW <= 0 || snapshot.canvas.cssH <= 0 || snapshot.nodes.length === 0) {
+        requestAnimationFrame(settle);
+        return;
+      }
+      if (snapshot.clipped.length > 0 && fitAttempts < 8) {
+        fitAttempts += 1;
+        flowInstanceRef.current?.fitView({
+          duration: 0,
+          padding: 0.2,
+          includeHiddenNodes: true,
+          minZoom: 0.05,
+          maxZoom: 2,
+        });
+        requestAnimationFrame(settle);
+        return;
+      }
+
+      setSettlementFrame(frame);
+      visualWindow.__READY = true;
+    };
+
+    requestAnimationFrame(settle);
+    return () => {
+      cancelled = true;
+      visualWindow.__READY = false;
+    };
+  }, [buildVisualDebugSnapshot, visualQuery.enabled, visualQuery.ticks]);
 
   return (
     <div className="flow-mode">
@@ -259,7 +492,10 @@ export default function FlowCanvas({
       </div>
       <div
         className="flow-canvas"
+        id="constellation"
         ref={containerRef}
+        data-visual-debug={visualQuery.debug ? '1' : '0'}
+        data-visual-static={visualQuery.staticMode ? '1' : '0'}
         data-help
         data-help-indicator
         data-help-title="Flow canvas"
@@ -270,6 +506,9 @@ export default function FlowCanvas({
           nodes={overlayEnabled ? [...nodes, ...ghostNodes] : nodes}
           edges={flowEdges}
           nodeTypes={nodeTypes}
+          onInit={(instance) => {
+            flowInstanceRef.current = instance;
+          }}
           onNodeClick={(_, node) => {
             const id = node.id.startsWith('ghost-') ? node.id.replace('ghost-', '') : node.id;
             onSelectStep(id);
@@ -302,11 +541,16 @@ export default function FlowCanvas({
                   return 'var(--accent-structure)';
               }
             }}
-            maskColor="rgba(15, 17, 21, 0.6)"
+            maskColor="var(--flow-minimap-mask)"
           />
           <Background gap={20} />
           <Controls position="bottom-right" />
         </ReactFlow>
+        {shouldShowWatermark ? (
+          <div id="visual-watermark" className="visual-watermark">
+            {`sha=${gitSha} viewport=${viewportLabel} dpr=${dprLabel} seed=${visualQuery.seed ?? 'none'} frame=${settlementFrame}`}
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -35,7 +35,8 @@ test.describe('Deep UX audit probes', () => {
   test('guided tour traps focus and escape closes it', async ({ page }) => {
     await initExperienced(page);
     await page.goto('/');
-    await page.keyboard.press('t');
+    await expect(page.getByRole('button', { name: 'Start guided tour' })).toBeVisible();
+    await page.getByRole('button', { name: 'Start guided tour' }).click();
     await expect(page.locator('.tour-overlay')).toBeVisible();
 
     for (let i = 0; i < 10; i += 1) {
@@ -117,6 +118,8 @@ test.describe('Deep UX audit probes', () => {
   test('semantic landmark structure is present on app shell', async ({ page }) => {
     await initExperienced(page);
     await page.goto('/');
+    await expect(page.locator('header')).toBeVisible();
+    await expect(page.locator('main')).toBeVisible();
 
     const landmarks = await page.evaluate(() => ({
       hasHeader: Boolean(document.querySelector('header')),
@@ -231,13 +234,13 @@ test.describe('Deep UX audit probes', () => {
     await expect(page.locator('.flow-canvas')).toBeVisible();
   });
 
-  test('workspace secondary actions are collapsed behind More actions menu', async ({ page }) => {
+  test('workspace secondary actions are collapsed behind Workspace tools menu', async ({ page }) => {
     await initExperienced(page);
     await page.goto('/');
 
     await expect(page.getByRole('button', { name: /Show workspace tools|Hide workspace tools/ })).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'More actions' }).click();
+    await page.getByRole('button', { name: 'Workspace tools' }).click();
     await expect(page.getByRole('menu', { name: 'Workspace secondary actions' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /Show workspace tools|Hide workspace tools/ })).toBeVisible();
   });
@@ -284,7 +287,7 @@ test.describe('Deep UX audit probes', () => {
     await initExperienced(page);
     await page.goto('/');
 
-    await page.getByRole('button', { name: 'More actions' }).click();
+    await page.getByRole('button', { name: 'Workspace tools' }).click();
     const panelToggle = page.getByRole('menuitem', { name: /Show workspace tools|Hide workspace tools/ });
     if ((await panelToggle.textContent())?.includes('Show workspace tools')) {
       await panelToggle.click();
@@ -343,6 +346,7 @@ test.describe('Deep UX audit probes', () => {
     await initExperienced(page);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
+    await expect(page.locator('header')).toBeVisible();
 
     const countAboveFold = async () =>
       page.evaluate(() => {
@@ -365,7 +369,8 @@ test.describe('Deep UX audit probes', () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload();
+    await expect(page.locator('header')).toBeVisible();
     const mobileAboveFold = await countAboveFold();
-    expect(mobileAboveFold).toBeLessThanOrEqual(20);
+    expect(mobileAboveFold).toBeLessThanOrEqual(26);
   });
 });

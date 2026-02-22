@@ -18,6 +18,10 @@
 
 Agent Director is a cinematic, chat-native debugger for AI-agent runs. It turns traces into an interactive timeline + graph, then lets teams replay, compare, and safely share what changed.
 
+This repository is organized to support two audiences at once:
+- **Non-technical readers** who need to understand what the product does, why it matters, and how to evaluate it quickly.
+- **Technical readers** who need architecture, contracts, verification gates, and deployment paths they can trust.
+
 ## Choose Your Path
 
 | I am... | Start here | Outcome |
@@ -37,12 +41,24 @@ Agent Director is a cinematic, chat-native debugger for AI-agent runs. It turns 
 Key capabilities:
 - Cinema, Flow, Compare, and Matrix analysis modes.
 - Route-shell journeys (`Review`, `Triage`, `Diagnose`, `Coordinate`, `Configure`) with explicit outcomes and resume markers.
+- Guided-first onboarding with a clean first-run gateway, progressive disclosure, default focused mode, and explicit "Open analysis canvas" opt-in.
 - Director's Cut replay with deterministic invalidation + diff.
 - Scenario workbench and matrix outcomes with causal ranking.
 - Story mode, guided tour, explain overlays, and setup wizard.
 - Collaboration rails: ownership, handoff digests, support diagnostics, export queue.
 - Safety by default: redaction-first with safe-export guardrails.
 - Staged UX rollout cohorts (`off`/`internal`/`pilot`/`ga`) controlled from Settings.
+
+## Onboarding User Guide
+
+If you are onboarding a new user or stakeholder, use this sequence:
+
+1. Start with the plain-language guide: [`docs/non-technical-guide.md`](docs/non-technical-guide.md)
+2. Run the 5-minute role quickstart:
+   - Operator: [`docs/quickstart-operator-5-minutes.md`](docs/quickstart-operator-5-minutes.md)
+   - Evaluator/Executive: [`docs/quickstart-evaluator-5-minutes.md`](docs/quickstart-evaluator-5-minutes.md)
+3. Walk through first-run onboarding states: [`docs/onboarding-v2-screens.md`](docs/onboarding-v2-screens.md)
+4. Use the guided journey map for demos/training: [`docs/user-journeys.md`](docs/user-journeys.md)
 
 ## Visual Tour
 
@@ -177,6 +193,24 @@ Useful env vars:
 - GitHub Pages: [jlov7.github.io/agent-director](https://jlov7.github.io/agent-director/)
 - Codespaces launch link: [Open in Codespaces](https://github.com/codespaces/new?hide_repo_select=true&repo=jlov7/agent-director)
 
+## Repository Structure
+
+```text
+.
+├── server/                  # Python API, replay engine, MCP surfaces, backend tests
+├── ui/                      # React + TypeScript app, E2E/unit tests, visual baselines
+├── docs/                    # Public-facing and operational documentation hub
+│   ├── screenshots/         # Product screenshots used in docs/readme
+│   ├── illustrations/       # Architecture and concept visuals
+│   ├── ops/                 # Runbooks, release safety, operations playbooks
+│   ├── plans/               # Execution plans and historical implementation ledgers
+│   └── archive/             # Archived legacy notes retained for project history
+├── scripts/                 # Verification, doctor/scorecard, release and visual tooling
+├── artifacts/               # Generated verification evidence (doctor/scorecards/visual)
+├── Makefile                 # Unified quality/release commands
+└── README.md                # Product + architecture + setup front door
+```
+
 ## API Snapshot
 
 Base URL (default): `http://127.0.0.1:8787`
@@ -206,14 +240,21 @@ Full reference: [`docs/api-reference.md`](docs/api-reference.md)
 - Non-technical guide: [`docs/non-technical-guide.md`](docs/non-technical-guide.md)
 - Technical guide: [`docs/technical-guide.md`](docs/technical-guide.md)
 - User journeys: [`docs/user-journeys.md`](docs/user-journeys.md)
+- Operator quickstart (5 minutes): [`docs/quickstart-operator-5-minutes.md`](docs/quickstart-operator-5-minutes.md)
+- Evaluator quickstart (5 minutes): [`docs/quickstart-evaluator-5-minutes.md`](docs/quickstart-evaluator-5-minutes.md)
 - Getting started: [`docs/getting-started.md`](docs/getting-started.md)
 - Architecture: [`docs/architecture.md`](docs/architecture.md)
 - UX model: [`docs/ux.md`](docs/ux.md)
+- Onboarding progression screens: [`docs/onboarding-v2-screens.md`](docs/onboarding-v2-screens.md)
 - Story + narrative: [`docs/story.md`](docs/story.md)
 - Visual system: [`docs/visual-system.md`](docs/visual-system.md)
 - Hosting and deployment: [`docs/hosting.md`](docs/hosting.md)
 - Operations runbooks: [`docs/ops/`](docs/ops)
+- Guided mode/session recovery runbook: [`docs/ops/guided-mode-session-recovery.md`](docs/ops/guided-mode-session-recovery.md)
 - Legal docs: [`docs/legal/`](docs/legal)
+- UX review checklist: [`docs/ux-review-day-checklist.md`](docs/ux-review-day-checklist.md)
+- UX simplification final report: [`docs/uxr2-final-report.md`](docs/uxr2-final-report.md)
+- UX v3 research + implementation plan: [`docs/plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md`](docs/plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md)
 
 ## Deployment notes
 
@@ -245,6 +286,10 @@ make vercel-check
 Security and contribution docs:
 - [`SECURITY.md`](SECURITY.md)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
+
+## Disclaimer
+
+This is a personal project built independently. It is not affiliated with, endorsed by, or representative of any employer or client work.
 
 ## License
 

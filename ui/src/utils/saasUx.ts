@@ -49,6 +49,8 @@ export type ProductEventName =
   | 'ux.route.entered'
   | 'ux.route.checkpoint'
   | 'ux.route.perf_budget'
+  | 'ux.route.canvas_opened'
+  | 'ux.route.focused_mode'
   | 'ux.session.auto_recovered'
   | 'ux.error.boundary'
   | 'ux.error.window'
