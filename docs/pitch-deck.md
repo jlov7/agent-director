@@ -48,21 +48,21 @@ If you can **watch** a run unfold, you can **direct** it.
 
 ---
 
-# The System (Trace Fusion)
+# The System (Live Product Surface)
 
-![Trace fusion](illustrations/trace-fusion.svg)
-
----
-
-# Director’s Cut Pipeline
-
-![Director's Cut](illustrations/directors-cut.svg)
+![System surface](screenshots/launch-qa-desktop-wide.png)
 
 ---
 
-# Insight Strip
+# Director’s Cut Pipeline (In Product)
 
-![Insight Strip](illustrations/insight-strip.svg)
+![Director's Cut pipeline in product](screenshots/launch-qa-desktop-inspector.png)
+
+---
+
+# Insight Strip (Operational Signals)
+
+![Insight Strip in context](screenshots/launch-qa-help-escalation.png)
 
 ---
 

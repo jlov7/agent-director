@@ -6,7 +6,7 @@
 - **Compare** — side-by-side timelines with aligned diff summary.
 - **Matrix** — multi-scenario replay outcomes with causal ranking, presets, and safe-share exports.
 
-![Insight Strip](illustrations/insight-strip.svg)
+![Flow mode](screenshots/ux-tablet-flow.png)
 
 ## Interaction loop
 1. Load trace → watch playback.

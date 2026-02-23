@@ -68,12 +68,6 @@ If you are onboarding a new user or stakeholder, use this sequence:
 
 ![Demo walkthrough](docs/demo.gif)
 
-### Concept illustrations
-
-![Trace fusion](docs/illustrations/trace-fusion.svg)
-![Director's Cut](docs/illustrations/directors-cut.svg)
-![Insight Strip](docs/illustrations/insight-strip.svg)
-
 ## Architecture At A Glance
 
 ```mermaid
@@ -201,7 +195,7 @@ Useful env vars:
 ├── ui/                      # React + TypeScript app, E2E/unit tests, visual baselines
 ├── docs/                    # Public-facing and operational documentation hub
 │   ├── screenshots/         # Product screenshots used in docs/readme
-│   ├── illustrations/       # Architecture and concept visuals
+│   ├── demos/               # Executable Showboat proof docs
 │   ├── ops/                 # Runbooks, release safety, operations playbooks
 │   ├── plans/               # Execution plans and historical implementation ledgers
 │   └── archive/             # Archived legacy notes retained for project history
@@ -230,9 +224,26 @@ Full reference: [`docs/api-reference.md`](docs/api-reference.md)
 - Standard suite: `make verify`
 - Strict suite: `make verify-strict`
 - UX suite: `make verify-ux`
+- Executable demo docs: `make demo-proof-verify`
 - 3-second route comprehension proxy: `pnpm -C ui scan:check`
 - Release evidence: `make doctor`
 - Scorecards: `make scorecard`
+
+## Executable Demo Docs (Showboat)
+
+Agent Director includes executable markdown demos powered by Showboat for reviewer-facing proof.
+
+- Release proof doc: [`docs/demos/release-proof.md`](docs/demos/release-proof.md)
+- Demo docs guide: [`docs/demos/README.md`](docs/demos/README.md)
+
+Commands:
+
+```bash
+make demo-proof-build
+make demo-proof-verify
+```
+
+This layer complements, but does not replace, deterministic Playwright visual gates.
 
 ## Documentation Hub
 

@@ -16,6 +16,12 @@ verify-visual:
 verify-visual-flake:
 	node ./scripts/visual_flake_detector.mjs --runs=2
 
+demo-proof-build:
+	./scripts/build_showboat_release_proof.sh
+
+demo-proof-verify:
+	./scripts/verify_showboat_demos.sh
+
 doctor:
 	python3 ./scripts/doctor.py
 

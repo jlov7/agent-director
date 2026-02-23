@@ -4,8 +4,6 @@ This document explains how Agent Director ingests traces, serves safe data contr
 
 ## 1) System Topology
 
-![Trace fusion](illustrations/trace-fusion.svg)
-
 ```mermaid
 flowchart LR
   subgraph Source["Trace Sources"]
@@ -124,8 +122,6 @@ flowchart LR
 ```
 
 ## 5) Replay + Compare Pipeline
-
-![Director's Cut](illustrations/directors-cut.svg)
 
 ```mermaid
 flowchart LR

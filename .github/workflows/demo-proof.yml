@@ -1,0 +1,44 @@
+name: demo-proof
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/demos/**'
+      - 'scripts/build_showboat_release_proof.sh'
+      - 'scripts/verify_showboat_demos.sh'
+      - 'README.md'
+      - '.github/workflows/demo-proof.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/demos/**'
+      - 'scripts/build_showboat_release_proof.sh'
+      - 'scripts/verify_showboat_demos.sh'
+      - 'README.md'
+      - '.github/workflows/demo-proof.yml'
+  workflow_dispatch:
+
+jobs:
+  verify-demos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Showboat
+        run: python -m pip install --upgrade pip showboat
+
+      - name: Verify executable demo docs
+        run: ./scripts/verify_showboat_demos.sh
+
+      - name: Upload demo docs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-proof-docs
+          path: docs/demos

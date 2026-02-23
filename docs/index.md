@@ -62,11 +62,11 @@ This hub is organized by audience and lifecycle so readers can quickly find the 
 - [`ux-review-day-checklist.md`](ux-review-day-checklist.md)
 - [`uxr2-final-report.md`](uxr2-final-report.md)
 - [`plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md`](plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md)
+- Executable demo proofs: [`demos/release-proof.md`](demos/release-proof.md), [`demos/README.md`](demos/README.md)
 
 ## Media Library
 
 - Screenshots: [`screenshots/`](screenshots)
-- Concept illustrations: [`illustrations/`](illustrations)
 - Demo GIF: [`demo.gif`](demo.gif)
 - Logos: [`logo.svg`](logo.svg), [`logo.txt`](logo.txt)
 

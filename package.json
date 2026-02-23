@@ -2,6 +2,8 @@
   "name": "agent-director-workspace",
   "private": true,
   "scripts": {
+    "demo:proof:build": "./scripts/build_showboat_release_proof.sh",
+    "demo:proof:verify": "./scripts/verify_showboat_demos.sh",
     "verify:frontend": "./scripts/verify-frontend.sh",
     "verify:visual": "./scripts/verify-visual.sh",
     "verify:visual:flake": "node ./scripts/visual_flake_detector.mjs --runs=2"
