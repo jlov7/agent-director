@@ -278,9 +278,9 @@ describe('Matrix', () => {
     );
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Details' })[0]);
-    const detailsDialog = screen.getByRole('dialog', { name: 'Scenario details' });
-    expect(detailsDialog).toBeInTheDocument();
-    expect(within(detailsDialog).getByText('Plan')).toBeInTheDocument();
+    const detailsPanel = screen.getByRole('region', { name: 'Scenario details' });
+    expect(detailsPanel).toBeInTheDocument();
+    expect(within(detailsPanel).getByText('Plan')).toBeInTheDocument();
   });
 
   it('shows error banner when error present', () => {

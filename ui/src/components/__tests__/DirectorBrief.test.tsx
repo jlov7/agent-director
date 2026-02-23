@@ -46,6 +46,9 @@ describe('DirectorBrief', () => {
       />
     );
 
+    const overviewTab = screen.getByRole('tab', { name: 'Overview' });
+    expect(overviewTab).toHaveAttribute('aria-controls', 'director-panel-overview');
+    expect(document.getElementById('director-panel-overview')).toHaveAttribute('role', 'tabpanel');
     expect(screen.getByText(/unlock ai narrative tools/i)).toBeInTheDocument();
     expect(screen.getByText(/unlock collaboration activity feed/i)).toBeInTheDocument();
   });

@@ -2155,26 +2155,38 @@ pre {
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
   background: rgba(22, 30, 42, 0.8);
-  color: var(--text-primary);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+
+.palette-item-button {
+  border: 0;
+  background: transparent;
+  color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  width: 100%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.palette-item-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .palette-item.active {
   border-color: rgba(111, 210, 255, 0.5);
   box-shadow: 0 8px 20px rgba(16, 24, 36, 0.35);
   transform: translateY(-1px);
+  background: rgba(24, 34, 48, 0.95);
 }
 
-.palette-item:focus-visible {
+.palette-item-button:focus-visible,
+.palette-pin-button:focus-visible {
   outline: 2px solid rgba(96, 168, 245, 0.8);
   outline-offset: 2px;
-}
-
-.palette-item:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .palette-item-title {
@@ -2204,15 +2216,19 @@ pre {
   gap: 8px;
 }
 
-.palette-pin {
+.palette-pin-button {
+  border: 0;
+  background: transparent;
   font-size: 0.95rem;
   color: var(--text-muted);
   cursor: pointer;
   user-select: none;
   line-height: 1;
+  padding: 2px 4px;
+  border-radius: 6px;
 }
 
-.palette-pin.active {
+.palette-pin-button.active {
   color: #f3c26b;
 }
 

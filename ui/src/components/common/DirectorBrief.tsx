@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import type { StepSummary, TraceSummary } from '../../types';
 
 type Mode = 'cinema' | 'flow' | 'compare';
@@ -119,6 +119,27 @@ export default function DirectorBrief({
     setCompletedRecommendationIds((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
   };
 
+  const tabs: WorkspaceTab[] = ['overview', 'narrative', 'collab'];
+  const getTabId = (tab: WorkspaceTab) => `director-tab-${tab}`;
+  const getPanelId = (tab: WorkspaceTab) => `director-panel-${tab}`;
+
+  const onTabKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft' && event.key !== 'Home' && event.key !== 'End') return;
+    event.preventDefault();
+    const currentIndex = tabs.indexOf(activeTab);
+    if (event.key === 'Home') {
+      setActiveTab(tabs[0]);
+      return;
+    }
+    if (event.key === 'End') {
+      setActiveTab(tabs[tabs.length - 1]);
+      return;
+    }
+    const delta = event.key === 'ArrowRight' ? 1 : -1;
+    const nextIndex = (currentIndex + delta + tabs.length) % tabs.length;
+    setActiveTab(tabs[nextIndex]);
+  };
+
   return (
     <aside
       className="inspector inspector-empty"
@@ -138,12 +159,15 @@ export default function DirectorBrief({
         </div>
       </div>
 
-      <div className="director-tabs" role="tablist" aria-label="Director workspace tabs">
+      <div className="director-tabs" role="tablist" aria-label="Director workspace tabs" onKeyDown={onTabKeyDown}>
         <button
           className={`ghost-button ${activeTab === 'overview' ? 'active' : ''}`}
           type="button"
           role="tab"
+          id={getTabId('overview')}
+          aria-controls={getPanelId('overview')}
           aria-selected={activeTab === 'overview'}
+          tabIndex={activeTab === 'overview' ? 0 : -1}
           onClick={() => setActiveTab('overview')}
         >
           Overview
@@ -152,7 +176,10 @@ export default function DirectorBrief({
           className={`ghost-button ${activeTab === 'narrative' ? 'active' : ''}`}
           type="button"
           role="tab"
+          id={getTabId('narrative')}
+          aria-controls={getPanelId('narrative')}
           aria-selected={activeTab === 'narrative'}
+          tabIndex={activeTab === 'narrative' ? 0 : -1}
           onClick={() => setActiveTab('narrative')}
         >
           Narrative
@@ -161,15 +188,24 @@ export default function DirectorBrief({
           className={`ghost-button ${activeTab === 'collab' ? 'active' : ''}`}
           type="button"
           role="tab"
+          id={getTabId('collab')}
+          aria-controls={getPanelId('collab')}
           aria-selected={activeTab === 'collab'}
+          tabIndex={activeTab === 'collab' ? 0 : -1}
           onClick={() => setActiveTab('collab')}
         >
           Collaboration
         </button>
       </div>
 
-      {activeTab === 'overview' ? (
-        <>
+      <div
+        id={getPanelId('overview')}
+        role="tabpanel"
+        aria-labelledby={getTabId('overview')}
+        hidden={activeTab !== 'overview'}
+      >
+        {activeTab === 'overview' ? (
+          <>
           <div className="inspector-section">
             <div className="inspector-section-title">Run summary</div>
             <div className="inspector-row">
@@ -333,11 +369,18 @@ export default function DirectorBrief({
               <div className="annotation-empty">Open another live session to unlock collaboration activity feed.</div>
             ) : null}
           </div>
-        </>
-      ) : null}
+          </>
+        ) : null}
+      </div>
 
-      {activeTab === 'narrative' ? (
-        <div className="inspector-section">
+      <div
+        id={getPanelId('narrative')}
+        role="tabpanel"
+        aria-labelledby={getTabId('narrative')}
+        hidden={activeTab !== 'narrative'}
+      >
+        {activeTab === 'narrative' ? (
+          <div className="inspector-section">
           <div className="inspector-section-title">AI director narrative</div>
           {!analysisUnlocked ? (
             <div className="annotation-empty">Complete inspect/flow/replay missions to unlock AI narrative tools.</div>
@@ -376,11 +419,18 @@ export default function DirectorBrief({
               </button>
             </>
           )}
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
 
-      {activeTab === 'collab' ? (
-        <>
+      <div
+        id={getPanelId('collab')}
+        role="tabpanel"
+        aria-labelledby={getTabId('collab')}
+        hidden={activeTab !== 'collab'}
+      >
+        {activeTab === 'collab' ? (
+          <>
           <div className="inspector-section">
             <div className="inspector-section-title">Shared annotations</div>
             <textarea
@@ -432,8 +482,9 @@ export default function DirectorBrief({
               </div>
             )}
           </div>
-        </>
-      ) : null}
+          </>
+        ) : null}
+      </div>
     </aside>
   );
 }

@@ -2,6 +2,28 @@
 
 Below is the complete, prioritized list of "perfecting" work. Each item is framed as a checkable task. We can tackle them in batches instead of one‑by‑one.
 
+## Deep Visual UX Overhaul Program (Active)
+Source plan: `docs/plans/2026-02-23-deep-visual-ux-overhaul-execution-plan.md`
+
+- [x] DVUX-001 Program tracker sync in `.codex`, `TASKS.md`, and dated plan file
+- [x] DVUX-002 Shared modal contract component (focus trap, Escape, backdrop, focus return)
+- [x] DVUX-003 Confirm dialog migrated to shared modal contract
+- [x] DVUX-004 Setup wizard dialog migrated to shared modal contract
+- [x] DVUX-005 Support diagnostics modal path migrated to shared modal contract
+- [x] DVUX-006 Command palette nested interactive semantics fixed
+- [x] DVUX-007 Command palette keyboard semantics retained for pin/unpin
+- [x] DVUX-008 DirectorBrief full tab semantics (`aria-controls`/`tabpanel`)
+- [x] DVUX-009 Matrix detail semantics corrected (inline detail panel semantics)
+- [x] DVUX-010 Diagnose keyboard route journey reliability fix
+- [x] DVUX-011 Route-shell help escalation discoverability parity
+- [x] DVUX-012 Mobile quick-rail vs dock control overlap resolved
+- [x] DVUX-013 Dead hooks removed
+- [x] DVUX-014 Dead components removed
+- [x] DVUX-015 Stale tests for removed dead code cleaned
+- [x] DVUX-016 Targeted test updates for new interaction contracts
+- [x] DVUX-017 Frontend verification bundle pass with evidence
+- [x] DVUX-018 Program closure sync
+
 ## Front-End 100/100 Excellence Program (Active)
 Source plan: `docs/plans/2026-02-22-frontend-100-excellence-master-plan.md`
 

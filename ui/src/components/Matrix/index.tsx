@@ -1048,10 +1048,10 @@ export default function Matrix({
           )}
         </aside>
         {detailRow ? (
-          <aside className="matrix-detail" role="dialog" aria-label="Scenario details">
+          <aside className="matrix-detail" role="region" aria-labelledby="matrix-detail-title" aria-live="polite">
             <div className="matrix-detail-header">
               <div>
-                <h3>Scenario details</h3>
+                <h3 id="matrix-detail-title">Scenario details</h3>
                 <p className="matrix-detail-subtitle">
                   {detailRow.name} • {detailRow.status}
                 </p>

@@ -1,3 +1,55 @@
+# Deep Visual UX Overhaul ExecPlan
+
+## Purpose / Big Picture
+
+Close the current real UX quality gaps with concrete frontend changes that improve clarity, interaction reliability, accessibility behavior, and maintainability, then verify with deterministic test evidence.
+
+## Scope
+
+- In scope: route-shell interaction reliability, modal/overlay accessibility contract consistency, command palette semantics, tab semantics, mobile control overlap, and dead frontend code removal.
+- Out of scope: backend contract rewrites and non-UX feature expansion unrelated to identified gaps.
+
+## Progress
+
+- [x] Initialize this execution wave tracker across `.codex`, `docs/plans`, and `TASKS.md`.
+- [x] Ship modal/overlay a11y interaction hardening.
+- [x] Ship command palette + tab semantics fixes.
+- [x] Ship diagnose keyboard-flow reliability and route-shell help/mobile IA improvements.
+- [x] Remove dead frontend code discovered by audit.
+- [x] Run frontend verification gates and record closure evidence.
+
+## Surprises & Discoveries
+
+- `make doctor`/`make scorecard` fail solely on `G8-ci` because the GitHub `verify` workflow on `main` is currently failing (`run 22283235684`), while all local gates `G1..G7` are passing.
+
+## Decision Log
+
+- Use one bounded execution wave for all currently identified, repo-grounded frontend gaps.
+- Favor low-risk behavior fixes with explicit tests over large visual rewrites in this tranche.
+
+## Validation Plan
+
+- `pnpm -C ui lint`
+- `pnpm -C ui typecheck`
+- `pnpm -C ui test`
+- `pnpm -C ui test:e2e -- tests/e2e/route-journeys.spec.ts tests/e2e/a11y.spec.ts tests/e2e/ux-audit-deep.spec.ts`
+- `make verify-ux`
+
+## Outcomes & Retrospective
+
+Completed (local/frontend scope).
+- App-level dialogs now use a shared modal contract with focus trapping, `Escape` close, backdrop close, and focus return.
+- Command palette no longer uses nested interactive controls and retains pin/unpin keyboard behavior.
+- DirectorBrief tab semantics are now complete (`role=tab`, `aria-controls`, `tabpanel` relationships, arrow-key navigation).
+- Matrix scenario details now use inline detail-panel semantics (`role=region`) instead of modal-dialog misuse.
+- Diagnose keyboard journey reliability is stabilized in E2E by deterministic focus control.
+- Route-shell users now retain help-escalation discoverability outside onboarding `select`.
+- Route-shell mobile no longer shows overlapping quick-action surfaces.
+- Dead hooks/components identified by audit were removed.
+- Verification evidence is green locally for `lint`, `typecheck`, unit, targeted E2E, `make verify-ux`, and `make verify`.
+
+---
+
 # Front-End 100/100 Excellence ExecPlan
 
 ## Purpose / Big Picture

@@ -46,10 +46,15 @@ test('triage journey: deterministic observe->isolate->validate->share flow', asy
 
 test('diagnose journey: keyboard sequence and evidence timeline', async ({ page }) => {
   await openRoute(page, 'diagnose');
+  await expect(page.getByRole('heading', { name: 'Diagnose state' })).toBeVisible();
+  await page.locator('body').click({ position: { x: 8, y: 8 } });
 
   await page.keyboard.press('1');
+  await page.waitForTimeout(80);
   await page.keyboard.press('2');
+  await page.waitForTimeout(80);
   await page.keyboard.press('3');
+  await page.waitForTimeout(80);
   await page.keyboard.press('4');
 
   await page.getByRole('button', { name: 'Show execution history' }).click();

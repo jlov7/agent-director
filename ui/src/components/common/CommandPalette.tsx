@@ -219,6 +219,8 @@ export default function CommandPalette({ open, onClose, actions, context, onActi
     }
 
     if (event.key === 'Enter') {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('.palette-pin-button')) return;
       event.preventDefault();
       const action = displayedActions[activeIndex];
       if (action) runAction(action);
@@ -305,30 +307,34 @@ export default function CommandPalette({ open, onClose, actions, context, onActi
               <div className="palette-group-list">
                 {groupActions.map((action) => {
                   currentIndex += 1;
-                  const isActive = currentIndex === activeIndex;
+                  const optionIndex = currentIndex;
+                  const isActive = optionIndex === activeIndex;
                   const isPinned = pinnedIds.includes(action.id);
                   return (
-                    <button
+                    <div
                       key={action.id}
                       id={`palette-option-${action.id}`}
                       className={`palette-item ${isActive ? 'active' : ''}`}
-                      type="button"
                       role="option"
                       aria-selected={isActive}
-                      onMouseEnter={() => setActiveIndex(currentIndex)}
-                      onClick={() => runAction(action)}
-                      disabled={action.disabled}
+                      onMouseEnter={() => setActiveIndex(optionIndex)}
                     >
-                      <div className="palette-item-main">
-                        <div className="palette-item-title">{action.label}</div>
-                        {action.description ? <div className="palette-item-description">{action.description}</div> : null}
-                      </div>
+                      <button
+                        className="palette-item-button"
+                        type="button"
+                        onClick={() => runAction(action)}
+                        disabled={action.disabled}
+                      >
+                        <div className="palette-item-main">
+                          <div className="palette-item-title">{action.label}</div>
+                          {action.description ? <div className="palette-item-description">{action.description}</div> : null}
+                        </div>
+                      </button>
                       <div className="palette-item-trailing">
                         {action.keys ? <div className="palette-item-keys">{action.keys}</div> : null}
-                        <span
-                          className={`palette-pin ${isPinned ? 'active' : ''}`}
-                          role="button"
-                          tabIndex={0}
+                        <button
+                          className={`palette-pin-button ${isPinned ? 'active' : ''}`}
+                          type="button"
                           onClick={(event) => {
                             event.stopPropagation();
                             togglePin(action.id);
@@ -343,9 +349,9 @@ export default function CommandPalette({ open, onClose, actions, context, onActi
                           title={isPinned ? 'Unpin command' : 'Pin command'}
                         >
                           {isPinned ? '★' : '☆'}
-                        </span>
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

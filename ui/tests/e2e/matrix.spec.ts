@@ -16,7 +16,7 @@ test('matrix mode runs scenarios and opens compare', async ({ page }) => {
   const detailsButton = page.locator('.matrix-table').getByRole('button', { name: 'Details' }).first();
   await expect(detailsButton).toBeVisible();
   await detailsButton.click();
-  await expect(page.getByRole('dialog', { name: 'Scenario details' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Scenario details' })).toBeVisible();
   await page.getByRole('button', { name: 'Close' }).click();
 
   const openButton = page.locator('.matrix-table').getByRole('button', { name: 'Open' }).first();

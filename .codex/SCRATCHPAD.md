@@ -1,49 +1,47 @@
 ## Current Task
 
-Execute the full Front-End 100/100 excellence backlog end-to-end with persistent tracking and evidence-first completion gates.
+Execute a deep visual UX overhaul with an exhaustive tracked checklist and close every scoped item with machine-verifiable frontend evidence.
 
 ## Status
 
-Completed (FE-001..FE-092 closed with evidence and full gate verification; closure gates refreshed on 2026-02-22).
+Completed (local/frontend scope)
 
 ## Plan
 
-1. [x] Create exhaustive master tracker at `docs/plans/2026-02-22-frontend-100-excellence-master-plan.md`.
-2. [x] Enable deterministic visual verification command + artifacts (`verify:visual`).
-3. [x] Add global/repo protocol entries for deterministic visual verification.
-4. [x] Add single frontend gate command (`pnpm verify:frontend` / `make verify-frontend`) and verify it passes.
-5. [x] Complete tranche 1 infrastructure closures: FE-057, FE-058, FE-065, FE-068, FE-069.
-6. [x] Complete FE-067 by reusing geometry assertion helper across additional visual suites.
-7. [x] Publish reusable protocol/template artifacts: FE-085, FE-087, FE-088.
-8. [x] Complete FE-066 and close FE-001..FE-092 with verification evidence.
+1. [x] Create and sync an exhaustive execution tracker (`docs/plans/2026-02-23-deep-visual-ux-overhaul-execution-plan.md`, `.codex/PLANS.md`, `TASKS.md`).
+2. [x] Implement modal/overlay interaction contract upgrades (focus trap, `Escape`, backdrop close, focus return) for app-level dialogs.
+3. [x] Fix command palette semantics (remove nested interactive role conflicts) and retain pin/unpin behavior.
+4. [x] Harden tab semantics in `DirectorBrief` (`aria-controls`, tabpanel relationships, keyboard-safe structure).
+5. [x] Fix route journey reliability gap for diagnose keyboard flow.
+6. [x] Improve route-shell help discoverability and mobile control conflict behavior.
+7. [x] Remove dead frontend code surfaced by audit (unused hooks/components) with test updates.
+8. [x] Run frontend verification gates and refresh tracker evidence.
 
 ## Decisions Made
 
-- Use the master plan as the single source of truth for all FE-001..FE-092 statuses.
-- Enforce machine-readable evidence for completion (`artifacts/visual-verification`, `ui/test-results`, gate outputs).
-- Run visual verification as a first-class gate, not an optional review step.
-- Use browser-scoped snapshot baselines in matrix runs (`{projectName}` in snapshot path) to prevent cross-browser overwrite.
-- Use strict geometry assertions with browser-specific screenshot diff budgets to reduce false-positive raster drift.
+- Track this wave as a discrete, fully-closed program to avoid mixing with prior completed programs.
+- Prioritize high-impact UX/a11y fixes first, then structural cleanup, then full verification.
+- Keep completion claims evidence-based (`lint`, `typecheck`, unit, targeted e2e, `make verify-ux`).
 
 ## Open Questions
 
-- None currently blocking tranche 1 execution.
+- External CI gate `G8-ci` is currently failing on GitHub `main` (`verify` run `22283235684`), which causes `make doctor`/`make scorecard` to fail despite local gates passing.
 
 ## Validation Targets
 
 - `pnpm -C ui lint`
 - `pnpm -C ui typecheck`
-- `pnpm verify:visual`
-- `pnpm -C ui exec playwright test --config playwright.visual.config.ts`
-- `make verify`
+- `pnpm -C ui test`
+- `pnpm -C ui test:e2e -- tests/e2e/route-journeys.spec.ts tests/e2e/a11y.spec.ts tests/e2e/ux-audit-deep.spec.ts`
 - `make verify-ux`
-- `make doctor`
-- `make scorecard`
 
-## Validation Evidence (2026-02-22)
+## Validation Evidence (2026-02-23)
 
-- `pnpm verify:frontend` -> `FRONTEND_VERIFY_STATUS=PASS`
-- `make verify` -> pass
+- `pnpm -C ui lint` -> pass
+- `pnpm -C ui typecheck` -> pass
+- `pnpm -C ui test -- src/components/__tests__/ModalDialog.test.tsx src/components/__tests__/CommandPalette.test.tsx src/components/__tests__/DirectorBrief.test.tsx src/components/__tests__/Matrix.test.tsx` -> pass
+- `pnpm -C ui test:e2e -- tests/e2e/route-journeys.spec.ts --grep "diagnose journey: keyboard sequence and evidence timeline"` -> pass
+- `pnpm -C ui test:e2e -- tests/e2e/a11y.spec.ts tests/e2e/ux-audit-deep.spec.ts` -> pass
 - `make verify-ux` -> pass
-- `make doctor` -> `Overall status: pass`
-- `make scorecard` -> `Total score: 70/70 (all perfect: True)`
+- `make verify` -> pass
+- `make doctor` -> fail only on `G8-ci` due external GitHub workflow failure on `main`

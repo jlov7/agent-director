@@ -149,12 +149,12 @@ describe('CommandPalette', () => {
     const dialog = screen.getByRole('dialog');
 
     // First item should be active by default
-    const firstItem = screen.getByText('Open Settings').closest('button');
+    const firstItem = screen.getByText('Open Settings').closest('[role="option"]');
     expect(firstItem).toHaveClass('active');
 
     fireEvent.keyDown(dialog, { key: 'ArrowDown' });
 
-    const secondItem = screen.getByText('Search Files').closest('button');
+    const secondItem = screen.getByText('Search Files').closest('[role="option"]');
     expect(secondItem).toHaveClass('active');
   });
 
@@ -170,7 +170,7 @@ describe('CommandPalette', () => {
     // Now move up
     fireEvent.keyDown(dialog, { key: 'ArrowUp' });
 
-    const secondItem = screen.getByText('Search Files').closest('button');
+    const secondItem = screen.getByText('Search Files').closest('[role="option"]');
     expect(secondItem).toHaveClass('active');
   });
 
@@ -217,7 +217,7 @@ describe('CommandPalette', () => {
     fireEvent.keyDown(dialog, { key: 'ArrowDown' }); // to action3
     fireEvent.keyDown(dialog, { key: 'ArrowDown' }); // should skip action4, go to action5
 
-    const playbackItem = screen.getByText('Start Playback').closest('button');
+    const playbackItem = screen.getByText('Start Playback').closest('[role="option"]');
     expect(playbackItem).toHaveClass('active');
   });
 

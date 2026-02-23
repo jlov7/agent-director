@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Header from './components/Header';
 import InsightStrip from './components/InsightStrip';
 import SearchBar from './components/SearchBar';
@@ -14,6 +14,7 @@ import ContextHelpOverlay from './components/common/ContextHelpOverlay';
 import IntroOverlay from './components/common/IntroOverlay';
 import HeroRibbon from './components/common/HeroRibbon';
 import QuickActions from './components/common/QuickActions';
+import ModalDialog from './components/common/ModalDialog';
 import OnboardingOrchestrator, { type OnboardingStage } from './components/onboarding/OnboardingOrchestrator';
 import type { OnboardingPath } from './components/onboarding/RolePathSelector';
 import type { FirstWinStep } from './components/onboarding/FirstWinChecklist';
@@ -3830,7 +3831,7 @@ export default function App() {
     toggleStory,
   ]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!routeShellEnabled) return;
     if (
       routeShellActiveRoute !== 'triage' &&
@@ -5309,6 +5310,8 @@ export default function App() {
   const modeOrientationLabel = MODE_ORIENTATION_COPY[mode];
   const effectiveDensity: Exclude<DensityMode, 'auto'> =
     densityMode === 'auto' ? (viewportWidth <= 980 ? 'compact' : 'comfortable') : densityMode;
+  const showHelpEscalationBanner =
+    (stuckSignals.length > 0 || timeToFirstSuccessMs === null) && (!routeShellEnabled || onboardingStage !== 'select');
   const workspaceTrail = routeShellEnabled
     ? `Workspace / ${UX_REBOOT_ROUTE_LABEL[routeShellActiveRoute]} / ${UX_REBOOT_ROUTE_INTENT_COPY[routeShellActiveRoute]}`
     : `Workspace / ${activeWorkspaceSection.title} / ${modeOrientationLabel}`;
@@ -5440,7 +5443,7 @@ export default function App() {
         notifications={notifications.map(({ id, message, level }) => ({ id, message, level }))}
         onDismiss={dismissNotification}
       />
-      {!routeShellEnabled && (stuckSignals.length > 0 || timeToFirstSuccessMs === null) ? (
+      {showHelpEscalationBanner ? (
         <section className="help-escalation-banner" aria-live="polite">
           <div className="help-escalation-copy">
             <strong>Need help now?</strong>
@@ -5476,8 +5479,7 @@ export default function App() {
         </div>
       ) : null}
       {pendingConfirm ? (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Confirm action">
-          <div className="palette confirm-dialog">
+        <ModalDialog ariaLabel="Confirm action" panelClassName="palette confirm-dialog" onClose={() => setPendingConfirm(null)}>
             <div className="palette-header">
               <div>
                 <div className="palette-title">{pendingConfirm.title}</div>
@@ -5506,12 +5508,10 @@ export default function App() {
                 Confirm
               </button>
             </div>
-          </div>
-        </div>
+        </ModalDialog>
       ) : null}
       {setupWizardOpen && featureFlags.setupWizardV1 ? (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="First-run setup wizard">
-          <div className="palette setup-wizard">
+        <ModalDialog ariaLabel="First-run setup wizard" panelClassName="palette setup-wizard" onClose={() => setSetupWizardOpen(false)}>
             <div className="palette-header">
               <div>
                 <div className="palette-title">First-run setup wizard</div>
@@ -5618,8 +5618,7 @@ export default function App() {
                 </button>
               )}
             </div>
-          </div>
-        </div>
+        </ModalDialog>
       ) : null}
       {supportOpen && featureFlags.supportPanelV1 ? (
         routeShellEnabled ? (
@@ -5627,9 +5626,9 @@ export default function App() {
             {supportPanelContent}
           </aside>
         ) : (
-          <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Support diagnostics">
+          <ModalDialog ariaLabel="Support diagnostics" panelClassName="support-panel-modal-shell" onClose={() => setSupportOpen(false)}>
             {supportPanelContent}
-          </div>
+          </ModalDialog>
         )
       ) : null}
       {routeShellEnabled ? (
@@ -6974,7 +6973,7 @@ export default function App() {
         mode={mode === 'matrix' || mode === 'gameplay' ? 'cinema' : mode}
         isPlaying={isPlaying}
         storyActive={storyActive}
-        hidden={mode === 'compare'}
+        hidden={mode === 'compare' || (routeShellEnabled && viewportWidth <= 760)}
         open={dockOpen}
         onToggleOpen={() => setDockOpen((prev) => !prev)}
         hideOnboardingActions={routeShellEnabled}
