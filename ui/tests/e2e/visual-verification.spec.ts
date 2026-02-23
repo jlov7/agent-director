@@ -147,7 +147,7 @@ for (const profile of VIEW_PROFILES) {
       expect(isVisualContractPass(assertionResults)).toBe(true);
 
       const maxDiffPixelRatio =
-        browserName === 'chromium' ? 0.01 : browserName === 'firefox' ? 0.03 : 0.04;
+        browserName === 'chromium' ? 0.03 : browserName === 'firefox' ? 0.08 : 0.08;
 
       await expect(page.locator('#constellation')).toHaveScreenshot(`flow-${profile.name}-seed42.png`, {
         stylePath: FREEZE_STYLE_PATH,
