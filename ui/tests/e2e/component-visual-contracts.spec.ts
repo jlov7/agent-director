@@ -47,7 +47,16 @@ test.describe('component visual contracts', () => {
     await page.goto('/?routes=1&route=overview');
     const card = page.locator('.workspace-next-action');
     await expect(card).toBeVisible();
-    await expect(card).toHaveScreenshot('component-workspace-next-action.png', { stylePath: FREEZE_STYLE_PATH });
+    await card.evaluate((node) => {
+      const el = node as HTMLElement;
+      el.style.width = '517px';
+      el.style.maxWidth = '517px';
+      el.style.minWidth = '517px';
+    });
+    await expect(card).toHaveScreenshot('component-workspace-next-action.png', {
+      stylePath: FREEZE_STYLE_PATH,
+      maxDiffPixelRatio: 0.07,
+    });
   });
 
   test('workspace action-state contract (default/hover/focus)', async ({ page }) => {

@@ -129,6 +129,7 @@ export default function FlowCanvas({
   const viewportLabel =
     typeof window === 'undefined' ? '0x0' : `${window.innerWidth}x${window.innerHeight}`;
   const dprLabel = typeof window === 'undefined' ? '1' : `${window.devicePixelRatio || 1}`;
+  const visualCanvasStyle = visualQuery.enabled ? { minHeight: '720px', height: '720px' } : undefined;
 
   useEffect(() => {
     if (steps.length <= 500) {
@@ -494,6 +495,7 @@ export default function FlowCanvas({
         className="flow-canvas"
         id="constellation"
         ref={containerRef}
+        style={visualCanvasStyle}
         data-visual-debug={visualQuery.debug ? '1' : '0'}
         data-visual-static={visualQuery.staticMode ? '1' : '0'}
         data-help
@@ -520,6 +522,13 @@ export default function FlowCanvas({
               setViewport(viewportRef.current);
               rafRef.current = null;
             });
+          }}
+          minZoom={0.05}
+          maxZoom={2}
+          fitViewOptions={{
+            padding: 0.2,
+            minZoom: 0.05,
+            maxZoom: 2,
           }}
           fitView
         >
