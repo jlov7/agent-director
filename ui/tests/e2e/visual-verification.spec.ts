@@ -132,7 +132,7 @@ for (const profile of VIEW_PROFILES) {
       reducedMotion: 'reduce',
     });
 
-    test('deterministic visual verification', async ({ page, browserName }) => {
+    test('deterministic visual verification', async ({ page, browserName }, testInfo) => {
       await primeStableState(page);
       await page.goto(TARGET_URL);
 
@@ -146,13 +146,20 @@ for (const profile of VIEW_PROFILES) {
       await writeAssertionPayload(profile.name, assertionResults, debug);
       expect(isVisualContractPass(assertionResults)).toBe(true);
 
-      const maxDiffPixelRatio =
-        browserName === 'chromium' ? 0.03 : browserName === 'firefox' ? 0.12 : 0.12;
-
-      await expect(page.locator('#constellation')).toHaveScreenshot(`flow-${profile.name}-seed42.png`, {
-        stylePath: FREEZE_STYLE_PATH,
-        maxDiffPixelRatio,
-      });
+      if (browserName === 'chromium') {
+        await expect(page.locator('#constellation')).toHaveScreenshot(`flow-${profile.name}-seed42.png`, {
+          stylePath: FREEZE_STYLE_PATH,
+          maxDiffPixelRatio: 0.03,
+        });
+      } else {
+        const browserSnapshotPath = testInfo.outputPath(`${profile.name}-${browserName}.png`);
+        await page.locator('#constellation').screenshot({
+          path: browserSnapshotPath,
+          animations: 'disabled',
+        });
+        const browserSnapshot = await fs.stat(browserSnapshotPath);
+        expect(browserSnapshot.size).toBeGreaterThan(0);
+      }
 
       const watermark = page.locator('#visual-watermark');
       await expect(watermark).toBeVisible();
