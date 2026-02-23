@@ -58,11 +58,13 @@ test('route shell moves mode switching out of global toolbar', async ({ page }) 
 test('route shell keeps one dominant primary CTA per viewport', async ({ page }) => {
   await initStorage(page);
   await page.goto('/?routes=1&route=triage');
+  await expect(page.locator('.workspace-section-actions')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Triage route workspace' })).toBeVisible();
 
   const primaryCount = await page.evaluate(() => {
     const root = document.querySelector('.workspace-section-actions');
     if (!root) return 0;
-    const controls = Array.from(root.querySelectorAll<HTMLElement>('.primary-button'));
+    const controls = Array.from(root.querySelectorAll<HTMLElement>('.workspace-primary-button'));
     return controls.filter((control) => {
       const style = window.getComputedStyle(control);
       if (style.display === 'none' || style.visibility === 'hidden') return false;
@@ -135,11 +137,12 @@ test('route shell surfaces explicit route purpose with one dominant viewport CTA
     await page.goto(`/?routes=1&route=${route}`);
     await expect(page.getByText('Route outcome')).toBeVisible();
     await expect(page.locator('.route-outcome-subcopy')).toBeVisible();
+    await expect(page.locator('.workspace-section-actions')).toBeVisible();
 
     const primaryCount = await page.evaluate(() => {
       const root = document.querySelector('.workspace-section-actions');
       if (!root) return 0;
-      const controls = Array.from(root.querySelectorAll<HTMLElement>('.primary-button'));
+      const controls = Array.from(root.querySelectorAll<HTMLElement>('.workspace-primary-button'));
       return controls.filter((control) => {
         const style = window.getComputedStyle(control);
         if (style.display === 'none' || style.visibility === 'hidden') return false;

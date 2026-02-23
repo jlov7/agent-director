@@ -28,12 +28,16 @@ async function initRouteShellStorage(page: import('@playwright/test').Page) {
   });
 }
 
+async function resetKeyboardFocus(page: import('@playwright/test').Page) {
+  await page.locator('body').click({ position: { x: 8, y: 8 } });
+}
+
 test.describe('Keyboard shortcuts', () => {
   test('question mark opens shortcuts modal and escape closes it', async ({ page }) => {
     await initStorage(page);
     await page.goto('/');
 
-    await page.locator('body').click({ position: { x: 8, y: 8 } });
+    await resetKeyboardFocus(page);
     await page.keyboard.press('?');
     await expect(page.getByText('Keyboard Shortcuts')).toBeVisible();
 
@@ -45,6 +49,7 @@ test.describe('Keyboard shortcuts', () => {
     await initStorage(page);
     await page.goto('/');
 
+    await resetKeyboardFocus(page);
     await page.keyboard.press('Control+k');
     await expect(page.locator('.palette')).toBeVisible();
 
@@ -57,6 +62,7 @@ test.describe('Keyboard shortcuts', () => {
     await page.goto('/');
     await expect(page.locator('.timeline')).toBeVisible();
 
+    await resetKeyboardFocus(page);
     await page.keyboard.press('f');
     await expect(page.locator('.flow-canvas')).toBeVisible();
 
@@ -69,6 +75,7 @@ test.describe('Keyboard shortcuts', () => {
     await page.goto('/');
     await expect(page.getByRole('button', { name: 'Close inspector' })).not.toBeVisible();
 
+    await resetKeyboardFocus(page);
     await page.keyboard.press('i');
     await expect(page.getByRole('button', { name: 'Close inspector' })).toBeVisible();
 
