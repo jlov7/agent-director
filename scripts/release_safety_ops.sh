@@ -38,6 +38,7 @@ case "$cmd" in
     deployment_url="$(vercel deploy -y)"
     echo "Canary deployment: $deployment_url"
     vercel inspect "$deployment_url" --logs || true
+    ./scripts/post_deploy_smoke.sh "$deployment_url"
     ;;
   rollback)
     require_vercel
@@ -50,6 +51,7 @@ case "$cmd" in
     echo "Rolling back deployment: $target"
     vercel rollback "$target"
     vercel inspect "$target" --logs || true
+    ./scripts/post_deploy_smoke.sh "$target"
     ;;
   kill-switch)
     require_vercel

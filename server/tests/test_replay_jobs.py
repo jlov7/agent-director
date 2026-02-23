@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from server.replay.jobs import MAX_SCENARIOS, ReplayJobStore
+from server.replay.jobs import MAX_REPLAY_ATTEMPTS, MAX_SCENARIOS, ReplayJobStore
 from server.trace.schema import StepSummary, TraceMetadata, TraceSummary
 from server.trace.store import TraceStore
 
@@ -83,6 +83,33 @@ class TestReplayJobs(unittest.TestCase):
         scenarios = [{"name": f"Scenario {idx}", "strategy": "hybrid", "modifications": {}} for idx in range(MAX_SCENARIOS + 1)]
         with self.assertRaises(ValueError):
             self.store.create_job("trace-1", "s1", scenarios)
+
+    def test_store_persists_jobs_to_disk(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "replay_jobs.json"
+            persisted = ReplayJobStore(path)
+            job = persisted.create_job("trace-1", "s1", [self.scenarios[0]], tenant_id="tenant-alpha")
+            restored = ReplayJobStore(path)
+            reloaded = restored.get(job.id)
+            assert reloaded is not None
+            self.assertEqual(reloaded.id, job.id)
+            self.assertEqual(reloaded.tenant_id, "tenant-alpha")
+            self.assertEqual(len(reloaded.scenarios), 1)
+
+    def test_failed_scenario_creates_dead_letter(self) -> None:
+        job = self.store.create_job("trace-1", "s1", [self.scenarios[0]], tenant_id="tenant-1")
+        scenario = self.store.start_next_scenario(job.id)
+        assert scenario is not None
+
+        self.store.fail_scenario(job.id, scenario.id, "timeout", MAX_REPLAY_ATTEMPTS)
+        dead_letters = self.store.list_dead_letters("tenant-1", job.id)
+
+        self.assertEqual(len(dead_letters), 1)
+        self.assertEqual(dead_letters[0]["jobId"], job.id)
+        self.assertEqual(dead_letters[0]["scenarioId"], scenario.id)
+        updated = self.store.get(job.id)
+        assert updated is not None
+        self.assertEqual(updated.dead_letter_count, 1)
 
     def test_execute_job_stamps_job_and_scenario_ids(self) -> None:
         with TemporaryDirectory() as tmp:

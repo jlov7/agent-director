@@ -78,7 +78,15 @@ describe('API Layer', () => {
       expect(traces).toHaveLength(2);
       expect(traces[0].id).toBe('trace-1');
       expect(traces[1].id).toBe('trace-2');
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/traces'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/traces'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Tenant-Id': 'public',
+            'X-Actor-Id': 'ui',
+          }),
+        })
+      );
     });
 
     it('returns empty list on empty API response', async () => {
@@ -141,7 +149,15 @@ describe('API Layer', () => {
 
       const trace = await fetchLatestTrace();
       expect(trace.id).toBe('latest-trace');
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/traces?latest=1'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/traces?latest=1'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Tenant-Id': 'public',
+            'X-Actor-Id': 'ui',
+          }),
+        })
+      );
     });
 
     it('returns demo trace when API returns null trace', async () => {
@@ -177,7 +193,15 @@ describe('API Layer', () => {
       const result = await fetchTrace('specific-trace');
       expect(result?.trace.id).toBe('specific-trace');
       expect(result?.insights).toEqual(mockInsights);
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/traces/specific-trace'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/traces/specific-trace'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Tenant-Id': 'public',
+            'X-Actor-Id': 'ui',
+          }),
+        })
+      );
     });
 
     it('returns trace without insights when not provided', async () => {
@@ -378,12 +402,9 @@ describe('API Layer', () => {
 
         await fetchStepDetails('trace-123', 'step-456', 'redacted');
 
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('/api/traces/trace-123/steps/step-456')
-        );
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('redaction_mode=redacted')
-        );
+        const calledUrl = mockFetch.mock.calls[0][0] as string;
+        expect(calledUrl).toContain('/api/traces/trace-123/steps/step-456');
+        expect(calledUrl).toContain('redaction_mode=redacted');
       });
 
       it('includes reveal paths in URL', async () => {
@@ -407,9 +428,8 @@ describe('API Layer', () => {
 
         await fetchStepDetails('trace-1', 's1', 'redacted', [], true);
 
-        expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('safe_export=1')
-        );
+        const calledUrl = mockFetch.mock.calls[0][0] as string;
+        expect(calledUrl).toContain('safe_export=1');
       });
 
       it('encodes reveal paths correctly', async () => {
@@ -441,7 +461,11 @@ describe('API Layer', () => {
         expect.stringContaining('/api/traces/trace-1/replay'),
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            'X-Tenant-Id': 'public',
+            'X-Actor-Id': 'ui',
+          }),
           body: JSON.stringify({
             step_id: 's2',
             strategy: 'live',
@@ -614,7 +638,12 @@ describe('API Layer', () => {
         expect.stringContaining('/api/replay-jobs'),
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            'X-Tenant-Id': 'public',
+            'X-Actor-Id': 'ui',
+            'Idempotency-Key': expect.any(String),
+          }),
         })
       );
     });
@@ -640,7 +669,15 @@ describe('API Layer', () => {
       const result = await fetchReplayJob('job-1');
       expect(result?.id).toBe('job-1');
       expect(result?.status).toBe('running');
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/replay-jobs/job-1'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/replay-jobs/job-1'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Tenant-Id': 'public',
+            'X-Actor-Id': 'ui',
+          }),
+        })
+      );
     });
 
     it('fetches replay matrix payload', async () => {
@@ -660,7 +697,15 @@ describe('API Layer', () => {
       const result = await fetchReplayMatrix('job-1');
       expect(result?.jobId).toBe('job-1');
       expect(result?.rows).toEqual([]);
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/replay-jobs/job-1/matrix'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/replay-jobs/job-1/matrix'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Tenant-Id': 'public',
+            'X-Actor-Id': 'ui',
+          }),
+        })
+      );
     });
 
     it('cancels replay job', async () => {
@@ -1022,7 +1067,15 @@ describe('API Layer', () => {
       });
       const summary = await fetchGameplayObservabilitySummary();
       expect(summary?.metrics.total_sessions).toBe(4);
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/gameplay/observability/summary'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/gameplay/observability/summary'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Tenant-Id': 'public',
+            'X-Actor-Id': 'ui',
+          }),
+        })
+      );
     });
 
     it('loads gameplay funnel analytics summary', async () => {
@@ -1054,7 +1107,15 @@ describe('API Layer', () => {
       });
       const summary = await fetchGameplayAnalyticsFunnels();
       expect(summary?.funnels.session_start).toBe(4);
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining('/api/gameplay/analytics/funnels'));
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/gameplay/analytics/funnels'),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'X-Tenant-Id': 'public',
+            'X-Actor-Id': 'ui',
+          }),
+        })
+      );
     });
 
     it('loads social graph and processes invite flow', async () => {

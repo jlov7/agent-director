@@ -1,4 +1,15 @@
-import { Suspense, lazy, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import Header from './components/Header';
 import InsightStrip from './components/InsightStrip';
 import SearchBar from './components/SearchBar';
@@ -75,6 +86,13 @@ import {
   joinGameplayGuild,
   scheduleGameplayGuildEvent,
   completeGameplayGuildEvent,
+  sendTelemetryEvents,
+  applyGovernanceRetention,
+  deleteTraceByGovernance,
+  fetchGovernanceAuditEvents,
+  fetchGovernanceRetentionDays,
+  updateGovernanceRetentionDays,
+  type GovernanceAuditEvent,
 } from './store/api';
 import { usePersistedState } from './hooks/usePersistedState';
 import { buildFlowLayout } from './utils/flowLayout';
@@ -946,6 +964,10 @@ export default function App() {
   const [runOwner, setRunOwner] = usePersistedState('agentDirector.runOwner.v1', 'on-call-operator');
   const [handoffOwner, setHandoffOwner] = usePersistedState('agentDirector.handoffOwner.v1', '');
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags>(DEFAULT_FEATURE_FLAGS);
+  const [retentionDays, setRetentionDays] = useState(30);
+  const [governanceBusy, setGovernanceBusy] = useState(false);
+  const [governanceStatus, setGovernanceStatus] = useState<string | null>(null);
+  const [auditEvents, setAuditEvents] = useState<GovernanceAuditEvent[]>([]);
   const [pendingConfirm, setPendingConfirm] = useState<null | { id: string; title: string; message: string }>(null);
   const [undoState, setUndoState] = useState<null | { id: string; label: string }>(null);
   const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
@@ -1143,6 +1165,34 @@ export default function App() {
       }),
     [asyncActions, mode, notifications, safeExport, selectedStepId, stuckSignals, timeToFirstSuccessMs, trace, workspaceId, workspaceRole]
   );
+  const telemetryQueueRef = useRef<Array<{ kind: string; name: string; payload: Record<string, unknown>; at: string }>>([]);
+  const telemetryFlushTimerRef = useRef<number | null>(null);
+  const flushTelemetryQueue = useCallback(async () => {
+    if (!telemetryQueueRef.current.length) return;
+    const batch = telemetryQueueRef.current.splice(0, 25);
+    await sendTelemetryEvents(batch.map((item) => ({ kind: item.kind, name: item.name, payload: item.payload, at: item.at })));
+  }, []);
+  const queueTelemetryEvent = useCallback(
+    (kind: string, name: string, payload: Record<string, unknown> = {}) => {
+      telemetryQueueRef.current.push({
+        kind,
+        name,
+        payload: {
+          ...payload,
+          mode,
+          traceId: trace?.id ?? null,
+          stepId: selectedStepId,
+        },
+        at: new Date().toISOString(),
+      });
+      if (telemetryFlushTimerRef.current !== null) return;
+      telemetryFlushTimerRef.current = window.setTimeout(() => {
+        telemetryFlushTimerRef.current = null;
+        void flushTelemetryQueue();
+      }, 800);
+    },
+    [flushTelemetryQueue, mode, selectedStepId, trace?.id]
+  );
   const addNotification = useCallback((message: string, level: NotificationLevel = 'info') => {
     const normalized = message.trim();
     if (!normalized) return;
@@ -1160,17 +1210,19 @@ export default function App() {
         at: new Date().toISOString(),
         metadata,
       });
+      queueTelemetryEvent('product', name, metadata);
     } catch {
       // Non-blocking analytics queue.
     }
-  }, []);
+  }, [queueTelemetryEvent]);
   const trackJourneyEvent = useCallback((name: JourneyMetricName, metadata: Record<string, unknown> = {}) => {
     try {
       trackJourneyMetric(window.localStorage, name, metadata);
+      queueTelemetryEvent('journey', name, metadata);
     } catch {
       // Non-blocking analytics queue.
     }
-  }, []);
+  }, [queueTelemetryEvent]);
   const trackJourneyEventOnce = useCallback(
     (onceKey: string, name: JourneyMetricName, metadata: Record<string, unknown> = {}) => {
       try {
@@ -1181,6 +1233,80 @@ export default function App() {
     },
     []
   );
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      void flushTelemetryQueue();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      void flushTelemetryQueue();
+    };
+  }, [flushTelemetryQueue]);
+  const refreshGovernance = useCallback(async () => {
+    const [retention, events] = await Promise.all([
+      fetchGovernanceRetentionDays(),
+      fetchGovernanceAuditEvents(15),
+    ]);
+    if (typeof retention === 'number') setRetentionDays(retention);
+    setAuditEvents(events);
+  }, []);
+  useEffect(() => {
+    void refreshGovernance();
+  }, [refreshGovernance]);
+  const updateGovernanceRetention = useCallback(
+    async (nextDays: number) => {
+      setGovernanceBusy(true);
+      try {
+        const saved = await updateGovernanceRetentionDays(nextDays);
+        if (typeof saved === 'number') {
+          setRetentionDays(saved);
+          setGovernanceStatus(`Retention policy set to ${saved} days.`);
+          trackProductEvent('ux.action.confirmed', { scope: 'governance', retentionDays: saved });
+          await refreshGovernance();
+          return;
+        }
+        setGovernanceStatus('Retention policy update failed.');
+      } finally {
+        setGovernanceBusy(false);
+      }
+    },
+    [refreshGovernance, trackProductEvent]
+  );
+  const applyGovernanceRetentionNow = useCallback(async () => {
+    setGovernanceBusy(true);
+    try {
+      const result = await applyGovernanceRetention();
+      if (!result) {
+        setGovernanceStatus('Retention apply failed.');
+        return;
+      }
+      setGovernanceStatus(
+        result.deletedTraceIds.length
+          ? `Retention applied. Deleted ${result.deletedTraceIds.length} trace(s).`
+          : 'Retention applied. No traces met deletion threshold.'
+      );
+      if (trace?.id && result.deletedTraceIds.includes(trace.id)) {
+        setMode('cinema');
+      }
+      await reload();
+      await refreshGovernance();
+    } finally {
+      setGovernanceBusy(false);
+    }
+  }, [refreshGovernance, reload, setMode, trace?.id]);
+  const deleteActiveTraceFromGovernance = useCallback(async () => {
+    if (!trace?.id) return;
+    setGovernanceBusy(true);
+    try {
+      const deleted = await deleteTraceByGovernance(trace.id);
+      setGovernanceStatus(deleted ? `Deleted trace ${trace.id}.` : `Failed to delete trace ${trace.id}.`);
+      await reload();
+      await refreshGovernance();
+    } finally {
+      setGovernanceBusy(false);
+    }
+  }, [refreshGovernance, reload, trace?.id]);
   const registerStuckSignal = useCallback(
     (kind: StuckSignalKind, detail: string, metadata: Record<string, unknown> = {}) => {
       const now = Date.now();
@@ -3223,6 +3349,51 @@ export default function App() {
     runHealthScore,
     runOwner,
     selectedStepId,
+    trace,
+    trackProductEvent,
+  ]);
+
+  const createInvestigationPacket = useCallback(async () => {
+    if (!trace) return;
+    const shareUrl = buildUrlAppState(window.location.href, {
+      mode,
+      traceId: trace.id,
+      stepId: selectedStepId ?? undefined,
+    });
+    const packet = {
+      generatedAt: new Date().toISOString(),
+      traceId: trace.id,
+      mode,
+      selectedStepId,
+      runHealthScore,
+      narrative: directorNarrative,
+      topRecommendation: directorRecommendations[0] ?? null,
+      route: routeShellEnabled ? routeShellActiveRoute : null,
+      shareUrl,
+      supportDiagnostics,
+    };
+    downloadText(
+      `agent-director-investigation-packet-${trace.id}.json`,
+      JSON.stringify(packet, null, 2),
+      'application/json'
+    );
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setHandoffStatus('Investigation packet exported and share URL copied');
+    } catch {
+      setHandoffStatus('Investigation packet exported');
+    }
+    trackProductEvent('ux.export.completed', { artifact: 'investigation_packet', traceId: trace.id });
+    window.setTimeout(() => setHandoffStatus(null), 2200);
+  }, [
+    directorNarrative,
+    directorRecommendations,
+    mode,
+    routeShellActiveRoute,
+    routeShellEnabled,
+    runHealthScore,
+    selectedStepId,
+    supportDiagnostics,
     trace,
     trackProductEvent,
   ]);
@@ -5380,6 +5551,14 @@ export default function App() {
     };
   })();
 
+  const handleSkipLinkClick = (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    const main = document.getElementById('main-content');
+    if (!main) return;
+    main.focus({ preventScroll: false });
+    main.scrollIntoView({ block: 'start', inline: 'nearest' });
+  };
+
   return (
     <div
       className={`app theme-${themeMode} density-${effectiveDensity} ${explainMode ? 'explain-mode' : ''} ${
@@ -5388,7 +5567,7 @@ export default function App() {
         routeShellEnabled ? 'route-shell-enabled' : ''
       }`}
     >
-      <a className="skip-link" href="#main-content">
+      <a className="skip-link" href="#main-content" onClick={handleSkipLinkClick}>
         Skip to main content
       </a>
       <h1 className="sr-only">Workspace</h1>
@@ -6000,6 +6179,15 @@ export default function App() {
             gamepadEnabled={gamepadEnabled}
             windowed={windowed}
             rolloutCohort={uxRebootCohort}
+            retentionDays={retentionDays}
+            governanceBusy={governanceBusy}
+            governanceStatus={governanceStatus}
+            auditEvents={auditEvents.map((event) => ({
+              id: event.id,
+              actor: event.actor,
+              eventType: event.eventType,
+              createdAt: event.createdAt,
+            }))}
             featureFlags={featureFlags}
             onRouteAction={(actionId) => {
               void runRouteAction(actionId);
@@ -6022,6 +6210,18 @@ export default function App() {
             onToggleWindowed={() => setWindowed((prev) => !prev)}
             onRolloutCohortChange={setUxRebootCohort}
             onToggleFeatureFlag={toggleFeatureFlag}
+            onGovernanceRetentionChange={(days) => {
+              void updateGovernanceRetention(days);
+            }}
+            onApplyGovernanceRetention={() => {
+              void applyGovernanceRetentionNow();
+            }}
+            onDeleteActiveTrace={() => {
+              void deleteActiveTraceFromGovernance();
+            }}
+            onRefreshGovernance={() => {
+              void refreshGovernance();
+            }}
           />
         ) : (
         <section
@@ -6204,6 +6404,9 @@ export default function App() {
                     </button>
                     <button className="ghost-button" type="button" onClick={() => void createHandoffDigest()}>
                       Copy handoff digest
+                    </button>
+                    <button className="ghost-button" type="button" onClick={() => void createInvestigationPacket()}>
+                      Export investigation packet
                     </button>
                   </div>
                 </article>

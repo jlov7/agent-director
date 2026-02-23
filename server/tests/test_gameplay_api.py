@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 
 import server.main as server_main
 from server.main import ApiHandler
+from server.ops.store import OpsStore
 from server.replay.jobs import ReplayJobStore
 from server.trace.schema import StepDetails, StepSummary, TraceMetadata, TraceSummary
 from server.trace.store import TraceStore
@@ -60,6 +61,11 @@ class TestGameplayApi(unittest.TestCase):
         ApiHandler.live_broker = server_main.LiveTraceBroker()
         ApiHandler.extension_registry = server_main.ExtensionRegistry()
         ApiHandler.gameplay_store = GameplayStore(Path(self.temp_dir.name))
+        ApiHandler.ops_store = OpsStore(Path(self.temp_dir.name))
+        ApiHandler.ops_store.bootstrap_trace_tenants(["trace-1"], "public")
+        ApiHandler.require_auth = False
+        ApiHandler.allowed_api_keys = set()
+        ApiHandler.default_tenant = "public"
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), ApiHandler)
         self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)

@@ -82,6 +82,24 @@ export default function OverviewRoute({ status, runHealthScore, lastCompletedAct
         <p>Health score: <strong>{clampedHealth}</strong></p>
       </article>
 
+      <article className="workspace-card route-education-card">
+        <h3>First 60 seconds</h3>
+        <p>Use this path for a fast first-value check before deeper analysis.</p>
+        <ol className="route-contract-list" aria-label="First 60 seconds path">
+          <li>0-20s: Review run health and confirm overall stability.</li>
+          <li>20-40s: Inspect top risk to identify likely impact scope.</li>
+          <li>40-60s: Share handoff digest so responders start from the same context.</li>
+        </ol>
+        <div className="route-state-actions">
+          <button className="primary-button" type="button" onClick={() => onRouteAction('overview-review-health')}>
+            Start 60-second path
+          </button>
+          <button className="ghost-button" type="button" onClick={() => onRouteAction('overview-share-handoff')}>
+            Share outcome now
+          </button>
+        </div>
+      </article>
+
       <JourneyActionCard
         title="Review run health"
         outcome="Confirm current run stability and risk posture."

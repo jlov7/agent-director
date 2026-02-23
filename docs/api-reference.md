@@ -7,6 +7,7 @@ This is an implementation-level reference for the current server in `server/main
 ## Health
 
 - `GET /api/health`
+- `GET /api/openapi.json`
 
 ## Traces
 
@@ -27,7 +28,9 @@ This is an implementation-level reference for the current server in `server/main
 - `POST /api/replay-jobs`
 - `GET /api/replay-jobs/{job_id}`
 - `GET /api/replay-jobs/{job_id}/matrix`
+- `GET /api/replay-jobs/{job_id}/dead-letters`
 - `POST /api/replay-jobs/{job_id}/cancel`
+- `GET /api/replay-dead-letters`
 
 ## Gameplay
 
@@ -73,6 +76,15 @@ This is an implementation-level reference for the current server in `server/main
 - `GET /api/extensions`
 - `POST /api/extensions/{extension_id}/run`
 
+## Telemetry + Governance
+
+- `POST /api/telemetry/events`
+- `GET /api/admin/governance/retention`
+- `POST /api/admin/governance/retention`
+- `POST /api/admin/governance/retention/apply`
+- `GET /api/admin/audit-events`
+- `POST /api/admin/traces/{trace_id}/delete`
+
 ## Streaming (SSE)
 
 - `GET /api/stream/traces/latest`
@@ -96,3 +108,5 @@ This is an implementation-level reference for the current server in `server/main
 - Max request body size is enforced server-side.
 - JSON content type is required for non-empty POST bodies.
 - API rate limiting is enforced with `Retry-After` on `429`.
+- Optional request auth/tenant headers: `X-API-Key`, `X-Tenant-Id`, `X-Actor-Id`.
+- Optional idempotency header on selected write paths: `Idempotency-Key`.

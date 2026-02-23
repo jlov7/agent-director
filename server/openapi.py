@@ -1,0 +1,193 @@
+from __future__ import annotations
+
+from typing import Any, Dict
+
+
+def build_openapi_spec() -> Dict[str, Any]:
+    return {
+        "openapi": "3.1.0",
+        "info": {
+            "title": "Agent Director API",
+            "version": "1.0.0",
+            "description": "Operational API for trace analysis, replay jobs, governance, and telemetry ingestion.",
+        },
+        "servers": [{"url": "http://127.0.0.1:8787"}],
+        "components": {
+            "securitySchemes": {
+                "ApiKeyAuth": {
+                    "type": "apiKey",
+                    "in": "header",
+                    "name": "X-API-Key",
+                },
+                "TenantHeader": {
+                    "type": "apiKey",
+                    "in": "header",
+                    "name": "X-Tenant-Id",
+                },
+            }
+        },
+        "security": [{"ApiKeyAuth": [], "TenantHeader": []}],
+        "paths": {
+            "/api/health": {
+                "get": {
+                    "summary": "Health check",
+                    "responses": {"200": {"description": "Service health status"}},
+                    "security": [],
+                }
+            },
+            "/api/openapi.json": {
+                "get": {
+                    "summary": "OpenAPI schema",
+                    "responses": {"200": {"description": "OpenAPI document"}},
+                    "security": [],
+                }
+            },
+            "/api/traces": {
+                "get": {
+                    "summary": "List traces",
+                    "responses": {"200": {"description": "Trace list"}},
+                }
+            },
+            "/api/traces/{trace_id}": {
+                "get": {
+                    "summary": "Get trace summary",
+                    "parameters": [
+                        {
+                            "name": "trace_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "responses": {"200": {"description": "Trace summary"}},
+                }
+            },
+            "/api/traces/{trace_id}/steps/{step_id}": {
+                "get": {
+                    "summary": "Get step details",
+                    "parameters": [
+                        {
+                            "name": "trace_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        },
+                        {
+                            "name": "step_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "string"},
+                        },
+                    ],
+                    "responses": {"200": {"description": "Step detail payload"}},
+                }
+            },
+            "/api/replay-jobs": {
+                "post": {
+                    "summary": "Create replay job",
+                    "parameters": [
+                        {
+                            "name": "Idempotency-Key",
+                            "in": "header",
+                            "required": False,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "responses": {"202": {"description": "Replay job queued"}},
+                }
+            },
+            "/api/replay-jobs/{job_id}": {
+                "get": {
+                    "summary": "Fetch replay job",
+                    "parameters": [
+                        {"name": "job_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "Replay job"}},
+                }
+            },
+            "/api/replay-jobs/{job_id}/matrix": {
+                "get": {
+                    "summary": "Fetch replay matrix summary",
+                    "parameters": [
+                        {"name": "job_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "Replay matrix"}},
+                }
+            },
+            "/api/replay-jobs/{job_id}/dead-letters": {
+                "get": {
+                    "summary": "Fetch replay dead-letter records for a job",
+                    "parameters": [
+                        {"name": "job_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "Dead-letter records"}},
+                }
+            },
+            "/api/replay-dead-letters": {
+                "get": {
+                    "summary": "List replay dead-letter records",
+                    "responses": {"200": {"description": "Dead-letter records"}},
+                }
+            },
+            "/api/replay-jobs/{job_id}/cancel": {
+                "post": {
+                    "summary": "Cancel replay job",
+                    "parameters": [
+                        {"name": "job_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "Replay job canceled"}},
+                }
+            },
+            "/api/compare": {
+                "post": {
+                    "summary": "Compare traces",
+                    "parameters": [
+                        {
+                            "name": "Idempotency-Key",
+                            "in": "header",
+                            "required": False,
+                            "schema": {"type": "string"},
+                        }
+                    ],
+                    "responses": {"200": {"description": "Comparison diff"}},
+                }
+            },
+            "/api/telemetry/events": {
+                "post": {
+                    "summary": "Ingest telemetry events",
+                    "responses": {"202": {"description": "Telemetry events accepted"}},
+                }
+            },
+            "/api/admin/governance/retention": {
+                "get": {
+                    "summary": "Get retention policy",
+                    "responses": {"200": {"description": "Retention policy"}},
+                },
+                "post": {
+                    "summary": "Set retention policy",
+                    "responses": {"200": {"description": "Retention policy updated"}},
+                },
+            },
+            "/api/admin/governance/retention/apply": {
+                "post": {
+                    "summary": "Apply retention policy immediately",
+                    "responses": {"200": {"description": "Retention policy applied"}},
+                }
+            },
+            "/api/admin/audit-events": {
+                "get": {
+                    "summary": "List audit events",
+                    "responses": {"200": {"description": "Audit events"}},
+                }
+            },
+            "/api/admin/traces/{trace_id}/delete": {
+                "post": {
+                    "summary": "Delete a trace",
+                    "parameters": [
+                        {"name": "trace_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {"200": {"description": "Trace deleted"}},
+                }
+            },
+        },
+    }

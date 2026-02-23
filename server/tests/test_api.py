@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 
 import server.main as server_main
 from server.main import ApiHandler
+from server.ops.store import OpsStore
 from server.replay.jobs import ReplayJobStore
 from server.trace.schema import StepDetails, StepSummary, TraceMetadata, TraceSummary
 from server.trace.store import TraceStore
@@ -59,6 +60,11 @@ class TestApi(unittest.TestCase):
         ApiHandler.replay_jobs = ReplayJobStore()
         ApiHandler.live_broker = server_main.LiveTraceBroker()
         ApiHandler.extension_registry = server_main.ExtensionRegistry()
+        ApiHandler.ops_store = OpsStore(Path(self.temp_dir.name))
+        ApiHandler.ops_store.bootstrap_trace_tenants(["trace-1"], "public")
+        ApiHandler.require_auth = False
+        ApiHandler.allowed_api_keys = set()
+        ApiHandler.default_tenant = "public"
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), ApiHandler)
         self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -75,6 +81,119 @@ class TestApi(unittest.TestCase):
         status, data = self._request("GET", "/api/traces")
         self.assertEqual(status, 200)
         self.assertEqual(len(data["traces"]), 1)
+
+    def test_openapi_schema_endpoint(self) -> None:
+        status, data = self._request("GET", "/api/openapi.json")
+        self.assertEqual(status, 200)
+        self.assertEqual(data.get("openapi"), "3.1.0")
+        self.assertIn("/api/replay-jobs", data.get("paths", {}))
+
+    def test_compare_idempotency_replays_same_response(self) -> None:
+        headers = {"Idempotency-Key": "cmp-1"}
+        payload = {"left_trace_id": "trace-1", "right_trace_id": "trace-1"}
+        status1, data1 = self._request("POST", "/api/compare", payload, headers=headers)
+        status2, data2 = self._request("POST", "/api/compare", payload, headers=headers)
+        self.assertEqual(status1, 200)
+        self.assertEqual(status2, 200)
+        self.assertEqual(data1, data2)
+
+    def test_compare_idempotency_conflict_on_payload_mismatch(self) -> None:
+        headers = {"Idempotency-Key": "cmp-conflict"}
+        status1, _ = self._request(
+            "POST",
+            "/api/compare",
+            {"left_trace_id": "trace-1", "right_trace_id": "trace-1"},
+            headers=headers,
+        )
+        status2, data2 = self._request(
+            "POST",
+            "/api/compare",
+            {"left_trace_id": "trace-1", "right_trace_id": "missing"},
+            headers=headers,
+        )
+        self.assertEqual(status1, 200)
+        self.assertEqual(status2, 409)
+        self.assertIn("Idempotency key", data2.get("error", ""))
+
+    def test_auth_required_blocks_without_api_key(self) -> None:
+        ApiHandler.require_auth = True
+        ApiHandler.allowed_api_keys = {"test-key"}
+        try:
+            status, _ = self._request("GET", "/api/traces")
+            self.assertEqual(status, 401)
+            status, data = self._request(
+                "GET",
+                "/api/traces",
+                headers={"X-API-Key": "test-key", "X-Tenant-Id": "public"},
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(len(data.get("traces", [])), 1)
+        finally:
+            ApiHandler.require_auth = False
+            ApiHandler.allowed_api_keys = set()
+
+    def test_trace_access_is_scoped_by_tenant_when_auth_enabled(self) -> None:
+        ApiHandler.require_auth = True
+        ApiHandler.allowed_api_keys = {"test-key"}
+        ApiHandler.ops_store.assign_trace_tenant("trace-1", "tenant-a")
+        try:
+            status, _ = self._request(
+                "GET",
+                "/api/traces/trace-1",
+                headers={"X-API-Key": "test-key", "X-Tenant-Id": "tenant-b"},
+            )
+            self.assertEqual(status, 404)
+            status, data = self._request(
+                "GET",
+                "/api/traces/trace-1",
+                headers={"X-API-Key": "test-key", "X-Tenant-Id": "tenant-a"},
+            )
+            self.assertEqual(status, 200)
+            self.assertEqual(data.get("trace", {}).get("id"), "trace-1")
+        finally:
+            ApiHandler.require_auth = False
+            ApiHandler.allowed_api_keys = set()
+            ApiHandler.ops_store.assign_trace_tenant("trace-1", "public")
+
+    def test_telemetry_ingest_endpoint(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/telemetry/events",
+            {
+                "events": [
+                    {"kind": "product", "name": "ux.export.completed", "payload": {"artifact": "packet"}},
+                    {"kind": "journey", "name": "journey.first_success", "payload": {"ms": 3200}},
+                ]
+            },
+        )
+        self.assertEqual(status, 202)
+        self.assertEqual(data.get("accepted"), 2)
+
+    def test_governance_retention_and_audit_endpoints(self) -> None:
+        status, data = self._request("GET", "/api/admin/governance/retention")
+        self.assertEqual(status, 200)
+        self.assertEqual(data.get("retentionDays"), 30)
+
+        status, data = self._request("POST", "/api/admin/governance/retention", {"days": 14})
+        self.assertEqual(status, 200)
+        self.assertEqual(data.get("retentionDays"), 14)
+
+        status, apply_data = self._request("POST", "/api/admin/governance/retention/apply", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(apply_data.get("retentionDays"), 14)
+        self.assertIn("deletedTraceIds", apply_data)
+
+        status, audit_data = self._request("GET", "/api/admin/audit-events?limit=10")
+        self.assertEqual(status, 200)
+        self.assertTrue(any(event.get("eventType") == "governance.retention.updated" for event in audit_data["events"]))
+
+    def test_admin_delete_trace_endpoint(self) -> None:
+        status, data = self._request("POST", "/api/admin/traces/trace-1/delete", {})
+        self.assertEqual(status, 200)
+        self.assertTrue(data.get("deleted"))
+
+        status, _ = self._request("GET", "/api/traces/trace-1")
+        self.assertEqual(status, 404)
 
     def test_create_replay_job_and_get_status(self) -> None:
         status, data = self._request(
@@ -178,14 +297,20 @@ class TestApi(unittest.TestCase):
         self.assertEqual(len(data["matrix"]["rows"]), 2)
         self.assertIn("causalRanking", data["matrix"])
 
-    def _request(self, method: str, path: str, payload: dict | None = None) -> tuple[int, dict]:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        payload: dict | None = None,
+        headers: dict | None = None,
+    ) -> tuple[int, dict]:
         conn = HTTPConnection("127.0.0.1", self.port)
         body = None
-        headers = {}
+        request_headers = dict(headers or {})
         if payload is not None:
             body = json.dumps(payload)
-            headers["Content-Type"] = "application/json"
-        conn.request(method, path, body=body, headers=headers)
+            request_headers["Content-Type"] = "application/json"
+        conn.request(method, path, body=body, headers=request_headers)
         resp = conn.getresponse()
         raw = resp.read().decode("utf-8")
         data = json.loads(raw) if raw else {}

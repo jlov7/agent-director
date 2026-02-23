@@ -19,16 +19,57 @@ import type {
 } from '../types';
 import demoTrace from '../data/demoTrace.json';
 import { diffTraces } from '../utils/diff';
+import { generatedApiRequest } from './apiClient.generated';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8787';
 const FORCE_DEMO = import.meta.env.VITE_FORCE_DEMO === '1';
+const API_KEY = import.meta.env.VITE_API_KEY || '';
+const TENANT_ID = import.meta.env.VITE_TENANT_ID || 'public';
+const ACTOR_ID = import.meta.env.VITE_ACTOR_ID || 'ui';
 const stepDetailsCache = new Map<string, StepDetails>();
 const stepDetailsInflight = new Map<string, Promise<StepDetails | null>>();
 const replayJobCache = new Map<string, { job: ReplayJob; matrix: ReplayMatrix }>();
+const GENERATED_CLIENT_CONFIG = {
+  baseUrl: API_BASE,
+  tenantId: TENANT_ID,
+  actorId: ACTOR_ID,
+  apiKey: API_KEY || undefined,
+};
+
+function buildApiHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = {
+    'X-Tenant-Id': TENANT_ID,
+    'X-Actor-Id': ACTOR_ID,
+    ...extra,
+  };
+  if (API_KEY) headers['X-API-Key'] = API_KEY;
+  return headers;
+}
+
+function hashPayload(input: string): string {
+  let hash = 5381;
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash * 33) ^ input.charCodeAt(index);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function buildIdempotencyKey(prefix: string, payload: unknown): string {
+  return `${prefix}:${hashPayload(JSON.stringify(payload))}`;
+}
+
+function buildStreamUrl(path: string): string {
+  const url = new URL(path, API_BASE);
+  url.searchParams.set('tenant_id', TENANT_ID);
+  if (API_KEY) url.searchParams.set('api_key', API_KEY);
+  return url.toString();
+}
 
 async function safeFetchJson<T>(url: string): Promise<T | null> {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: buildApiHeaders(),
+    });
     if (!response.ok) return null;
     return (await response.json()) as T;
   } catch {
@@ -40,7 +81,7 @@ async function safePostJson<T>(url: string, payload: unknown): Promise<T | null>
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(payload),
     });
     if (!response.ok) return null;
@@ -48,6 +89,24 @@ async function safePostJson<T>(url: string, payload: unknown): Promise<T | null>
   } catch {
     return null;
   }
+}
+
+export async function sendTelemetryEvents(
+  events: Array<{
+    kind: string;
+    name: string;
+    payload?: Record<string, unknown>;
+    at?: string;
+  }>
+): Promise<number> {
+  if (FORCE_DEMO || events.length === 0) return 0;
+  const response = await generatedApiRequest<{ accepted: number }>(
+    GENERATED_CLIENT_CONFIG,
+    '/api/telemetry/events',
+    'POST',
+    { events }
+  );
+  return response?.accepted ?? 0;
 }
 
 export async function fetchTraces(): Promise<TraceSummary[]> {
@@ -240,7 +299,7 @@ export function subscribeToLatestTrace(
   if (FORCE_DEMO || typeof EventSource === 'undefined') {
     return () => undefined;
   }
-  const source = new EventSource(`${API_BASE}/api/stream/traces/latest`);
+  const source = new EventSource(buildStreamUrl('/api/stream/traces/latest'));
 
   const parseAndEmit = (rawData: string) => {
     try {
@@ -341,7 +400,7 @@ export async function replayFromStep(
   try {
     const response = await fetch(`${API_BASE}/api/traces/${traceId}/replay`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ step_id: stepId, strategy, modifications }),
     });
     if (!response.ok) return null;
@@ -425,11 +484,15 @@ export async function compareTraces(
   rightTraceId: string
 ): Promise<Record<string, unknown> | null> {
   if (FORCE_DEMO) return null;
+  const payloadBody = { left_trace_id: leftTraceId, right_trace_id: rightTraceId };
   try {
     const response = await fetch(`${API_BASE}/api/compare`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ left_trace_id: leftTraceId, right_trace_id: rightTraceId }),
+      headers: buildApiHeaders({
+        'Content-Type': 'application/json',
+        'Idempotency-Key': buildIdempotencyKey('compare', payloadBody),
+      }),
+      body: JSON.stringify(payloadBody),
     });
     if (!response.ok) return null;
     const payload = (await response.json()) as { diff: Record<string, unknown> };
@@ -437,6 +500,54 @@ export async function compareTraces(
   } catch {
     return null;
   }
+}
+
+export type GovernanceAuditEvent = {
+  id: string;
+  tenantId: string;
+  actor: string;
+  eventType: string;
+  details: Record<string, unknown>;
+  createdAt: string;
+};
+
+export async function fetchGovernanceRetentionDays(): Promise<number | null> {
+  if (FORCE_DEMO) return 30;
+  const payload = await safeFetchJson<{ retentionDays: number }>(`${API_BASE}/api/admin/governance/retention`);
+  return typeof payload?.retentionDays === 'number' ? payload.retentionDays : null;
+}
+
+export async function updateGovernanceRetentionDays(days: number): Promise<number | null> {
+  if (FORCE_DEMO) return days;
+  const payload = await safePostJson<{ retentionDays: number }>(`${API_BASE}/api/admin/governance/retention`, { days });
+  return typeof payload?.retentionDays === 'number' ? payload.retentionDays : null;
+}
+
+export async function applyGovernanceRetention(): Promise<{ retentionDays: number; deletedTraceIds: string[] } | null> {
+  if (FORCE_DEMO) return { retentionDays: 30, deletedTraceIds: [] };
+  const payload = await safePostJson<{ retentionDays: number; deletedTraceIds: string[] }>(
+    `${API_BASE}/api/admin/governance/retention/apply`,
+    {}
+  );
+  if (!payload || typeof payload.retentionDays !== 'number' || !Array.isArray(payload.deletedTraceIds)) return null;
+  return payload;
+}
+
+export async function fetchGovernanceAuditEvents(limit = 20): Promise<GovernanceAuditEvent[]> {
+  if (FORCE_DEMO) return [];
+  const payload = await safeFetchJson<{ events: GovernanceAuditEvent[] }>(
+    `${API_BASE}/api/admin/audit-events?limit=${encodeURIComponent(String(limit))}`
+  );
+  return Array.isArray(payload?.events) ? payload.events : [];
+}
+
+export async function deleteTraceByGovernance(traceId: string): Promise<boolean> {
+  if (FORCE_DEMO) return true;
+  const payload = await safePostJson<{ deleted: boolean }>(
+    `${API_BASE}/api/admin/traces/${encodeURIComponent(traceId)}/delete`,
+    {}
+  );
+  return payload?.deleted === true;
 }
 
 export async function createReplayJob(input: {
@@ -448,16 +559,20 @@ export async function createReplayJob(input: {
   if (FORCE_DEMO) {
     return buildDemoReplayJob(input);
   }
+  const payloadBody = {
+    trace_id: input.traceId,
+    step_id: input.stepId,
+    scenarios: input.scenarios,
+    execute: input.execute ?? true,
+  };
   try {
     const response = await fetch(`${API_BASE}/api/replay-jobs`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        trace_id: input.traceId,
-        step_id: input.stepId,
-        scenarios: input.scenarios,
-        execute: input.execute ?? true,
+      headers: buildApiHeaders({
+        'Content-Type': 'application/json',
+        'Idempotency-Key': buildIdempotencyKey('replay-job', payloadBody),
       }),
+      body: JSON.stringify(payloadBody),
     });
     if (!response.ok) return null;
     const payload = (await response.json()) as { job: ReplayJob };
@@ -502,7 +617,7 @@ export async function cancelReplayJob(jobId: string): Promise<ReplayJob | null> 
   try {
     const response = await fetch(`${API_BASE}/api/replay-jobs/${jobId}/cancel`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({}),
     });
     if (!response.ok) return null;
@@ -717,7 +832,7 @@ export async function applyGameplayAction(input: {
   try {
     const response = await fetch(`${API_BASE}/api/gameplay/sessions/${encodeURIComponent(input.sessionId)}/action`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: buildApiHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         player_id: input.playerId,
         type: input.type,
@@ -897,7 +1012,7 @@ export function subscribeToGameplaySession(
   if (FORCE_DEMO || typeof EventSource === 'undefined' || !sessionId) {
     return () => undefined;
   }
-  const source = new EventSource(`${API_BASE}/api/stream/gameplay/${encodeURIComponent(sessionId)}`);
+  const source = new EventSource(buildStreamUrl(`/api/stream/gameplay/${encodeURIComponent(sessionId)}`));
   const parseAndEmit = (rawData: string) => {
     try {
       const payload = JSON.parse(rawData) as { session?: GameplaySession };

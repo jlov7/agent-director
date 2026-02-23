@@ -1,3 +1,65 @@
+# Final World-Class Hardening Wave ExecPlan
+
+## Purpose / Big Picture
+
+Close the remaining release-critical polish gaps across accessibility, backend trust controls, deterministic API behavior, visual drift operations, and launch documentation freshness.
+
+## Scope
+
+- In scope: skip-link accessibility fix, release evidence freshness updates, API auth/tenant boundaries, idempotency controls, durable replay job persistence + dead-letter visibility, OpenAPI endpoint + generated typed client, telemetry ingestion baseline, retention/audit controls, nightly visual drift automation, and demo/investigation UX differentiators.
+- Out of scope: major product rearchitecture unrelated to these explicit closure items.
+
+## Progress
+
+- [x] Refresh docs/plan trackers and map enhancement list to concrete repo gaps.
+- [x] Fix skip-link focusability and verify via Lighthouse/UX checks.
+- [x] Add backend API guardrails (API key + tenant scope + request auth headers).
+- [x] Add request idempotency keys for replay/compare mutation endpoints.
+- [x] Replace in-memory replay job store with durable persistence and dead-letter visibility.
+- [x] Expose OpenAPI JSON and sync a generated typed frontend client wrapper.
+- [x] Add telemetry baseline (frontend error + breadcrumb events into backend ingestion endpoint).
+- [x] Add retention + audit controls (API + settings UX surfacing).
+- [x] Add nightly visual drift workflow and artifact retention wiring.
+- [x] Add golden demo + investigation packet polish where missing.
+- [x] Run full verification gates and refresh release evidence docs.
+
+## Surprises & Discoveries
+
+- Doctor and scorecard are currently green, but `RELEASE_GATES.md` and `QUESTIONS.md` still include stale statements that conflict with the latest artifact timestamps.
+- Skip-link is implemented but still fails LHCI under current test harness; behavior needs hardening not removal.
+- Replay jobs are currently non-durable (in-memory dict) and have no dead-letter reporting surface.
+
+## Decision Log
+
+- Implement smallest safe slices with tests per slice to avoid destabilizing existing verified flows.
+- Keep local/demo behavior developer-friendly by allowing auth bypass in explicit dev mode only.
+- Treat geometry/visual and release evidence gates as blocking before completion claims.
+
+## Validation Plan
+
+- `python3 -m unittest discover -s server/tests`
+- `pnpm -C ui lint`
+- `pnpm -C ui typecheck`
+- `pnpm -C ui test`
+- `pnpm -C ui test:e2e -- tests/e2e/a11y.spec.ts tests/e2e/route-journeys.spec.ts tests/e2e/ux-audit-deep.spec.ts`
+- `pnpm verify:visual`
+- `make verify`
+- `make verify-ux`
+- `make doctor`
+- `make scorecard`
+
+## Outcomes & Retrospective
+
+Completed.
+- Backend now enforces optional API-key auth, tenant-scoped trace access, and idempotency for key mutating endpoints.
+- Replay job operations are durable and expose dead-letter visibility for failed scenarios.
+- OpenAPI contract is now served and consumed by generated UI client artifacts.
+- Frontend gained telemetry ingestion, governance retention/audit controls, and investigation-packet export UX.
+- Visual verification now includes deterministic single-run proofs and nightly drift coverage.
+- Closure evidence is refreshed and passing: `make verify`, `make verify-ux`, `make verify-visual`, `make verify-frontend`, `make doctor`, `make scorecard`, `make release-safety`, and `make vercel-check`.
+
+---
+
 # Deep Visual UX Overhaul ExecPlan
 
 ## Purpose / Big Picture

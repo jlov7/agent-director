@@ -60,6 +60,10 @@ function WorkspaceRoute({
   gamepadEnabled,
   windowed,
   rolloutCohort,
+  retentionDays,
+  governanceBusy,
+  governanceStatus,
+  auditEvents,
   featureFlags,
   onRouteAction,
   onRetryAsyncAction,
@@ -77,6 +81,10 @@ function WorkspaceRoute({
   onToggleWindowed,
   onRolloutCohortChange,
   onToggleFeatureFlag,
+  onGovernanceRetentionChange,
+  onApplyGovernanceRetention,
+  onDeleteActiveTrace,
+  onRefreshGovernance,
 }: WorkspaceRouteProps) {
   const routeTitleId = `workspace-route-${route}`;
 
@@ -164,6 +172,10 @@ function WorkspaceRoute({
           gamepadEnabled={gamepadEnabled}
           windowed={windowed}
           rolloutCohort={rolloutCohort}
+          retentionDays={retentionDays}
+          governanceBusy={governanceBusy}
+          governanceStatus={governanceStatus}
+          auditEvents={auditEvents}
           featureFlags={featureFlags}
           onThemeModeChange={onThemeModeChange}
           onMotionModeChange={onMotionModeChange}
@@ -175,6 +187,10 @@ function WorkspaceRoute({
           onToggleWindowed={onToggleWindowed}
           onRolloutCohortChange={onRolloutCohortChange}
           onToggleFeatureFlag={onToggleFeatureFlag}
+          onGovernanceRetentionChange={onGovernanceRetentionChange}
+          onApplyGovernanceRetention={onApplyGovernanceRetention}
+          onDeleteActiveTrace={onDeleteActiveTrace}
+          onRefreshGovernance={onRefreshGovernance}
         />
       ) : null}
     </section>

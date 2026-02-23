@@ -25,6 +25,10 @@ const defaultProps = {
   gamepadEnabled: true,
   windowed: false,
   rolloutCohort: 'off' as const,
+  retentionDays: 30,
+  governanceBusy: false,
+  governanceStatus: null,
+  auditEvents: [],
   featureFlags: {
     setupWizardV1: true,
     supportPanelV1: true,
@@ -47,6 +51,10 @@ const defaultProps = {
   onToggleWindowed: vi.fn(),
   onRolloutCohortChange: vi.fn(),
   onToggleFeatureFlag: vi.fn(),
+  onGovernanceRetentionChange: vi.fn(),
+  onApplyGovernanceRetention: vi.fn(),
+  onDeleteActiveTrace: vi.fn(),
+  onRefreshGovernance: vi.fn(),
 };
 
 describe('WorkspaceRoute', () => {

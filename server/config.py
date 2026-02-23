@@ -24,3 +24,17 @@ def demo_dir() -> Path:
 
 def safe_export_enabled() -> bool:
     return os.environ.get("AGENT_DIRECTOR_SAFE_EXPORT", "0") == "1"
+
+
+def api_auth_required() -> bool:
+    return os.environ.get("AGENT_DIRECTOR_REQUIRE_API_KEY", "0") == "1"
+
+
+def api_keys() -> set[str]:
+    raw = os.environ.get("AGENT_DIRECTOR_API_KEYS", "")
+    return {item.strip() for item in raw.split(",") if item.strip()}
+
+
+def default_tenant_id() -> str:
+    tenant = os.environ.get("AGENT_DIRECTOR_DEFAULT_TENANT", "public").strip().lower()
+    return tenant or "public"

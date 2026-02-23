@@ -1,7 +1,7 @@
 # Open Questions
 
 ## Active (non-blocking)
-- 2026-02-23: `make doctor` and `make scorecard` fail only on `G8-ci` because GitHub workflow `verify` on `main` (`run 22283235684`) is failing externally; local gates `G1..G7` pass.
+- 2026-02-23: No active non-blocking questions. Latest `make doctor` and `make scorecard` evidence is green, including `G8-ci`.
 
 ## Resolved During Execution
 - 2026-02-20: Exhaustive UX reboot and release-gate execution completed; no blocking open questions remain.

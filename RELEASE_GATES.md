@@ -38,11 +38,11 @@ This emits `artifacts/scorecards.json` and requires every domain score to be `10
 - Re-run `make doctor` after each change set.
 
 ## Latest Evidence Snapshot
-- 2026-02-21: `make doctor` produced `artifacts/doctor.json` with `overall_status=pass`.
-- 2026-02-21: Gate summary in `artifacts/doctor.json` reports `G1` through `G10` all passing.
-- 2026-02-21: `make scorecard` produced `artifacts/scorecards.json` with `total_score=70/70` and `all_perfect=true`.
-- 2026-02-21: `make verify-ux` passed with route-shell journey regressions and hardening suites.
-- 2026-02-21: `make release-safety` and `make vercel-check` passed, and production deployment alias is ready.
+- 2026-02-23: `make doctor` produced `artifacts/doctor.json` with `overall_status=pass`.
+- 2026-02-23: Gate summary in `artifacts/doctor.json` reports `G1` through `G10` all passing.
+- 2026-02-23: `make scorecard` produced `artifacts/scorecards.json` with `total_score=70/70` and `all_perfect=true`.
+- 2026-02-23: `make verify-ux` passed with route-shell journey regressions and hardening suites.
+- 2026-02-23: `make release-safety` and `make vercel-check` passed, and production deployment alias is ready.
 
 ## Failure Policy
 - Any failed gate must create or update a gap in `GAPS.md` before starting the next fix.

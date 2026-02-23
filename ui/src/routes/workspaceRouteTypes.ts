@@ -51,6 +51,15 @@ export type WorkspaceRouteProps = {
   gamepadEnabled: boolean;
   windowed: boolean;
   rolloutCohort: 'off' | 'internal' | 'pilot' | 'ga';
+  retentionDays: number;
+  governanceBusy: boolean;
+  governanceStatus: string | null;
+  auditEvents: Array<{
+    id: string;
+    actor: string;
+    eventType: string;
+    createdAt: string;
+  }>;
   featureFlags: FeatureFlags;
   onRouteAction: (actionId: string) => void;
   onRetryAsyncAction: (id: string) => void;
@@ -68,4 +77,8 @@ export type WorkspaceRouteProps = {
   onToggleWindowed: () => void;
   onRolloutCohortChange: (value: 'off' | 'internal' | 'pilot' | 'ga') => void;
   onToggleFeatureFlag: (key: keyof FeatureFlags) => void;
+  onGovernanceRetentionChange: (days: number) => void;
+  onApplyGovernanceRetention: () => void;
+  onDeleteActiveTrace: () => void;
+  onRefreshGovernance: () => void;
 };

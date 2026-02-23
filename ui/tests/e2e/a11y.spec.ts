@@ -48,6 +48,15 @@ test('homepage has no detectable a11y violations', async ({ page }) => {
   expect(results.violations).toEqual([]);
 });
 
+test('skip link transfers keyboard focus to main content', async ({ page }) => {
+  await initStorage(page);
+  await page.goto('/');
+  await page.locator('.skip-link').focus();
+  await expect(page.locator('.skip-link')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('main')).toBeFocused();
+});
+
 test('flow mode has no detectable a11y violations', async ({ page }) => {
   await initStorage(page);
   await page.goto('/');

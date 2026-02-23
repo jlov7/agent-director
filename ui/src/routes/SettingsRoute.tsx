@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { FeatureFlags } from '../utils/saasUx';
 import type { WorkspaceRouteStatus } from './workspaceRouteTypes';
 
@@ -13,6 +14,15 @@ type SettingsRouteProps = {
   gamepadEnabled: boolean;
   windowed: boolean;
   rolloutCohort: 'off' | 'internal' | 'pilot' | 'ga';
+  retentionDays: number;
+  governanceBusy: boolean;
+  governanceStatus: string | null;
+  auditEvents: Array<{
+    id: string;
+    actor: string;
+    eventType: string;
+    createdAt: string;
+  }>;
   featureFlags: FeatureFlags;
   onThemeModeChange: (value: 'studio' | 'focus' | 'contrast') => void;
   onMotionModeChange: (value: 'cinematic' | 'balanced' | 'minimal') => void;
@@ -24,6 +34,10 @@ type SettingsRouteProps = {
   onToggleWindowed: () => void;
   onRolloutCohortChange: (value: 'off' | 'internal' | 'pilot' | 'ga') => void;
   onToggleFeatureFlag: (key: keyof FeatureFlags) => void;
+  onGovernanceRetentionChange: (days: number) => void;
+  onApplyGovernanceRetention: () => void;
+  onDeleteActiveTrace: () => void;
+  onRefreshGovernance: () => void;
 };
 
 export default function SettingsRoute({
@@ -38,6 +52,10 @@ export default function SettingsRoute({
   gamepadEnabled,
   windowed,
   rolloutCohort,
+  retentionDays,
+  governanceBusy,
+  governanceStatus,
+  auditEvents,
   featureFlags,
   onThemeModeChange,
   onMotionModeChange,
@@ -49,7 +67,15 @@ export default function SettingsRoute({
   onToggleWindowed,
   onRolloutCohortChange,
   onToggleFeatureFlag,
+  onGovernanceRetentionChange,
+  onApplyGovernanceRetention,
+  onDeleteActiveTrace,
+  onRefreshGovernance,
 }: SettingsRouteProps) {
+  const [retentionDraft, setRetentionDraft] = useState(String(retentionDays));
+  useEffect(() => {
+    setRetentionDraft(String(retentionDays));
+  }, [retentionDays]);
   const trustSummary = safeExport
     ? 'Safe export is ON. Sensitive payload fields stay redacted unless explicitly revealed.'
     : 'Safe export is OFF. Exports may include sensitive payload context.';
@@ -198,6 +224,54 @@ export default function SettingsRoute({
           </div>
         </article>
       ) : null}
+
+      <article className="workspace-card route-state-card">
+        <h3>Retention and audit controls</h3>
+        <p>Set data retention policy, apply cleanup, and review major operational actions.</p>
+        <div className="workspace-inline-form">
+          <label>
+            Retention days
+            <input
+              className="search-input"
+              type="number"
+              min={1}
+              max={365}
+              value={retentionDraft}
+              onChange={(event) => setRetentionDraft(event.target.value)}
+            />
+          </label>
+        </div>
+        <div className="route-state-actions">
+          <button
+            className="primary-button"
+            type="button"
+            disabled={governanceBusy}
+            onClick={() => onGovernanceRetentionChange(Number(retentionDraft))}
+          >
+            Save retention policy
+          </button>
+          <button className="ghost-button" type="button" disabled={governanceBusy} onClick={onApplyGovernanceRetention}>
+            Apply retention now
+          </button>
+          <button className="ghost-button" type="button" disabled={governanceBusy} onClick={onRefreshGovernance}>
+            Refresh audit
+          </button>
+          <button className="ghost-button" type="button" disabled={governanceBusy} onClick={onDeleteActiveTrace}>
+            Delete active trace
+          </button>
+        </div>
+        <p className="route-state-summary">
+          {governanceStatus ?? `Current retention policy: ${retentionDays} day(s).`}
+        </p>
+        <ul className="route-contract-list" aria-label="Recent governance audit events">
+          {auditEvents.slice(0, 5).map((event) => (
+            <li key={event.id}>
+              <strong>{event.eventType}</strong> by {event.actor} at {new Date(event.createdAt).toLocaleString()}
+            </li>
+          ))}
+          {auditEvents.length === 0 ? <li>No governance events recorded yet.</li> : null}
+        </ul>
+      </article>
     </div>
   );
 }

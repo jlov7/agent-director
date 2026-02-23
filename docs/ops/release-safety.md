@@ -30,6 +30,12 @@ One-command path:
 ./scripts/release_safety_ops.sh canary
 ```
 
+Post-deploy smoke is executed automatically after canary deploy via:
+
+```bash
+./scripts/post_deploy_smoke.sh <deployment-url-or-host>
+```
+
 ## Rollback Triggers
 
 Rollback immediately if any of the following occurs:
@@ -53,6 +59,8 @@ One-command path:
 ```bash
 ./scripts/release_safety_ops.sh rollback <deployment-url-or-id>
 ```
+
+Rollback also runs post-deploy smoke checks automatically before declaring completion.
 
 ## Runtime Kill Switch
 
