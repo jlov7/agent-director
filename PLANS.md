@@ -1,3 +1,62 @@
+# ExecPlan: Frontier Audit and Rebuild
+
+## Purpose / Big Picture
+Move Agent Director from polished trace viewer toward a production agent observability and improvement loop: real trace import, provenance, trace-to-eval, truthful replay semantics, product focus, and restored release gates.
+
+## Scope
+- In scope: frontier audit document, gap/release plan refresh, dependency audit fix, doctor CI fallback semantics, private gameplay gating, trace import API, eval case/run API, replay truth labels, OpenAPI/generated client/docs updates, and targeted verification.
+- Out of scope: deleting gameplay code, broad `App.tsx` refactor, and semantic/LLM evaluator systems beyond deterministic v1 eval evidence.
+
+## Progress
+- [x] Refresh baseline with `make doctor` and identify `G6-security`/`G8-ci` blockers.
+- [x] Fix dependency audit by replacing `dagre` with `@dagrejs/dagre`.
+- [x] Fix doctor CI fallback semantics for `verify`/`verify-strict`.
+- [x] Gate gameplay APIs behind `AGENT_DIRECTOR_ENABLE_GAMEPLAY`.
+- [x] Add `POST /api/traces/import` with Agent Director, OpenAI Agents-style, OTel GenAI, and OpenInference normalization.
+- [x] Add eval-case and eval-run APIs plus Diagnose-route evidence controls.
+- [x] Add replay `executionMode` and `truthLabel`.
+- [x] Update OpenAPI, generated UI client, API docs, README, and technical guide.
+- [x] Publish frontier audit and gap backlog updates.
+- [x] Run full gate refresh: `make verify`, `make verify-frontend`, `make doctor`, `make scorecard`.
+
+## Surprises & Discoveries
+- `verify_strict` was already green at baseline; the release break was narrower than the product opportunity.
+- The lodash audit finding came through the abandoned `dagre` package rather than first-party code.
+- CI evidence needed explicit release-workflow semantics because recent `main` runs can contain successful `verify-strict` without a recent `verify`.
+- Gameplay code is too large to delete without a separate approval checkpoint, but it can be removed from the public product surface safely.
+
+## Decision Log
+- Restore green gates before product changes so the rebuild starts from a known-good baseline.
+- Treat imported traces as normalized evidence, preserving provider IDs and raw attributes in step details.
+- Make deterministic evals the v1 trace-to-improvement loop; defer semantic evaluators until after this foundation is verified.
+- Label current non-recorded replay as counterfactual simulation because it does not execute the live agent runtime.
+
+## Risks
+- Imported span conventions vary by framework; importer warnings need to stay visible as real fixtures expand.
+- Adding eval controls into the route shell can regress visual density if future work keeps accumulating in `App.tsx`.
+- Full deletion of gameplay code may have hidden references and should remain a separate approved change.
+
+## Validation Gates
+- `python3 -m unittest server.tests.test_doctor_ci server.tests.test_trace_import server.tests.test_evals_api server.tests.test_replay_engine server.tests.test_api server.tests.test_gameplay_api`
+- `pnpm -C ui lint`
+- `pnpm -C ui typecheck`
+- `pnpm -C ui test -- src/store/api.test.ts src/routes/__tests__/WorkspaceRoute.test.tsx`
+- `make verify`
+- `make verify-visual`
+- `make doctor`
+- `make scorecard`
+
+## Outcomes & Retrospective
+Completed.
+- Agent Director now has a documented frontier audit and ranked rebuild backlog.
+- Release blockers are closed: dependency audit passes and doctor CI fallback accepts valid strict verification evidence.
+- Public product focus is restored by keeping gameplay APIs private and disabled by default.
+- Trace import, provenance, eval-case creation, eval runs, and replay truth labeling are implemented and tested.
+- OpenAPI, generated UI client artifacts, README, API reference, technical guide, gap backlog, and release gates are synchronized.
+- Final evidence is green: `make verify`, `make verify-frontend`, `make doctor`, and `make scorecard`.
+
+---
+
 # ExecPlan: Release-ready v1
 
 ## Purpose / Big Picture

@@ -64,6 +64,10 @@ function WorkspaceRoute({
   governanceBusy,
   governanceStatus,
   auditEvents,
+  evalCases,
+  evalRun,
+  evalBusy,
+  evalStatus,
   featureFlags,
   onRouteAction,
   onRetryAsyncAction,
@@ -85,6 +89,8 @@ function WorkspaceRoute({
   onApplyGovernanceRetention,
   onDeleteActiveTrace,
   onRefreshGovernance,
+  onCreateEvalCase,
+  onRunEvalCases,
 }: WorkspaceRouteProps) {
   const routeTitleId = `workspace-route-${route}`;
 
@@ -138,9 +144,15 @@ function WorkspaceRoute({
           lastCompletedActionId={lastCompletedAction?.id ?? null}
           timelineItems={asyncTimeline}
           onRouteAction={onRouteAction}
+          evalCases={evalCases}
+          evalRun={evalRun}
+          evalBusy={evalBusy}
+          evalStatus={evalStatus}
           onRetryAsyncAction={onRetryAsyncAction}
           onResumeAsyncAction={onResumeAsyncAction}
           onRetryExportTask={onRetryExportTask}
+          onCreateEvalCase={onCreateEvalCase}
+          onRunEvalCases={onRunEvalCases}
         />
       ) : null}
 

@@ -40,6 +40,7 @@ README_REQUIRED_SNIPPETS = [
 SECRET_PATTERN = re.compile(
     r"(BEGIN RSA PRIVATE KEY|BEGIN OPENSSH PRIVATE KEY|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{20,})"
 )
+RELEASE_CI_WORKFLOWS = ("verify", "verify-strict")
 
 
 def tail(text: str, line_limit: int = 80) -> str:
@@ -192,6 +193,14 @@ def check_bundle_budget() -> dict:
     }
 
 
+def select_release_ci_run(runs: list[dict]) -> dict | None:
+    for workflow_name in RELEASE_CI_WORKFLOWS:
+        for run in runs:
+            if run.get("headBranch") == "main" and run.get("workflowName") == workflow_name:
+                return run
+    return None
+
+
 def check_ci_status() -> dict:
     env = os.environ.copy()
     env.pop("NO_COLOR", None)
@@ -286,12 +295,7 @@ def check_ci_status() -> dict:
         }
 
     runs = json.loads(run_proc.stdout)
-    main_verify_runs = [
-        run
-        for run in runs
-        if run.get("headBranch") == "main" and run.get("workflowName") == "verify"
-    ]
-    latest = main_verify_runs[0] if main_verify_runs else None
+    latest = select_release_ci_run(runs)
     if not latest:
         return {
             "id": "ci_status",
@@ -304,7 +308,8 @@ def check_ci_status() -> dict:
             "stderr_tail": tail(pr_proc.stderr),
             "details": {
                 "mode": "fallback_main_verify_missing",
-                "error": "No recent main/verify workflow runs found.",
+                "error": "No recent main release verification workflow runs found.",
+                "accepted_workflows": list(RELEASE_CI_WORKFLOWS),
             },
         }
 

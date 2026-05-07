@@ -2,6 +2,8 @@
 
 Last updated: 2026-02-17
 
+Private experimental note: gameplay live-balancing is not part of the public Agent Director v1 product surface. Gameplay APIs require `AGENT_DIRECTOR_ENABLE_GAMEPLAY=1` and remain outside public release docs until separately approved.
+
 ## Objective
 
 Tune gameplay difficulty and economy safely without destabilizing active users.

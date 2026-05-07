@@ -38,6 +38,10 @@ This emits `artifacts/scorecards.json` and requires every domain score to be `10
 - Re-run `make doctor` after each change set.
 
 ## Latest Evidence Snapshot
+- 2026-05-07: `make doctor` produced `artifacts/doctor.json` with `overall_status=pass`.
+- 2026-05-07: Gate summary in `artifacts/doctor.json` reports `G1` through `G8` all passing after the frontier rebuild.
+- 2026-05-07: `make scorecard` produced `artifacts/scorecards.json` with `total_score=70/70` and `all_perfect=true`.
+- 2026-05-07: `make verify` and `make verify-frontend` passed, including deterministic visual verification and the Chromium/Firefox/WebKit visual matrix.
 - 2026-02-23: `make doctor` produced `artifacts/doctor.json` with `overall_status=pass`.
 - 2026-02-23: Gate summary in `artifacts/doctor.json` reports `G1` through `G10` all passing.
 - 2026-02-23: `make scorecard` produced `artifacts/scorecards.json` with `total_score=70/70` and `all_perfect=true`.

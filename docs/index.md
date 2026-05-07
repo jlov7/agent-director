@@ -40,7 +40,6 @@ This hub is organized by audience and lifecycle so readers can quickly find the 
 - [`ops/release-safety.md`](ops/release-safety.md)
 - [`ops/launch-security-hardening.md`](ops/launch-security-hardening.md)
 - [`ops/closed-beta-retention.md`](ops/closed-beta-retention.md)
-- [`security/authoritative-anti-cheat.md`](security/authoritative-anti-cheat.md)
 - [`legal/terms.md`](legal/terms.md)
 - [`legal/privacy.md`](legal/privacy.md)
 
@@ -59,6 +58,7 @@ This hub is organized by audience and lifecycle so readers can quickly find the 
 - [`ux100-closure-evidence.md`](ux100-closure-evidence.md)
 - [`ux100-debt-register.md`](ux100-debt-register.md)
 - [`ux-audit-2026-02-14.md`](ux-audit-2026-02-14.md)
+- [`audits/2026-05-frontier-audit.md`](audits/2026-05-frontier-audit.md)
 - [`ux-review-day-checklist.md`](ux-review-day-checklist.md)
 - [`uxr2-final-report.md`](uxr2-final-report.md)
 - [`plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md`](plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md)

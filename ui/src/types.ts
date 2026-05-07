@@ -14,6 +14,10 @@ export interface TraceMetadata {
   totalCostUsd?: number;
   errorCount?: number;
   retryCount?: number;
+  providerTraceId?: string;
+  framework?: string;
+  provider?: string;
+  importerWarnings?: string[];
 }
 
 export interface StepMetrics {
@@ -51,6 +55,10 @@ export interface StepSummary {
   preview?: StepPreview;
   io?: StepIo;
   toolCallId?: string;
+  providerSpanId?: string;
+  providerParentSpanId?: string;
+  framework?: string;
+  modelProvider?: string;
 }
 
 export interface ReplayInfo {
@@ -58,6 +66,8 @@ export interface ReplayInfo {
   modifiedStepId: string;
   modifications: Record<string, unknown>;
   createdAt: string;
+  executionMode?: 'recorded_replay' | 'counterfactual_simulation' | 'executed_replay';
+  truthLabel?: string;
 }
 
 export interface ReplayScenarioInput {
@@ -216,6 +226,49 @@ export interface InvestigationReport {
   generatedAt: string;
   traceId: string;
   hypotheses: InvestigationHypothesis[];
+}
+
+export interface TraceImportResult {
+  trace: TraceSummary;
+  warnings: string[];
+}
+
+export interface EvalCase {
+  id: string;
+  traceId: string;
+  tenantId: string;
+  name: string;
+  assertions: {
+    expectedStatus: TraceStatus;
+    expectedErrorCount: number;
+    minStepCount: number;
+    criticalStepIds: string[];
+  };
+  createdAt: string;
+}
+
+export interface EvalRunScore {
+  caseId: string;
+  traceId: string;
+  passed: boolean;
+  score: number;
+  checks: Array<{
+    name: string;
+    passed: boolean;
+    expected: unknown;
+    actual: unknown;
+  }>;
+}
+
+export interface EvalRun {
+  id: string;
+  tenantId: string;
+  status: 'passed' | 'failed';
+  createdAt: string;
+  caseCount: number;
+  passedCount: number;
+  failedCount: number;
+  scores: EvalRunScore[];
 }
 
 export interface TraceComment {

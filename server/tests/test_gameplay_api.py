@@ -66,6 +66,7 @@ class TestGameplayApi(unittest.TestCase):
         ApiHandler.require_auth = False
         ApiHandler.allowed_api_keys = set()
         ApiHandler.default_tenant = "public"
+        ApiHandler.gameplay_enabled = True
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), ApiHandler)
         self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)

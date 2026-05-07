@@ -33,6 +33,8 @@ def replay_from_step(
         modifiedStepId=step_id,
         modifications=merged_modifications,
         createdAt=_to_utc_z(replay_start),
+        executionMode=_execution_mode(strategy),
+        truthLabel=_truth_label(strategy),
     )
 
     _shift_times(new_trace, replay_start)
@@ -61,6 +63,21 @@ def _replay_digest(trace_id: str, step_id: str, strategy: str, modifications: Di
     canonical_mods = json.dumps(modifications, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     payload = f"{trace_id}|{step_id}|{strategy}|{canonical_mods}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _execution_mode(strategy: str) -> str:
+    if strategy == "recorded":
+        return "recorded_replay"
+    return "counterfactual_simulation"
+
+
+def _truth_label(strategy: str) -> str:
+    if strategy == "recorded":
+        return "Recorded replay: existing trace evidence copied without new execution."
+    return (
+        f"{strategy.title()} counterfactual simulation: branch is deterministic analysis, "
+        "not executed against a live agent runtime."
+    )
 
 
 def _deterministic_replay_start(source_started_at: str, replay_digest: str) -> datetime:

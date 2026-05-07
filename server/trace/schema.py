@@ -20,6 +20,10 @@ class TraceMetadata:
     totalCostUsd: Optional[float] = None
     errorCount: Optional[int] = None
     retryCount: Optional[int] = None
+    providerTraceId: Optional[str] = None
+    framework: Optional[str] = None
+    provider: Optional[str] = None
+    importerWarnings: Optional[List[str]] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TraceMetadata":
@@ -33,6 +37,10 @@ class TraceMetadata:
             totalCostUsd=data.get("totalCostUsd"),
             errorCount=data.get("errorCount"),
             retryCount=data.get("retryCount"),
+            providerTraceId=data.get("providerTraceId"),
+            framework=data.get("framework"),
+            provider=data.get("provider"),
+            importerWarnings=list(data.get("importerWarnings", []) or []) or None,
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -47,6 +55,10 @@ class TraceMetadata:
                 "totalCostUsd": self.totalCostUsd,
                 "errorCount": self.errorCount,
                 "retryCount": self.retryCount,
+                "providerTraceId": self.providerTraceId,
+                "framework": self.framework,
+                "provider": self.provider,
+                "importerWarnings": self.importerWarnings,
             }
         )
 
@@ -137,6 +149,10 @@ class StepSummary:
     preview: Optional[StepPreview] = None
     io: Optional[StepIo] = None
     toolCallId: Optional[str] = None
+    providerSpanId: Optional[str] = None
+    providerParentSpanId: Optional[str] = None
+    framework: Optional[str] = None
+    modelProvider: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "StepSummary":
@@ -158,6 +174,10 @@ class StepSummary:
             preview=StepPreview.from_dict(data.get("preview")),
             io=StepIo.from_dict(data.get("io")),
             toolCallId=data.get("toolCallId"),
+            providerSpanId=data.get("providerSpanId"),
+            providerParentSpanId=data.get("providerParentSpanId"),
+            framework=data.get("framework"),
+            modelProvider=data.get("modelProvider"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -180,6 +200,10 @@ class StepSummary:
                 "preview": self.preview.to_dict() if self.preview else None,
                 "io": self.io.to_dict() if self.io else None,
                 "toolCallId": self.toolCallId,
+                "providerSpanId": self.providerSpanId,
+                "providerParentSpanId": self.providerParentSpanId,
+                "framework": self.framework,
+                "modelProvider": self.modelProvider,
             }
         )
 
@@ -192,6 +216,8 @@ class ReplayInfo:
     createdAt: str
     checkpoints: Optional[Dict[str, str]] = None
     mergedFromTraceIds: Optional[List[str]] = None
+    executionMode: Optional[Literal["recorded_replay", "counterfactual_simulation", "executed_replay"]] = None
+    truthLabel: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: Optional[Dict[str, Any]]) -> Optional["ReplayInfo"]:
@@ -204,6 +230,8 @@ class ReplayInfo:
             createdAt=data.get("createdAt", ""),
             checkpoints=data.get("checkpoints"),
             mergedFromTraceIds=data.get("mergedFromTraceIds"),
+            executionMode=data.get("executionMode"),
+            truthLabel=data.get("truthLabel"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -215,6 +243,8 @@ class ReplayInfo:
                 "createdAt": self.createdAt,
                 "checkpoints": self.checkpoints,
                 "mergedFromTraceIds": self.mergedFromTraceIds,
+                "executionMode": self.executionMode,
+                "truthLabel": self.truthLabel,
             }
         )
 
@@ -320,6 +350,10 @@ class StepDetails:
     preview: Optional[StepPreview]
     io: Optional[StepIo]
     toolCallId: Optional[str]
+    providerSpanId: Optional[str]
+    providerParentSpanId: Optional[str]
+    framework: Optional[str]
+    modelProvider: Optional[str]
     data: Dict[str, Any]
     redaction: Optional[RedactionInfo] = None
 
@@ -343,6 +377,10 @@ class StepDetails:
             preview=summary.preview,
             io=summary.io,
             toolCallId=summary.toolCallId,
+            providerSpanId=summary.providerSpanId,
+            providerParentSpanId=summary.providerParentSpanId,
+            framework=summary.framework,
+            modelProvider=summary.modelProvider,
             data=data,
         )
 
@@ -366,6 +404,10 @@ class StepDetails:
             preview=StepPreview.from_dict(data.get("preview")),
             io=StepIo.from_dict(data.get("io")),
             toolCallId=data.get("toolCallId"),
+            providerSpanId=data.get("providerSpanId"),
+            providerParentSpanId=data.get("providerParentSpanId"),
+            framework=data.get("framework"),
+            modelProvider=data.get("modelProvider"),
             data=data.get("data", {}),
             redaction=RedactionInfo.from_dict(data.get("redaction")),
         )
@@ -391,6 +433,10 @@ class StepDetails:
                     preview=self.preview,
                     io=self.io,
                     toolCallId=self.toolCallId,
+                    providerSpanId=self.providerSpanId,
+                    providerParentSpanId=self.providerParentSpanId,
+                    framework=self.framework,
+                    modelProvider=self.modelProvider,
                 ).to_dict(),
                 "data": self.data,
                 "redaction": self.redaction.to_dict() if self.redaction else None,

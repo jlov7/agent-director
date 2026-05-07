@@ -15,9 +15,10 @@ Run a final abuse/authz/rate-limit/secret-handling hardening pass before public 
 
 ## Authorization + Session Integrity
 
-- Gameplay actions require session membership (`player_id` in session roster).
-- Conflict-safe optimistic versioning rejects stale writes (`409`).
-- Role and cooldown checks prevent illegal ability execution.
+- Trace import and eval endpoints use API key and tenant headers when auth is enabled.
+- Imported traces are assigned to the request tenant before they are published.
+- Eval cases and runs are tenant-scoped.
+- Conflict-safe optimistic versioning rejects stale writes (`409`) on endpoints that support idempotent mutation flows.
 - Safety/reporting actions persist actor and target identities.
 
 ## Secret Handling + Data Safety
@@ -41,5 +42,6 @@ make doctor
 - `server/main.py`
 - `server/mcp/schema.py`
 - `server/tests/test_api.py`
-- `server/tests/test_gameplay_api.py`
+- `server/tests/test_trace_import.py`
+- `server/tests/test_evals_api.py`
 - `server/tests/test_redaction.py`

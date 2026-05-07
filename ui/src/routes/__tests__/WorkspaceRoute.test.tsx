@@ -29,6 +29,10 @@ const defaultProps = {
   governanceBusy: false,
   governanceStatus: null,
   auditEvents: [],
+  evalCases: [],
+  evalRun: null,
+  evalBusy: false,
+  evalStatus: null,
   featureFlags: {
     setupWizardV1: true,
     supportPanelV1: true,
@@ -55,6 +59,8 @@ const defaultProps = {
   onApplyGovernanceRetention: vi.fn(),
   onDeleteActiveTrace: vi.fn(),
   onRefreshGovernance: vi.fn(),
+  onCreateEvalCase: vi.fn(),
+  onRunEvalCases: vi.fn(),
 };
 
 describe('WorkspaceRoute', () => {
@@ -152,5 +158,46 @@ describe('WorkspaceRoute', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Review run health' }));
     expect(onRouteAction).toHaveBeenCalledWith('overview-review-health');
+  });
+
+  it('surfaces trace-to-eval evidence on diagnose route', () => {
+    const onCreateEvalCase = vi.fn();
+    const onRunEvalCases = vi.fn();
+    render(
+      <WorkspaceRoute
+        {...defaultProps}
+        route="diagnose"
+        evalCases={[
+          {
+            id: 'case-1',
+            traceId: 'trace-1',
+            tenantId: 'public',
+            name: 'Timeout regression',
+            assertions: { expectedStatus: 'failed', expectedErrorCount: 1, minStepCount: 2, criticalStepIds: ['s2'] },
+            createdAt: '2026-05-07T10:00:00.000Z',
+          },
+        ]}
+        evalRun={{
+          id: 'run-1',
+          tenantId: 'public',
+          status: 'passed',
+          createdAt: '2026-05-07T10:00:01.000Z',
+          caseCount: 1,
+          passedCount: 1,
+          failedCount: 0,
+          scores: [{ caseId: 'case-1', traceId: 'trace-1', passed: true, score: 1, checks: [] }],
+        }}
+        onCreateEvalCase={onCreateEvalCase}
+        onRunEvalCases={onRunEvalCases}
+      />
+    );
+
+    expect(screen.getByText('Trace-to-eval evidence')).toBeInTheDocument();
+    expect(screen.getByText('Timeout regression')).toBeInTheDocument();
+    expect(screen.getByText('Last run: passed, 1/1 cases passed.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create eval case' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Run eval suite' }));
+    expect(onCreateEvalCase).toHaveBeenCalled();
+    expect(onRunEvalCases).toHaveBeenCalled();
   });
 });

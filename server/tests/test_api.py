@@ -65,6 +65,7 @@ class TestApi(unittest.TestCase):
         ApiHandler.require_auth = False
         ApiHandler.allowed_api_keys = set()
         ApiHandler.default_tenant = "public"
+        ApiHandler.gameplay_enabled = False
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), ApiHandler)
         self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
@@ -87,6 +88,19 @@ class TestApi(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(data.get("openapi"), "3.1.0")
         self.assertIn("/api/replay-jobs", data.get("paths", {}))
+
+    def test_gameplay_api_is_not_public_by_default(self) -> None:
+        get_status, get_data = self._request("GET", "/api/gameplay/sessions")
+        post_status, post_data = self._request(
+            "POST",
+            "/api/gameplay/sessions",
+            {"trace_id": "trace-1", "host_player_id": "host"},
+        )
+
+        self.assertEqual(get_status, 404)
+        self.assertEqual(post_status, 404)
+        self.assertEqual(get_data.get("error"), "Not found")
+        self.assertEqual(post_data.get("error"), "Not found")
 
     def test_compare_idempotency_replays_same_response(self) -> None:
         headers = {"Idempotency-Key": "cmp-1"}

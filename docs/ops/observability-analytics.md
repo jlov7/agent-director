@@ -1,40 +1,43 @@
-# Gameplay Observability + Analytics
+# Observability + Analytics
 
 This runbook defines the release baseline for runtime observability and product telemetry dashboards.
 
 ## Endpoints
 
-- `GET /api/gameplay/observability/summary`
-- `GET /api/gameplay/analytics/funnels`
+- `POST /api/telemetry/events`
+- `GET /api/traces`
+- `GET /api/eval-cases`
+- `GET /api/eval-runs/{run_id}`
 
 ## Observability Summary
 
-`/api/gameplay/observability/summary` returns:
+Release observability should summarize:
 
-- `total_sessions`
-- `running_sessions`
+- imported trace count
+- failed trace count
+- eval case count
+- latest eval run status
 - `avg_latency_ms`
 - `p95_latency_ms`
 - `failure_rate_pct`
-- `challenge_completion_rate_pct`
 - `alerts[]` with severity, threshold, and current value
 
 ### Alert thresholds
 
 - `failure_rate_pct >= 8` -> high
 - `p95_latency_ms >= 1500` -> medium
-- `challenge_completion_rate_pct < 20` with enough volume -> medium
+- latest eval run failed -> high
 
 ## Funnel Dashboard
 
-`/api/gameplay/analytics/funnels` returns:
+Product telemetry should track:
 
 - Funnel stages:
-  - `session_start`
-  - `first_objective_progress`
-  - `first_mission_outcome`
-  - `run_outcome`
-  - `win_outcome`
+  - `trace_imported`
+  - `trace_opened`
+  - `diagnose_started`
+  - `eval_case_created`
+  - `eval_run_completed`
 - Drop-off counters between funnel stages
 - Retention dashboard:
   - `d1_pct`
@@ -43,8 +46,10 @@ This runbook defines the release baseline for runtime observability and product 
 
 ## UI Surface
 
-Gameplay mode includes an **Observability + Funnel Analytics** card showing:
+Agent Director should expose release evidence showing:
 
 - Current metrics and active alerts
 - Funnel stage counts and drop-off context
 - D1/D7/D30 retention percentages
+
+Private experimental gameplay analytics are not part of the public v1 observability surface and require `AGENT_DIRECTOR_ENABLE_GAMEPLAY=1`.

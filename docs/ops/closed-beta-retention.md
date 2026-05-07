@@ -13,7 +13,7 @@ All required before invite rollout:
 - `make verify` passes.
 - `make doctor` passes with fresh `artifacts/doctor.json`.
 - `make scorecard` reports all domains `10/10`.
-- Core gameplay and matrix E2E paths green.
+- Core trace import, diagnose, eval, replay, and matrix E2E paths green.
 
 ## Beta Cohort Plan
 
@@ -25,13 +25,16 @@ All required before invite rollout:
 
 Primary endpoints:
 
-- `GET /api/gameplay/observability/summary`
-- `GET /api/gameplay/analytics/funnels`
+- `POST /api/telemetry/events`
+- `GET /api/traces`
+- `GET /api/eval-cases`
+- `GET /api/eval-runs/{run_id}`
 
 Core metrics:
 
-- funnel drop-off (`session_start` -> `first_objective_progress` -> `run_outcome`)
-- `challenge_completion_rate_pct`
+- funnel drop-off (`trace_imported` -> `trace_opened` -> `eval_case_created` -> `eval_run_completed`)
+- failed trace rate
+- eval pass rate
 - retention (`d1_pct`, `d7_pct`, `d30_pct`)
 
 ## Iteration Loop

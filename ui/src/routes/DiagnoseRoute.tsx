@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ExecutionTimeline, { type RouteTimelineItem } from '../components/journeys/ExecutionTimeline';
 import JourneyActionCard from '../components/journeys/JourneyActionCard';
+import type { EvalCase, EvalRun } from '../types';
 import type { WorkspaceRouteStatus } from './workspaceRouteTypes';
 
 type DiagnoseRouteProps = {
@@ -8,9 +9,15 @@ type DiagnoseRouteProps = {
   lastCompletedActionId: string | null;
   timelineItems: RouteTimelineItem[];
   onRouteAction: (actionId: string) => void;
+  evalCases: EvalCase[];
+  evalRun: EvalRun | null;
+  evalBusy: boolean;
+  evalStatus: string | null;
   onRetryAsyncAction: (id: string) => void;
   onResumeAsyncAction: (id: string) => void;
   onRetryExportTask: (id: string) => void;
+  onCreateEvalCase: () => void;
+  onRunEvalCases: () => void;
 };
 
 export default function DiagnoseRoute({
@@ -18,9 +25,15 @@ export default function DiagnoseRoute({
   lastCompletedActionId,
   timelineItems,
   onRouteAction,
+  evalCases,
+  evalRun,
+  evalBusy,
+  evalStatus,
   onRetryAsyncAction,
   onResumeAsyncAction,
   onRetryExportTask,
+  onCreateEvalCase,
+  onRunEvalCases,
 }: DiagnoseRouteProps) {
   const [timelineOpen, setTimelineOpen] = useState(false);
 
@@ -118,6 +131,36 @@ export default function DiagnoseRoute({
         onCta={() => onRouteAction('diagnose-share-findings')}
         resume={lastCompletedActionId === 'diagnose-share-findings'}
       />
+
+      <article className="workspace-card">
+        <h3>Trace-to-eval evidence</h3>
+        <p>Convert this trace into a repeatable regression case, then run the suite before release.</p>
+        <div className="route-state-actions">
+          <button className="primary-button" type="button" onClick={onCreateEvalCase} disabled={evalBusy}>
+            Create eval case
+          </button>
+          <button className="ghost-button" type="button" onClick={onRunEvalCases} disabled={evalBusy || evalCases.length === 0}>
+            Run eval suite
+          </button>
+        </div>
+        {evalStatus ? <p className="route-state-summary">{evalStatus}</p> : null}
+        {evalRun ? (
+          <p className="route-state-summary">
+            Last run: {evalRun.status}, {evalRun.passedCount}/{evalRun.caseCount} cases passed.
+          </p>
+        ) : null}
+        {evalCases.length ? (
+          <ul className="route-contract-list">
+            {evalCases.slice(0, 3).map((evalCase) => (
+              <li key={evalCase.id}>
+                <strong>{evalCase.name}</strong> · {evalCase.assertions.expectedStatus} · {evalCase.assertions.minStepCount} steps
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="route-state-summary">No eval cases yet for this workspace.</p>
+        )}
+      </article>
 
       <article className="workspace-card">
         <h3>Execution history</h3>

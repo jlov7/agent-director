@@ -2,6 +2,8 @@
 
 Last updated: 2026-02-17
 
+Private experimental note: mission/liveops authoring is retained for non-public gameplay development only. Gameplay APIs require `AGENT_DIRECTOR_ENABLE_GAMEPLAY=1` and are not part of the public Agent Director v1 surface.
+
 ## Objective
 
 Provide an internal, repeatable workflow for creating and validating mission and LiveOps challenge content before release.

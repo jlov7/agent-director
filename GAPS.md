@@ -2,6 +2,80 @@
 
 Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 
+## Frontier Rebuild Status (2026-05-07)
+
+- Baseline evidence: `make doctor` failed on 2026-05-07 with `G6-security=false` and `G8-ci=false`; `verify_strict=pass`.
+- Audit artifact: `docs/audits/2026-05-frontier-audit.md`.
+- Target state: real trace import, provenance preservation, trace-to-eval workflow, truthful replay semantics, and public product focus on agent observability.
+- Final evidence green in this branch: `make verify`, `make verify-frontend`, `make doctor`, and `make scorecard`.
+- Current artifacts: `artifacts/doctor.json` refreshed on 2026-05-07 with all gates true; `artifacts/scorecards.json` refreshed on 2026-05-07 with `70/70` and `all_perfect=true`.
+
+## Frontier P0
+
+### FRONTIER-P0-001: Dependency audit blocked by abandoned layout dependency
+- Evidence: `artifacts/doctor.json` from 2026-05-07 reported `dependency_audit=fail` for `ui > dagre > lodash` high advisory `GHSA-r5fr-rjxr-66jc`.
+- Impacted journey: Security release gate (`G6-security`).
+- Fix strategy: Replace `dagre` with maintained `@dagrejs/dagre` and update graph layout import.
+- Status: `Closed` (2026-05-07, `pnpm -C ui audit --prod --audit-level high` passing)
+
+### FRONTIER-P0-002: Doctor CI evidence rejected valid strict verification run
+- Evidence: `artifacts/doctor.json` from 2026-05-07 reported `ci_status=fail` despite recent successful `main` `verify-strict` workflow evidence.
+- Impacted journey: CI release gate (`G8-ci`).
+- Fix strategy: Prefer recent successful `verify` but accept recent successful `verify-strict` as release verification fallback.
+- Status: `Closed` (2026-05-07, `server.tests.test_doctor_ci` passing)
+
+### FRONTIER-P0-003: Public product surface drifted into gameplay APIs
+- Evidence: Public API/docs listed gameplay endpoints unrelated to the agent observability thesis.
+- Impacted journey: Product clarity and launch trust.
+- Fix strategy: Keep gameplay private and disabled by default via `AGENT_DIRECTOR_ENABLE_GAMEPLAY=1`; remove public docs references.
+- Status: `Closed` (2026-05-07, API regression confirms gameplay returns `404` by default)
+
+### FRONTIER-P0-004: No real trace import API for current agent observability ecosystems
+- Evidence: No `POST /api/traces/import` existed for Agent Director JSON, OpenAI Agents-style traces, OTel GenAI spans, or OpenInference spans.
+- Impacted journey: Production adoption and real trace-to-debug workflows.
+- Fix strategy: Add typed import adapters, provenance fields, importer warnings, tenant assignment, audit events, OpenAPI/docs/client updates, and tests.
+- Status: `Closed` (2026-05-07, `server.tests.test_trace_import` passing)
+
+## Frontier P1
+
+### FRONTIER-P1-001: Failed traces could not become deterministic eval evidence
+- Evidence: No eval-case or eval-run API existed.
+- Impacted journey: Trace-to-improvement loop and release confidence.
+- Fix strategy: Add eval-case creation from trace evidence, deterministic eval runs, persisted eval records, and Diagnose-route evidence controls.
+- Status: `Closed` (2026-05-07, `server.tests.test_evals_api` and focused UI tests passing)
+
+### FRONTIER-P1-002: Replay semantics did not distinguish simulation from execution
+- Evidence: Replay payloads lacked an explicit execution truth label.
+- Impacted journey: Operator trust and correctness of replay claims.
+- Fix strategy: Add `executionMode` and `truthLabel` to replay metadata and UI/API types.
+- Status: `Closed` (2026-05-07, replay regression test passing)
+
+### FRONTIER-P1-003: Imported trace needs full route-shell E2E coverage
+- Evidence: Import adapters and UI API wrappers are tested, but no browser journey imports a fixture, opens it, creates an eval case, and verifies replay/eval truth copy end-to-end.
+- Impacted journey: Production confidence for the new frontier loop.
+- Fix strategy: Add an E2E fixture flow through Diagnose route and eval evidence panel.
+- Status: `Open`
+
+### FRONTIER-P1-004: `App.tsx` route orchestration remains too large
+- Evidence: `ui/src/App.tsx` is still overgrown and increases review risk for product waves.
+- Impacted journey: Engineering velocity and regression risk.
+- Fix strategy: Split orchestration boundaries only where future route/eval/import changes touch them.
+- Status: `In Progress`
+
+## Frontier P2
+
+### FRONTIER-P2-001: Eval engine is deterministic but shallow
+- Evidence: Current evals check trace status, error count, step count, and critical-step presence; no semantic evaluator adapters exist yet.
+- Impacted journey: Frontier parity with richer observability/eval systems.
+- Fix strategy: Add semantic evaluator adapters after deterministic v1 loop stabilizes.
+- Status: `Open`
+
+### FRONTIER-P2-002: Imported token/cost provenance is not yet a rich UI analysis surface
+- Evidence: Import schema preserves token metadata, but the UI does not yet provide cost/latency rollups for imported traces.
+- Impacted journey: Cost and performance diagnosis.
+- Fix strategy: Add imported-trace cost/latency summaries and regression tests.
+- Status: `Open`
+
 ## UX Reboot Closure (2026-02-20)
 
 - UXR-001 through UXR-100 are closed with current evidence artifacts and verification runs.

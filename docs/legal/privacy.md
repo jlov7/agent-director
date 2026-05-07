@@ -7,14 +7,14 @@ This notice explains what data Agent Director processes and how it is handled.
 ## 1. Data We Process
 
 - Trace metadata and step data required for playback, compare, and matrix workflows.
-- Account/session data required for multiplayer gameplay and collaboration.
+- Account/session data required for collaboration.
 - Operational telemetry (errors, latency, aggregate usage) for reliability and balancing.
 
 ## 2. Purpose of Processing
 
 - Deliver core product functionality.
 - Maintain security and service reliability.
-- Improve gameplay balance and onboarding outcomes.
+- Improve onboarding outcomes and collaboration quality.
 
 ## 3. Sensitive Data Handling
 

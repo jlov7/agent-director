@@ -1,4 +1,4 @@
-import dagre from 'dagre';
+import * as dagre from '@dagrejs/dagre';
 import type { StepSummary } from '../types';
 
 export type FlowNode = {

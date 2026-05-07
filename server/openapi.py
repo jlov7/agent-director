@@ -48,6 +48,44 @@ def build_openapi_spec() -> Dict[str, Any]:
                     "responses": {"200": {"description": "Trace list"}},
                 }
             },
+            "/api/traces/import": {
+                "post": {
+                    "summary": "Import a normalized agent trace",
+                    "description": (
+                        "Accepts Agent Director JSON, OpenAI Agents-style spans, "
+                        "OpenTelemetry GenAI spans, or OpenInference spans and normalizes "
+                        "them into TraceSummary plus StepDetails records."
+                    ),
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": ["source", "payload"],
+                                    "properties": {
+                                        "source": {
+                                            "type": "string",
+                                            "enum": [
+                                                "agent_director",
+                                                "openai_agents",
+                                                "otel_genai",
+                                                "openinference",
+                                            ],
+                                        },
+                                        "payload": {"type": "object"},
+                                        "options": {"type": "object"},
+                                    },
+                                }
+                            }
+                        },
+                    },
+                    "responses": {
+                        "201": {"description": "Imported trace with importer warnings"},
+                        "400": {"description": "Unsupported source or invalid payload"},
+                    },
+                }
+            },
             "/api/traces/{trace_id}": {
                 "get": {
                     "summary": "Get trace summary",
@@ -85,6 +123,11 @@ def build_openapi_spec() -> Dict[str, Any]:
             "/api/replay-jobs": {
                 "post": {
                     "summary": "Create replay job",
+                    "description": (
+                        "Creates deterministic replay or matrix scenarios. Replay output "
+                        "includes executionMode/truthLabel metadata so recorded copies, "
+                        "counterfactual simulations, and future executed replays are not conflated."
+                    ),
                     "parameters": [
                         {
                             "name": "Idempotency-Key",
@@ -156,6 +199,74 @@ def build_openapi_spec() -> Dict[str, Any]:
                 "post": {
                     "summary": "Ingest telemetry events",
                     "responses": {"202": {"description": "Telemetry events accepted"}},
+                }
+            },
+            "/api/eval-cases": {
+                "get": {
+                    "summary": "List eval cases",
+                    "responses": {"200": {"description": "Tenant-scoped eval case list"}},
+                }
+            },
+            "/api/eval-cases/from-trace": {
+                "post": {
+                    "summary": "Create an eval case from a trace",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": ["trace_id"],
+                                    "properties": {
+                                        "trace_id": {"type": "string"},
+                                        "step_id": {"type": "string"},
+                                        "name": {"type": "string"},
+                                    },
+                                }
+                            }
+                        },
+                    },
+                    "responses": {
+                        "201": {"description": "Eval case created from trace evidence"},
+                        "404": {"description": "Trace not found for tenant"},
+                    },
+                }
+            },
+            "/api/eval-runs": {
+                "post": {
+                    "summary": "Run deterministic eval cases",
+                    "requestBody": {
+                        "required": False,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "case_ids": {
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                        }
+                                    },
+                                }
+                            }
+                        },
+                    },
+                    "responses": {
+                        "201": {"description": "Eval run with deterministic scores"},
+                        "400": {"description": "No cases available or unknown case"},
+                    },
+                }
+            },
+            "/api/eval-runs/{run_id}": {
+                "get": {
+                    "summary": "Fetch eval run",
+                    "parameters": [
+                        {"name": "run_id", "in": "path", "required": True, "schema": {"type": "string"}}
+                    ],
+                    "responses": {
+                        "200": {"description": "Eval run"},
+                        "404": {"description": "Eval run not found for tenant"},
+                    },
                 }
             },
             "/api/admin/governance/retention": {

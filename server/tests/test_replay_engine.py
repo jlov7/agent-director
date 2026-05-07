@@ -123,6 +123,55 @@ class TestReplayEngine(unittest.TestCase):
         self.assertEqual(set(replay_a.replay.checkpoints.keys()), {"s1", "s2", "s3"})  # type: ignore[union-attr]
         self.assertEqual(replay_a.replay.checkpoints, replay_b.replay.checkpoints)  # type: ignore[union-attr]
 
+    def test_replay_metadata_labels_simulation_truthfully(self) -> None:
+        trace = TraceSummary(
+            id="trace-1",
+            name="Replay source",
+            startedAt="2026-01-27T10:00:00.000Z",
+            endedAt="2026-01-27T10:00:02.000Z",
+            status="completed",
+            metadata=TraceMetadata(
+                source="manual",
+                agentName="TestAgent",
+                modelId="demo",
+                wallTimeMs=2000,
+            ),
+            steps=[
+                StepSummary(
+                    id="s1",
+                    index=0,
+                    type="llm_call",
+                    name="plan",
+                    startedAt="2026-01-27T10:00:00.000Z",
+                    endedAt="2026-01-27T10:00:01.000Z",
+                    durationMs=1000,
+                    status="completed",
+                    childStepIds=["s2"],
+                ),
+                StepSummary(
+                    id="s2",
+                    index=1,
+                    type="tool_call",
+                    name="search",
+                    startedAt="2026-01-27T10:00:01.000Z",
+                    endedAt="2026-01-27T10:00:02.000Z",
+                    durationMs=1000,
+                    status="completed",
+                    childStepIds=[],
+                    parentStepId="s1",
+                ),
+            ],
+        )
+
+        recorded = replay_from_step(trace, "s1", "recorded", {})
+        hybrid = replay_from_step(trace, "s1", "hybrid", {"prompt": "shorter"})
+        live = replay_from_step(trace, "s1", "live", {"prompt": "shorter"})
+
+        self.assertEqual(recorded.replay.executionMode, "recorded_replay")  # type: ignore[union-attr]
+        self.assertEqual(hybrid.replay.executionMode, "counterfactual_simulation")  # type: ignore[union-attr]
+        self.assertEqual(live.replay.executionMode, "counterfactual_simulation")  # type: ignore[union-attr]
+        self.assertIn("not executed", hybrid.replay.truthLabel.lower())  # type: ignore[union-attr]
+
 
 if __name__ == "__main__":
     unittest.main()

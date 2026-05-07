@@ -38,3 +38,7 @@ def api_keys() -> set[str]:
 def default_tenant_id() -> str:
     tenant = os.environ.get("AGENT_DIRECTOR_DEFAULT_TENANT", "public").strip().lower()
     return tenant or "public"
+
+
+def gameplay_enabled() -> bool:
+    return os.environ.get("AGENT_DIRECTOR_ENABLE_GAMEPLAY", "0") == "1"

@@ -21,9 +21,11 @@ from .config import (
     data_dir,
     default_tenant_id,
     demo_dir,
+    gameplay_enabled,
     safe_export_enabled,
 )
 from .extensions.loader import ExtensionRegistry
+from .evals import EvalStore
 from .gameplay import ConflictError, GameplayStore
 from .mcp.tools.compare_traces import execute as compare_execute
 from .mcp.tools.get_step_details import execute as step_execute
@@ -33,6 +35,7 @@ from .mcp.schema import validate_input
 from .replay.jobs import ReplayJobStore
 from .replay.merge import merge_replays
 from .trace.investigator import investigate_trace
+from .trace.importers import import_trace
 from .trace.live import LiveTraceBroker
 from .trace.query import run_trace_query
 from .trace.store import TraceStore
@@ -56,11 +59,13 @@ class ApiHandler(BaseHTTPRequestHandler):
     replay_jobs: ReplayJobStore
     live_broker: LiveTraceBroker
     extension_registry: ExtensionRegistry
+    eval_store: EvalStore
     gameplay_store: GameplayStore
     ops_store: OpsStore
     require_auth = False
     allowed_api_keys: set[str] = set()
     default_tenant = "public"
+    gameplay_enabled = False
     rate_limit_window_s = 60
     rate_limit_max_requests = 240
     _rate_limit_hits: Dict[str, deque[float]] = defaultdict(deque)
@@ -183,6 +188,9 @@ class ApiHandler(BaseHTTPRequestHandler):
             self._stream_latest_trace(tenant_id)
             return
         if parsed.path.startswith("/api/stream/gameplay/"):
+            if not self.gameplay_enabled:
+                self._send_json(404, {"error": "Not found"})
+                return
             path_parts = [p for p in parsed.path.split("/") if p]
             if len(path_parts) == 4:
                 self._stream_gameplay_session(path_parts[3])
@@ -211,6 +219,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                 self._send_json(200, {"events": self.ops_store.list_audit_events(tenant_id, limit)})
                 return
             if path_parts[:2] == ["api", "gameplay"]:
+                if not self.gameplay_enabled:
+                    self._send_json(404, {"error": "Not found"})
+                    return
                 if path_parts == ["api", "gameplay", "sessions"]:
                     self._send_json(200, {"sessions": self.gameplay_store.list_sessions()})
                     return
@@ -247,6 +258,19 @@ class ApiHandler(BaseHTTPRequestHandler):
                     return
             if parsed.path == "/api/extensions":
                 self._send_json(200, {"extensions": self.extension_registry.list_extensions()})
+                return
+            if path_parts == ["api", "eval-cases"]:
+                self._send_json(
+                    200,
+                    {"evalCases": [case.to_dict() for case in self.eval_store.list_cases(tenant_id)]},
+                )
+                return
+            if path_parts[:2] == ["api", "eval-runs"] and len(path_parts) == 3:
+                run = self.eval_store.get_run(path_parts[2], tenant_id)
+                if not run:
+                    self._send_json(404, {"error": f"Eval run not found: {path_parts[2]}"})
+                    return
+                self._send_json(200, {"evalRun": run.to_dict()})
                 return
             if path_parts[:2] == ["api", "replay-jobs"]:
                 if len(path_parts) == 3:
@@ -384,6 +408,62 @@ class ApiHandler(BaseHTTPRequestHandler):
                 idempotency_key, request_hash, handled = self._idempotency_precheck(tenant_id, parsed.path, body)
                 if handled:
                     return
+            if path_parts == ["api", "traces", "import"]:
+                imported = import_trace(
+                    str(body.get("source") or ""),
+                    body.get("payload") if isinstance(body.get("payload"), dict) else {},
+                    body.get("options") if isinstance(body.get("options"), dict) else None,
+                )
+                self.store.ingest_trace(imported.trace, imported.step_details)
+                self.ops_store.assign_trace_tenant(imported.trace.id, tenant_id)
+                self.live_broker.publish_trace(imported.trace)
+                self.ops_store.log_audit_event(
+                    tenant_id=tenant_id,
+                    actor=actor_id,
+                    event_type="trace.imported",
+                    details={
+                        "traceId": imported.trace.id,
+                        "source": body.get("source"),
+                        "warnings": imported.warnings,
+                    },
+                )
+                self._send_json(201, {"trace": imported.trace.to_dict(), "warnings": imported.warnings})
+                return
+            if path_parts == ["api", "eval-cases", "from-trace"]:
+                trace_id = str(body.get("trace_id") or "")
+                self._assert_trace_access(trace_id, tenant_id)
+                case = self.eval_store.create_case_from_trace(
+                    self.store,
+                    trace_id=trace_id,
+                    tenant_id=tenant_id,
+                    step_id=str(body.get("step_id") or "") or None,
+                    name=str(body.get("name") or "") or None,
+                )
+                self.ops_store.log_audit_event(
+                    tenant_id=tenant_id,
+                    actor=actor_id,
+                    event_type="eval.case.created",
+                    details={"caseId": case.id, "traceId": trace_id},
+                )
+                self._send_json(201, {"evalCase": case.to_dict()})
+                return
+            if path_parts == ["api", "eval-runs"]:
+                case_ids = body.get("case_ids")
+                if case_ids is not None and not isinstance(case_ids, list):
+                    raise ValueError("case_ids must be a list when provided")
+                run = self.eval_store.run_cases(
+                    self.store,
+                    case_ids=[str(case_id) for case_id in case_ids] if isinstance(case_ids, list) else None,
+                    tenant_id=tenant_id,
+                )
+                self.ops_store.log_audit_event(
+                    tenant_id=tenant_id,
+                    actor=actor_id,
+                    event_type="eval.run.created",
+                    details={"runId": run.id, "status": run.status},
+                )
+                self._send_json(201, {"evalRun": run.to_dict()})
+                return
             if path_parts == ["api", "telemetry", "events"]:
                 events = body.get("events")
                 if not isinstance(events, list):
@@ -448,6 +528,9 @@ class ApiHandler(BaseHTTPRequestHandler):
                 self._send_json(200, {"deleted": True, "traceId": trace_id})
                 return
             if path_parts[:2] == ["api", "gameplay"]:
+                if not self.gameplay_enabled:
+                    self._send_json(404, {"error": "Not found"})
+                    return
                 if path_parts == ["api", "gameplay", "matchmaking"]:
                     preferred_roles = body.get("preferred_roles")
                     if preferred_roles is not None and not isinstance(preferred_roles, list):
@@ -856,7 +939,9 @@ def main() -> None:
     ApiHandler.replay_jobs = ReplayJobStore(base_data_dir / "replay_jobs.json")
     ApiHandler.live_broker = LiveTraceBroker()
     ApiHandler.extension_registry = ExtensionRegistry()
+    ApiHandler.eval_store = EvalStore(base_data_dir / "evals.json")
     ApiHandler.gameplay_store = GameplayStore(base_data_dir)
+    ApiHandler.gameplay_enabled = gameplay_enabled()
     ApiHandler.require_auth = api_auth_required()
     ApiHandler.allowed_api_keys = api_keys()
     ApiHandler.default_tenant = default_tenant_id()

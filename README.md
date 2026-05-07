@@ -36,10 +36,12 @@ This repository is organized to support two audiences at once:
 
 - **Observe:** Play a truthful wall-clock timeline with overlap lanes.
 - **Inspect:** Open redacted step details, view causal overlays, and inspect structure.
-- **Direct:** Replay from any point, compare outcomes, and export safe artifacts.
+- **Improve:** Import real agent traces, create eval cases from failures, run deterministic evals, replay truthfully, compare outcomes, and export safe artifacts.
 
 Key capabilities:
 - Cinema, Flow, Compare, and Matrix analysis modes.
+- Typed trace import for Agent Director JSON, OpenAI Agents-style spans, OpenTelemetry GenAI spans, and OpenInference spans.
+- Trace-to-eval workflows that turn failed or interesting runs into deterministic release evidence.
 - Route-shell journeys (`Review`, `Triage`, `Diagnose`, `Coordinate`, `Configure`) with explicit outcomes and resume markers.
 - Guided-first onboarding with a clean first-run gateway, progressive disclosure, default focused mode, and explicit "Open analysis canvas" opt-in.
 - Director's Cut replay with deterministic invalidation + diff.
@@ -81,7 +83,7 @@ flowchart LR
     B1["Ingestion + validation"]
     B2["Trace store\nSQLite + JSON payloads"]
     B3["HTTP + SSE API"]
-    B4["Replay + diff engine"]
+    B4["Replay + eval engine"]
     B5["Safety layer\nredaction + safe export"]
   end
 
@@ -170,6 +172,7 @@ Useful env vars:
 | `AGENT_DIRECTOR_SAFE_EXPORT` | `0` | Forces redaction-safe exports on step detail responses. |
 | `AGENT_DIRECTOR_MCP_TRANSPORT` | host default | MCP transport (`stdio` when required by host). |
 | `AGENT_DIRECTOR_UI_URL` | `http://127.0.0.1:5173` | UI URL surfaced by MCP metadata. |
+| `AGENT_DIRECTOR_ENABLE_GAMEPLAY` | `0` | Enables private experimental gameplay APIs. Disabled in the public product by default. |
 
 ### UI
 
@@ -212,6 +215,9 @@ Base URL (default): `http://127.0.0.1:8787`
 Common endpoints:
 - `GET /api/health`
 - `GET /api/traces?latest=1`
+- `POST /api/traces/import`
+- `POST /api/eval-cases/from-trace`
+- `POST /api/eval-runs`
 - `POST /api/traces/{trace_id}/replay`
 - `POST /api/compare`
 - `POST /api/replay-jobs`
@@ -266,6 +272,7 @@ This layer complements, but does not replace, deterministic Playwright visual ga
 - UX review checklist: [`docs/ux-review-day-checklist.md`](docs/ux-review-day-checklist.md)
 - UX simplification final report: [`docs/uxr2-final-report.md`](docs/uxr2-final-report.md)
 - UX v3 research + implementation plan: [`docs/plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md`](docs/plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md)
+- Frontier audit: [`docs/audits/2026-05-frontier-audit.md`](docs/audits/2026-05-frontier-audit.md)
 
 ## Deployment notes
 

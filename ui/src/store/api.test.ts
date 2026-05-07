@@ -23,6 +23,11 @@ import {
   subscribeToLatestTrace,
   runTraceQuery,
   fetchInvestigation,
+  importTracePayload,
+  createEvalCaseFromTrace,
+  fetchEvalCases,
+  runEvalCases,
+  fetchEvalRun,
   fetchComments,
   createComment,
   listExtensions,
@@ -136,6 +141,64 @@ describe('API Layer', () => {
 
       const traces = await fetchTraces();
       expect(traces[0].id).toBe(demoTrace.id);
+    });
+  });
+
+  describe('trace import and eval APIs', () => {
+    it('imports typed trace payloads', async () => {
+      const trace = { ...demoTrace, id: 'imported-1', name: 'Imported' } as TraceSummary;
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ trace, warnings: ['missing optional span event'] }),
+      });
+
+      const result = await importTracePayload('otel_genai', { spans: [] });
+
+      expect(result?.trace.id).toBe('imported-1');
+      expect(result?.warnings).toEqual(['missing optional span event']);
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/traces/import'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ source: 'otel_genai', payload: { spans: [] }, options: undefined }),
+        })
+      );
+    });
+
+    it('creates and runs eval cases', async () => {
+      const evalCase = {
+        id: 'case-1',
+        traceId: 'trace-1',
+        tenantId: 'public',
+        name: 'Trace regression',
+        assertions: { expectedStatus: 'completed', expectedErrorCount: 0, minStepCount: 1, criticalStepIds: [] },
+        createdAt: '2026-05-07T10:00:00.000Z',
+      };
+      const evalRun = {
+        id: 'run-1',
+        tenantId: 'public',
+        status: 'passed',
+        createdAt: '2026-05-07T10:00:01.000Z',
+        caseCount: 1,
+        passedCount: 1,
+        failedCount: 0,
+        scores: [{ caseId: 'case-1', traceId: 'trace-1', passed: true, score: 1, checks: [] }],
+      };
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ evalCase }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ evalCases: [evalCase] }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ evalRun }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ evalRun }) });
+
+      const created = await createEvalCaseFromTrace('trace-1', 's1');
+      const listed = await fetchEvalCases();
+      const run = await runEvalCases(['case-1']);
+      const fetchedRun = await fetchEvalRun('run-1');
+
+      expect(created?.id).toBe('case-1');
+      expect(listed).toHaveLength(1);
+      expect(run?.status).toBe('passed');
+      expect(fetchedRun?.id).toBe('run-1');
     });
   });
 

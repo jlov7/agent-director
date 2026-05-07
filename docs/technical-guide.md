@@ -29,11 +29,18 @@ Primary implementation surfaces:
 - Trace summaries are list-safe and optimized for timeline rendering.
 - Step details are fetched lazily on demand.
 - Redaction metadata is included for safe handling and auditability.
+- Imported traces preserve provider trace/span provenance, framework/source metadata, model/provider details, token metrics, and importer warnings where available.
 
 ### Replay + compare
 - Replay branches are anchored to a source step and strategy.
 - Invalidation is deterministic relative to dependency boundaries.
 - Compare alignment is stable via identifiers and timing fallbacks.
+- Replay metadata separates recorded copies from counterfactual simulations; simulated replay is not presented as live agent re-execution.
+
+### Eval loop
+- Failed or interesting traces can be promoted into eval cases.
+- Eval runs are deterministic checks against current trace state.
+- Eval case/run APIs provide release evidence for trace-to-improvement workflows.
 
 ### Matrix jobs
 - Batch scenarios execute as replay jobs.
@@ -44,8 +51,9 @@ Primary implementation surfaces:
 
 Core endpoint families:
 - `/api/traces/*` for run querying and replay.
+- `/api/traces/import` for typed trace ingestion.
+- `/api/eval-cases/*` and `/api/eval-runs/*` for trace-to-eval workflows.
 - `/api/replay-jobs/*` for matrix orchestration.
-- `/api/gameplay/*` for gameplay/session systems.
 - `/api/stream/*` for SSE updates.
 
 Full reference: [`api-reference.md`](api-reference.md)

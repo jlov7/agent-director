@@ -13,6 +13,7 @@ This is an implementation-level reference for the current server in `server/main
 
 - `GET /api/traces`
 - `GET /api/traces?latest=1`
+- `POST /api/traces/import`
 - `GET /api/traces/{trace_id}`
 - `GET /api/traces/{trace_id}/investigate`
 - `GET /api/traces/{trace_id}/comments`
@@ -23,6 +24,27 @@ This is an implementation-level reference for the current server in `server/main
 - `POST /api/compare`
 - `POST /api/replays/merge`
 
+`POST /api/traces/import` accepts:
+
+```json
+{
+  "source": "agent_director | openai_agents | otel_genai | openinference",
+  "payload": {},
+  "options": {}
+}
+```
+
+Imported traces are normalized into existing trace/step contracts. Provenance fields include provider trace ID, provider span ID, provider parent span ID, framework/source, model/provider metadata, token/cost details, and importer warnings when available.
+
+## Eval Loop
+
+- `GET /api/eval-cases`
+- `POST /api/eval-cases/from-trace`
+- `POST /api/eval-runs`
+- `GET /api/eval-runs/{run_id}`
+
+Eval cases can be created from failed or interesting trace steps. Eval runs are deterministic checks against current trace state and return per-case scores plus pass/fail counts.
+
 ## Replay Jobs (Matrix)
 
 - `POST /api/replay-jobs`
@@ -32,44 +54,7 @@ This is an implementation-level reference for the current server in `server/main
 - `POST /api/replay-jobs/{job_id}/cancel`
 - `GET /api/replay-dead-letters`
 
-## Gameplay
-
-### Sessions
-
-- `GET /api/gameplay/sessions`
-- `GET /api/gameplay/sessions/{session_id}`
-- `POST /api/gameplay/sessions`
-- `POST /api/gameplay/sessions/{session_id}/join`
-- `POST /api/gameplay/sessions/{session_id}/leave`
-- `POST /api/gameplay/sessions/{session_id}/reconnect`
-- `POST /api/gameplay/sessions/{session_id}/action`
-
-### Profiles
-
-- `GET /api/gameplay/profiles/{player_id}`
-- `POST /api/gameplay/profiles/{player_id}/skills/unlock`
-- `POST /api/gameplay/profiles/{player_id}/loadout/equip`
-
-### Social
-
-- `GET /api/gameplay/friends/{player_id}`
-- `POST /api/gameplay/friends/invite`
-- `POST /api/gameplay/friends/accept`
-
-### Guilds
-
-- `POST /api/gameplay/guilds`
-- `GET /api/gameplay/guilds/{guild_id}`
-- `POST /api/gameplay/guilds/{guild_id}/join`
-- `POST /api/gameplay/guilds/{guild_id}/events`
-- `POST /api/gameplay/guilds/{guild_id}/events/{event_id}/complete`
-
-### LiveOps + Analytics
-
-- `GET /api/gameplay/liveops/current`
-- `POST /api/gameplay/liveops/advance-week`
-- `GET /api/gameplay/observability/summary`
-- `GET /api/gameplay/analytics/funnels`
+Replay payloads include truth metadata. `recorded_replay` means an existing trace was copied without new execution, `counterfactual_simulation` means deterministic analysis was generated without running the live agent runtime, and `executed_replay` is reserved for future actual re-execution.
 
 ## Extensions
 
@@ -88,7 +73,10 @@ This is an implementation-level reference for the current server in `server/main
 ## Streaming (SSE)
 
 - `GET /api/stream/traces/latest`
-- `GET /api/stream/gameplay/{session_id}`
+
+## Private Experimental Surfaces
+
+Gameplay APIs are not part of the public v1 interface. They remain disabled by default and require `AGENT_DIRECTOR_ENABLE_GAMEPLAY=1` in private development environments.
 
 ## Common Response Semantics
 

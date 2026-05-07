@@ -1,5 +1,7 @@
 # Gameplay Core Loop (v1)
 
+Private experimental note: this document is retained for non-public development only. Gameplay APIs require `AGENT_DIRECTOR_ENABLE_GAMEPLAY=1` and are not part of the public Agent Director v1 surface.
+
 Target session length: **18-22 minutes**.
 
 ## Loop Stages

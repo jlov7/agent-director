@@ -2,6 +2,8 @@
 
 Last updated: 2026-02-17
 
+Private experimental note: gameplay APIs are not part of the public v1 product surface. They require `AGENT_DIRECTOR_ENABLE_GAMEPLAY=1` and remain outside public API/docs until explicitly approved.
+
 ## Objective
 
 Keep gameplay state server-authoritative and reject client-side attempts to forge progression, rewards, or session state.

@@ -2,6 +2,8 @@
 
 Last updated: 2026-02-17
 
+Private experimental note: gameplay monetization concepts are not part of the public Agent Director v1 product surface. Gameplay APIs require `AGENT_DIRECTOR_ENABLE_GAMEPLAY=1` and need separate approval before any commercial rollout.
+
 ## Product Principle
 
 Agent Director monetization must never provide gameplay power advantages. Paid items are cosmetic, vanity, or convenience-only.

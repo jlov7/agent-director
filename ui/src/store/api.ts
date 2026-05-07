@@ -1,5 +1,7 @@
 import type {
   ExtensionDefinition,
+  EvalCase,
+  EvalRun,
   GameplayGuild,
   GameplaySocialGraph,
   GameplayAnalyticsFunnelSummary,
@@ -13,6 +15,7 @@ import type {
   ReplayScenarioInput,
   StepDetails,
   TraceComment,
+  TraceImportResult,
   TraceInsights,
   TraceQueryResult,
   TraceSummary,
@@ -132,6 +135,53 @@ export async function fetchTrace(traceId: string): Promise<{ trace: TraceSummary
   );
   if (payload?.trace) return payload;
   return { trace: demoTrace as TraceSummary };
+}
+
+export async function importTracePayload(
+  source: 'agent_director' | 'openai_agents' | 'otel_genai' | 'openinference',
+  payload: Record<string, unknown>,
+  options?: Record<string, unknown>
+): Promise<TraceImportResult | null> {
+  if (FORCE_DEMO) return null;
+  return safePostJson<TraceImportResult>(`${API_BASE}/api/traces/import`, {
+    source,
+    payload,
+    options,
+  });
+}
+
+export async function createEvalCaseFromTrace(
+  traceId: string,
+  stepId?: string,
+  name?: string
+): Promise<EvalCase | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ evalCase: EvalCase }>(`${API_BASE}/api/eval-cases/from-trace`, {
+    trace_id: traceId,
+    step_id: stepId,
+    name,
+  });
+  return payload?.evalCase ?? null;
+}
+
+export async function fetchEvalCases(): Promise<EvalCase[]> {
+  if (FORCE_DEMO) return [];
+  const payload = await safeFetchJson<{ evalCases: EvalCase[] }>(`${API_BASE}/api/eval-cases`);
+  return payload?.evalCases ?? [];
+}
+
+export async function runEvalCases(caseIds?: string[]): Promise<EvalRun | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safePostJson<{ evalRun: EvalRun }>(`${API_BASE}/api/eval-runs`, {
+    case_ids: caseIds,
+  });
+  return payload?.evalRun ?? null;
+}
+
+export async function fetchEvalRun(runId: string): Promise<EvalRun | null> {
+  if (FORCE_DEMO) return null;
+  const payload = await safeFetchJson<{ evalRun: EvalRun }>(`${API_BASE}/api/eval-runs/${encodeURIComponent(runId)}`);
+  return payload?.evalRun ?? null;
 }
 
 // Demo payload data for step details

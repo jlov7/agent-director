@@ -1,4 +1,5 @@
 import type { RouteTimelineItem } from '../components/journeys/ExecutionTimeline';
+import type { EvalCase, EvalRun } from '../types';
 import type { FeatureFlags } from '../utils/saasUx';
 import type { UxRebootRoute } from './routeConfig';
 
@@ -60,6 +61,10 @@ export type WorkspaceRouteProps = {
     eventType: string;
     createdAt: string;
   }>;
+  evalCases: EvalCase[];
+  evalRun: EvalRun | null;
+  evalBusy: boolean;
+  evalStatus: string | null;
   featureFlags: FeatureFlags;
   onRouteAction: (actionId: string) => void;
   onRetryAsyncAction: (id: string) => void;
@@ -81,4 +86,6 @@ export type WorkspaceRouteProps = {
   onApplyGovernanceRetention: () => void;
   onDeleteActiveTrace: () => void;
   onRefreshGovernance: () => void;
+  onCreateEvalCase: () => void;
+  onRunEvalCases: () => void;
 };
