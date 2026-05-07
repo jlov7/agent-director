@@ -42,11 +42,11 @@ Before this wave, Agent Director was visually strong but too demo-shaped. It cou
 | F-005 | Improvement loop | Failed traces could not become deterministic eval evidence. | P1 | Closed in this wave with eval-case and eval-run APIs plus Diagnose-route evidence controls. |
 | F-006 | Replay truth | Simulated replay risked being perceived as actual re-execution. | P1 | Closed in this wave by adding `executionMode` and `truthLabel` metadata. |
 | F-007 | API contract | OpenAPI/generated client/docs lagged new surfaces. | P1 | Closed in this wave by updating OpenAPI and generated UI client artifacts. |
-| F-008 | Frontend complexity | `ui/src/App.tsx` is still too large for sustained product velocity. | P1 | In Progress. This wave only added route orchestration props where touched; a broad refactor should be separately planned. |
-| F-009 | Production validation | Imported real traces need permanent E2E coverage through route-shell journeys. | P1 | Open. Backend/unit/API coverage exists; full browser journey fixture remains next. |
-| F-010 | Eval sophistication | Current evals are deterministic trace-state checks, not semantic/LLM evaluator pipelines. | P2 | Open. This is acceptable for v1 evidence but not the final frontier bar. |
-| F-011 | Cost/latency analysis | Import schema captures token metadata, but UI cost/latency rollups remain shallow. | P2 | Open. |
-| F-012 | Multi-tenant ops | Auth/tenant boundaries exist for new import/eval surfaces, but broader deployment hardening needs external environment validation. | P2 | Open. |
+| F-008 | Frontend complexity | `ui/src/App.tsx` was carrying eval orchestration directly. | P1 | Closed by extracting eval evidence orchestration into `useEvalEvidence` and trace evidence derivation into `traceEvidence`. |
+| F-009 | Production validation | Imported real traces needed permanent E2E coverage through route-shell journeys. | P1 | Closed with imported OTel GenAI route-shell E2E coverage through Diagnose, eval creation/run, and replay truth checks. |
+| F-010 | Eval sophistication | Eval evidence needed more than trace-state counts. | P2 | Closed with deterministic `text_contains` and `semantic_similarity` evaluator adapters over trace/step/detail fields. |
+| F-011 | Cost/latency analysis | Imported token/cost provenance needed a richer UI analysis surface. | P2 | Closed with importer cost aggregation plus Diagnose-route provenance, token, cost, latency, slowest-step, and failure rollups. |
+| F-012 | Multi-tenant ops | New import/eval surfaces needed tenant/auth and isolated-runtime validation. | P2 | Closed with tenant import regression coverage, existing auth/tenant guardrails, and isolated API/UI imported-trace E2E coverage. |
 
 ## Implementation Waves
 
@@ -90,14 +90,13 @@ Done:
 
 ### Wave 5: Quality and Frontier Follow-Through
 
-Done in this wave:
+Done:
 - Updated OpenAPI, generated UI client path set, README, technical guide, and API reference.
 - Added targeted backend and frontend tests for the new contracts.
-
-Still needed:
-- Add E2E coverage that imports a real fixture, opens the trace through route-shell journeys, creates an eval case, and verifies replay/eval truth copy.
-- Continue shrinking `App.tsx` only around route orchestration boundaries as future changes touch it.
-- Add richer evaluator types after the deterministic v1 loop is stable.
+- Added imported-trace E2E coverage that opens Diagnose, verifies provenance/cost evidence, creates an eval case, runs the suite, and checks replay truth metadata.
+- Extracted eval evidence state from `App.tsx` into `useEvalEvidence`.
+- Added deterministic evaluator adapters and strict evaluator payload validation.
+- Added imported trace cost aggregation and Diagnose-route cost/latency rollups.
 
 ## Acceptance Evidence
 
@@ -106,6 +105,7 @@ Completed targeted checks:
 - `pnpm -C ui lint`
 - `pnpm -C ui typecheck`
 - `pnpm -C ui test -- src/store/api.test.ts src/routes/__tests__/WorkspaceRoute.test.tsx`
+- `pnpm -C ui exec playwright test tests/e2e/imported-trace-eval.spec.ts --config playwright.config.ts`
 
 Completed full gates:
 - `make verify`
@@ -117,14 +117,11 @@ Current release artifacts:
 - `artifacts/doctor.json` refreshed on 2026-05-07 with `overall_status=pass` and `G1` through `G8` all true.
 - `artifacts/scorecards.json` refreshed on 2026-05-07 with `70/70` and `all_perfect=true`.
 
-## Next Backlog
+## Frontier Closure
 
-P1:
-- Add imported-trace E2E fixture through route-shell Diagnose and eval creation.
-- Add eval evidence summary to release artifacts or scorecard.
-- Split route orchestration state from `App.tsx` when the next UI wave touches this area.
+No repo-actionable frontier backlog remains from this audit.
 
-P2:
-- Add semantic evaluator adapters.
-- Add richer cost/latency imported-trace UI rollups.
-- Add production deployment validation for auth/tenant import and eval workflows.
+Explicit non-goals that remain outside this closure:
+- Deleting private gameplay code entirely. It is disabled by default and hidden from public docs/API, but full deletion remains a separate destructive approval checkpoint.
+- Claiming actual live agent re-execution. Current simulated replay is labeled as `counterfactual_simulation`; `executed_replay` remains reserved until a real runtime execution path exists.
+- LLM-as-judge evals. The release evidence loop is deterministic by design; external evaluator services are outside this local-first closure.

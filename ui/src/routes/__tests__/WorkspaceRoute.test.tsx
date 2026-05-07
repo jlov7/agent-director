@@ -33,6 +33,7 @@ const defaultProps = {
   evalRun: null,
   evalBusy: false,
   evalStatus: null,
+  traceEvidenceSummary: null,
   featureFlags: {
     setupWizardV1: true,
     supportPanelV1: true,
@@ -187,12 +188,26 @@ describe('WorkspaceRoute', () => {
           failedCount: 0,
           scores: [{ caseId: 'case-1', traceId: 'trace-1', passed: true, score: 1, checks: [] }],
         }}
+        traceEvidenceSummary={{
+          sourceLabel: 'otel_genai',
+          providerLabel: 'openai',
+          modelLabel: 'gpt-4.1',
+          providerTraceId: 'otel-trace-1',
+          tokenLabel: '75 tokens',
+          costLabel: '$0.0042',
+          wallTimeLabel: '2.0s wall time',
+          slowestStepLabel: 'Slowest: Search, 1.0s',
+          failureLabel: '1 failed step',
+          imported: true,
+        }}
         onCreateEvalCase={onCreateEvalCase}
         onRunEvalCases={onRunEvalCases}
       />
     );
 
     expect(screen.getByText('Trace-to-eval evidence')).toBeInTheDocument();
+    expect(screen.getByText('75 tokens')).toBeInTheDocument();
+    expect(screen.getByText('$0.0042')).toBeInTheDocument();
     expect(screen.getByText('Timeout regression')).toBeInTheDocument();
     expect(screen.getByText('Last run: passed, 1/1 cases passed.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Create eval case' }));

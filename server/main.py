@@ -431,6 +431,14 @@ class ApiHandler(BaseHTTPRequestHandler):
                 return
             if path_parts == ["api", "eval-cases", "from-trace"]:
                 trace_id = str(body.get("trace_id") or "")
+                evaluators = body.get("evaluators")
+                normalized_evaluators = None
+                if evaluators is not None and not isinstance(evaluators, list):
+                    raise ValueError("evaluators must be a list when provided")
+                if isinstance(evaluators, list):
+                    if not all(isinstance(item, dict) for item in evaluators):
+                        raise ValueError("evaluator entries must be objects")
+                    normalized_evaluators = [dict(item) for item in evaluators]
                 self._assert_trace_access(trace_id, tenant_id)
                 case = self.eval_store.create_case_from_trace(
                     self.store,
@@ -438,6 +446,7 @@ class ApiHandler(BaseHTTPRequestHandler):
                     tenant_id=tenant_id,
                     step_id=str(body.get("step_id") or "") or None,
                     name=str(body.get("name") or "") or None,
+                    evaluators=normalized_evaluators,
                 )
                 self.ops_store.log_audit_event(
                     tenant_id=tenant_id,

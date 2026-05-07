@@ -105,6 +105,7 @@ class TestTraceImportApi(unittest.TestCase):
                                 "gen_ai.operation.name": "agent",
                                 "gen_ai.system": "openai",
                                 "gen_ai.request.model": "gpt-4.1",
+                                "gen_ai.usage.cost_usd": 0.0032,
                             },
                         },
                         {
@@ -118,6 +119,7 @@ class TestTraceImportApi(unittest.TestCase):
                                 "tool.name": "search",
                                 "gen_ai.usage.input_tokens": 20,
                                 "gen_ai.usage.output_tokens": 30,
+                                "gen_ai.usage.cost_usd": 0.001,
                             },
                             "events": [{"name": "output", "attributes": {"value": "result"}}],
                         },
@@ -134,6 +136,8 @@ class TestTraceImportApi(unittest.TestCase):
         self.assertEqual(trace["steps"][1]["providerParentSpanId"], "span-root")
         self.assertEqual(trace["steps"][1]["parentStepId"], "span-root")
         self.assertEqual(trace["steps"][1]["metrics"]["tokensTotal"], 50)
+        self.assertEqual(trace["steps"][1]["metrics"]["costUsd"], 0.001)
+        self.assertAlmostEqual(trace["metadata"]["totalCostUsd"], 0.0042)
 
     def test_import_rejects_unknown_source(self) -> None:
         status, data = self._request(

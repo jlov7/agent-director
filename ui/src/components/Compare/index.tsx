@@ -66,6 +66,9 @@ export default function Compare({ baseTrace, compareTrace, playheadMs, onExit, s
           <div className="compare-subtitle">
             +{diff.addedSteps.length} steps, {diff.costDeltaUsd.toFixed(3)} USD, {diff.wallTimeDeltaMs}ms
           </div>
+          {compareTrace.replay?.truthLabel ? (
+            <div className="compare-subtitle">{compareTrace.replay.truthLabel}</div>
+          ) : null}
         </div>
         <div className="compare-actions">
           <button

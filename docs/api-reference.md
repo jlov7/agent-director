@@ -45,6 +45,33 @@ Imported traces are normalized into existing trace/step contracts. Provenance fi
 
 Eval cases can be created from failed or interesting trace steps. Eval runs are deterministic checks against current trace state and return per-case scores plus pass/fail counts.
 
+`POST /api/eval-cases/from-trace` accepts optional deterministic evaluator adapters:
+
+```json
+{
+  "trace_id": "trace-id",
+  "step_id": "step-id",
+  "name": "Timeout regression",
+  "evaluators": [
+    {
+      "type": "text_contains",
+      "step_id": "step-id",
+      "field": "error",
+      "expected": "timeout"
+    },
+    {
+      "type": "semantic_similarity",
+      "step_id": "step-id",
+      "field": "data.analysis",
+      "expected": "timeout caused retrieval retry collapse",
+      "minScore": 0.4
+    }
+  ]
+}
+```
+
+Supported evaluator fields are `error`, `name`, `preview.inputPreview`, `preview.outputPreview`, and `data.*` paths from step details.
+
 ## Replay Jobs (Matrix)
 
 - `POST /api/replay-jobs`

@@ -169,6 +169,7 @@ Useful env vars:
 | Variable | Default | Purpose |
 |---|---|---|
 | `AGENT_DIRECTOR_DATA_DIR` | `~/.agent-director` | Overrides trace/data storage path. |
+| `AGENT_DIRECTOR_PORT` | `8787` | Overrides the HTTP API port for local isolated runs/tests. |
 | `AGENT_DIRECTOR_SAFE_EXPORT` | `0` | Forces redaction-safe exports on step detail responses. |
 | `AGENT_DIRECTOR_MCP_TRANSPORT` | host default | MCP transport (`stdio` when required by host). |
 | `AGENT_DIRECTOR_UI_URL` | `http://127.0.0.1:5173` | UI URL surfaced by MCP metadata. |

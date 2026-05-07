@@ -68,6 +68,7 @@ function WorkspaceRoute({
   evalRun,
   evalBusy,
   evalStatus,
+  traceEvidenceSummary,
   featureFlags,
   onRouteAction,
   onRetryAsyncAction,
@@ -148,6 +149,7 @@ function WorkspaceRoute({
           evalRun={evalRun}
           evalBusy={evalBusy}
           evalStatus={evalStatus}
+          traceEvidenceSummary={traceEvidenceSummary}
           onRetryAsyncAction={onRetryAsyncAction}
           onResumeAsyncAction={onResumeAsyncAction}
           onRetryExportTask={onRetryExportTask}

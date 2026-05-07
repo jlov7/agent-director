@@ -67,6 +67,7 @@ python3 -m server.mcp_server
 Useful environment variables:
 
 - `AGENT_DIRECTOR_MCP_TRANSPORT=stdio`
+- `AGENT_DIRECTOR_PORT=8787`
 - `AGENT_DIRECTOR_UI_URL=http://127.0.0.1:5173`
 
 ## First 5-Minute Walkthrough

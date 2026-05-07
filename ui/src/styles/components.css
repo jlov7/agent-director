@@ -77,6 +77,33 @@
   border-color: rgba(136, 190, 250, 0.38);
 }
 
+.route-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.route-evidence-grid div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(136, 190, 250, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.route-evidence-grid dt {
+  color: #8ea7c2;
+  font-size: var(--ux-tier-4);
+}
+
+.route-evidence-grid dd {
+  margin: 4px 0 0;
+  color: #e6f2ff;
+  font-size: var(--ux-tier-3);
+  overflow-wrap: anywhere;
+}
+
 .journey-action-card {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;

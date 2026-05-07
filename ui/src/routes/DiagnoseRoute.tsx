@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ExecutionTimeline, { type RouteTimelineItem } from '../components/journeys/ExecutionTimeline';
 import JourneyActionCard from '../components/journeys/JourneyActionCard';
 import type { EvalCase, EvalRun } from '../types';
+import type { TraceEvidenceSummary } from '../utils/traceEvidence';
 import type { WorkspaceRouteStatus } from './workspaceRouteTypes';
 
 type DiagnoseRouteProps = {
@@ -13,6 +14,7 @@ type DiagnoseRouteProps = {
   evalRun: EvalRun | null;
   evalBusy: boolean;
   evalStatus: string | null;
+  traceEvidenceSummary: TraceEvidenceSummary | null;
   onRetryAsyncAction: (id: string) => void;
   onResumeAsyncAction: (id: string) => void;
   onRetryExportTask: (id: string) => void;
@@ -29,6 +31,7 @@ export default function DiagnoseRoute({
   evalRun,
   evalBusy,
   evalStatus,
+  traceEvidenceSummary,
   onRetryAsyncAction,
   onResumeAsyncAction,
   onRetryExportTask,
@@ -135,6 +138,42 @@ export default function DiagnoseRoute({
       <article className="workspace-card">
         <h3>Trace-to-eval evidence</h3>
         <p>Convert this trace into a repeatable regression case, then run the suite before release.</p>
+        {traceEvidenceSummary ? (
+          <dl className="route-evidence-grid" aria-label="Trace cost and provenance summary">
+            <div>
+              <dt>Source</dt>
+              <dd>{traceEvidenceSummary.sourceLabel}</dd>
+            </div>
+            <div>
+              <dt>Provider</dt>
+              <dd>{traceEvidenceSummary.providerLabel}</dd>
+            </div>
+            <div>
+              <dt>Model</dt>
+              <dd>{traceEvidenceSummary.modelLabel}</dd>
+            </div>
+            <div>
+              <dt>Tokens</dt>
+              <dd>{traceEvidenceSummary.tokenLabel}</dd>
+            </div>
+            <div>
+              <dt>Cost</dt>
+              <dd>{traceEvidenceSummary.costLabel}</dd>
+            </div>
+            <div>
+              <dt>Latency</dt>
+              <dd>{traceEvidenceSummary.wallTimeLabel}</dd>
+            </div>
+            <div>
+              <dt>Slowest</dt>
+              <dd>{traceEvidenceSummary.slowestStepLabel}</dd>
+            </div>
+            <div>
+              <dt>Failures</dt>
+              <dd>{traceEvidenceSummary.failureLabel}</dd>
+            </div>
+          </dl>
+        ) : null}
         <div className="route-state-actions">
           <button className="primary-button" type="button" onClick={onCreateEvalCase} disabled={evalBusy}>
             Create eval case

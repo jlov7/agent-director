@@ -6,8 +6,8 @@ Move Agent Director from polished trace viewer toward a production agent observa
 
 ## Scope
 
-- In scope: frontier audit document, gap/release plan refresh, dependency audit fix, doctor CI fallback semantics, private gameplay gating, trace import API, eval case/run API, replay truth labels, OpenAPI/generated client/docs updates, and targeted verification.
-- Out of scope: deleting gameplay code, broad `App.tsx` refactor, and semantic/LLM evaluator systems beyond deterministic v1 eval evidence.
+- In scope: frontier audit document, gap/release plan refresh, dependency audit fix, doctor CI fallback semantics, private gameplay gating, trace import API, eval case/run API, deterministic evaluator adapters, imported-trace route-shell E2E coverage, replay truth labels, Diagnose-route cost/provenance evidence, focused `App.tsx` route orchestration extraction, OpenAPI/generated client/docs updates, and full verification.
+- Out of scope: deleting gameplay code, actual live agent re-execution, broad product rearchitecture, and external LLM-as-judge evaluator services.
 
 ## Progress
 
@@ -17,7 +17,11 @@ Move Agent Director from polished trace viewer toward a production agent observa
 - [x] Gate gameplay APIs behind `AGENT_DIRECTOR_ENABLE_GAMEPLAY`.
 - [x] Add `POST /api/traces/import` with Agent Director, OpenAI Agents-style, OTel GenAI, and OpenInference normalization.
 - [x] Add eval-case and eval-run APIs plus Diagnose-route evidence controls.
+- [x] Add deterministic `text_contains` and `semantic_similarity` evaluator adapters.
 - [x] Add replay `executionMode` and `truthLabel`.
+- [x] Add imported-trace route-shell E2E coverage through Diagnose, eval creation/run, and replay truth checks.
+- [x] Add imported token/cost aggregation and Diagnose-route cost/latency rollups.
+- [x] Extract eval evidence state from `App.tsx` into a focused route orchestration hook.
 - [x] Update OpenAPI, generated UI client, API docs, README, and technical guide.
 - [x] Publish frontier audit and gap backlog updates.
 - [x] Run full gate refresh: `make verify`, `make verify-frontend`, `make doctor`, `make scorecard`.
@@ -28,13 +32,15 @@ Move Agent Director from polished trace viewer toward a production agent observa
 - The lodash audit finding came through the abandoned `dagre` package rather than first-party code.
 - CI evidence needed explicit release-workflow semantics because recent `main` runs can contain successful `verify-strict` without a recent `verify`.
 - Gameplay code is too large to delete without a separate approval checkpoint, but it can be removed from the public product surface safely.
+- Real imported traces need isolated API/UI E2E coverage because demo-mode browser tests can hide ingestion regressions.
 
 ## Decision Log
 
 - Restore green gates before product changes so the rebuild starts from a known-good baseline.
 - Treat imported traces as normalized evidence, preserving provider IDs and raw attributes in step details.
-- Make deterministic evals the v1 trace-to-improvement loop; defer semantic evaluators until after this foundation is verified.
+- Keep evals deterministic for release evidence while adding local semantic-similarity adapters over selected trace fields.
 - Label current non-recorded replay as counterfactual simulation because it does not execute the live agent runtime.
+- Avoid broad `App.tsx` surgery; extract only the route/eval orchestration touched by this frontier closure.
 
 ## Validation Plan
 
@@ -54,6 +60,8 @@ Completed.
 - Release blockers are closed: dependency audit passes and doctor CI fallback accepts valid strict verification evidence.
 - Public product focus is restored by keeping gameplay APIs private and disabled by default.
 - Trace import, provenance, eval-case creation, eval runs, and replay truth labeling are implemented and tested.
+- Imported route-shell E2E, deterministic semantic evaluator adapters, and Diagnose cost/latency evidence are implemented and tested.
+- The frontier audit backlog is closed with no remaining repo-actionable P0/P1/P2 items.
 - OpenAPI, generated UI client artifacts, README, API reference, technical guide, gap backlog, and release gates are synchronized.
 - Final evidence is green: `make verify`, `make verify-frontend`, `make doctor`, and `make scorecard`.
 

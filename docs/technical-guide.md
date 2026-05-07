@@ -41,6 +41,7 @@ Primary implementation surfaces:
 - Failed or interesting traces can be promoted into eval cases.
 - Eval runs are deterministic checks against current trace state.
 - Eval case/run APIs provide release evidence for trace-to-improvement workflows.
+- Eval adapters include deterministic `text_contains` and `semantic_similarity` checks over step errors, names, previews, and `data.*` detail fields.
 
 ### Matrix jobs
 - Batch scenarios execute as replay jobs.
@@ -93,6 +94,7 @@ python3 -m server.mcp_server
 
 Server:
 - `AGENT_DIRECTOR_DATA_DIR`
+- `AGENT_DIRECTOR_PORT`
 - `AGENT_DIRECTOR_SAFE_EXPORT`
 - `AGENT_DIRECTOR_MCP_TRANSPORT`
 - `AGENT_DIRECTOR_UI_URL`

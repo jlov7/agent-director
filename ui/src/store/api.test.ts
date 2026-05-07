@@ -190,12 +190,26 @@ describe('API Layer', () => {
         .mockResolvedValueOnce({ ok: true, json: async () => ({ evalRun }) })
         .mockResolvedValueOnce({ ok: true, json: async () => ({ evalRun }) });
 
-      const created = await createEvalCaseFromTrace('trace-1', 's1');
+      const created = await createEvalCaseFromTrace('trace-1', 's1', undefined, [
+        { type: 'text_contains', step_id: 's1', field: 'error', expected: 'timeout' },
+      ]);
       const listed = await fetchEvalCases();
       const run = await runEvalCases(['case-1']);
       const fetchedRun = await fetchEvalRun('run-1');
 
       expect(created?.id).toBe('case-1');
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/api/eval-cases/from-trace'),
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            trace_id: 'trace-1',
+            step_id: 's1',
+            name: undefined,
+            evaluators: [{ type: 'text_contains', step_id: 's1', field: 'error', expected: 'timeout' }],
+          }),
+        })
+      );
       expect(listed).toHaveLength(1);
       expect(run?.status).toBe('passed');
       expect(fetchedRun?.id).toBe('run-1');
@@ -594,6 +608,8 @@ describe('API Layer', () => {
         expect(result?.replay?.modifiedStepId).toBe('s2');
         expect(result?.replay?.modifications).toEqual(modifications);
         expect(result?.replay?.createdAt).toBeDefined();
+        expect(result?.replay?.executionMode).toBe('counterfactual_simulation');
+        expect(result?.replay?.truthLabel).toContain('not executed against a live agent runtime');
       });
 
       it('invalidates steps after branch point for live strategy', async () => {

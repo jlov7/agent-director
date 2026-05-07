@@ -7,6 +7,7 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Baseline evidence: `make doctor` failed on 2026-05-07 with `G6-security=false` and `G8-ci=false`; `verify_strict=pass`.
 - Audit artifact: `docs/audits/2026-05-frontier-audit.md`.
 - Target state: real trace import, provenance preservation, trace-to-eval workflow, truthful replay semantics, and public product focus on agent observability.
+- Frontier backlog status: no open repo-actionable P0/P1/P2 frontier gaps remain.
 - Final evidence green in this branch: `make verify`, `make verify-frontend`, `make doctor`, and `make scorecard`.
 - Current artifacts: `artifacts/doctor.json` refreshed on 2026-05-07 with all gates true; `artifacts/scorecards.json` refreshed on 2026-05-07 with `70/70` and `all_perfect=true`.
 
@@ -50,31 +51,31 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Fix strategy: Add `executionMode` and `truthLabel` to replay metadata and UI/API types.
 - Status: `Closed` (2026-05-07, replay regression test passing)
 
-### FRONTIER-P1-003: Imported trace needs full route-shell E2E coverage
-- Evidence: Import adapters and UI API wrappers are tested, but no browser journey imports a fixture, opens it, creates an eval case, and verifies replay/eval truth copy end-to-end.
+### FRONTIER-P1-003: Imported trace route-shell E2E coverage
+- Evidence: `ui/tests/e2e/imported-trace-eval.spec.ts` imports a real OTel GenAI fixture into an isolated API server, opens the Diagnose route shell, verifies provenance/token/cost evidence, creates an eval case, runs the eval suite, and checks replay truth metadata.
 - Impacted journey: Production confidence for the new frontier loop.
-- Fix strategy: Add an E2E fixture flow through Diagnose route and eval evidence panel.
-- Status: `Open`
+- Fix strategy: Keep the imported-trace route-shell journey in the standard E2E suite.
+- Status: `Closed` (2026-05-07, imported-trace E2E passing)
 
-### FRONTIER-P1-004: `App.tsx` route orchestration remains too large
-- Evidence: `ui/src/App.tsx` is still overgrown and increases review risk for product waves.
+### FRONTIER-P1-004: `App.tsx` route orchestration boundary extraction
+- Evidence: Eval route orchestration was extracted into `ui/src/hooks/useEvalEvidence.ts`, and trace cost/provenance derivation was extracted into `ui/src/utils/traceEvidence.ts`.
 - Impacted journey: Engineering velocity and regression risk.
-- Fix strategy: Split orchestration boundaries only where future route/eval/import changes touch them.
-- Status: `In Progress`
+- Fix strategy: Keep future route-shell edits behind focused hooks/utilities; no broad refactor is required for the current frontier scope.
+- Status: `Closed` (2026-05-07, route orchestration boundary covered by focused UI tests)
 
 ## Frontier P2
 
 ### FRONTIER-P2-001: Eval engine is deterministic but shallow
-- Evidence: Current evals check trace status, error count, step count, and critical-step presence; no semantic evaluator adapters exist yet.
+- Evidence: Eval cases now support deterministic evaluator adapters: `text_contains` and `semantic_similarity` over selected step fields, including detail payload fields.
 - Impacted journey: Frontier parity with richer observability/eval systems.
-- Fix strategy: Add semantic evaluator adapters after deterministic v1 loop stabilizes.
-- Status: `Open`
+- Fix strategy: Keep evaluator execution deterministic for release evidence; LLM-as-judge remains an intentional non-goal for this local-first release gate.
+- Status: `Closed` (2026-05-07, semantic evaluator adapter regression passing)
 
-### FRONTIER-P2-002: Imported token/cost provenance is not yet a rich UI analysis surface
-- Evidence: Import schema preserves token metadata, but the UI does not yet provide cost/latency rollups for imported traces.
+### FRONTIER-P2-002: Imported token/cost provenance UI analysis surface
+- Evidence: OTel/OpenInference importers aggregate token and cost provenance, and the Diagnose route displays source, provider, model, tokens, cost, latency, slowest step, and failure rollups.
 - Impacted journey: Cost and performance diagnosis.
-- Fix strategy: Add imported-trace cost/latency summaries and regression tests.
-- Status: `Open`
+- Fix strategy: Keep imported-trace evidence visible in the Diagnose journey and covered by unit/E2E tests.
+- Status: `Closed` (2026-05-07, trace evidence unit and imported-trace E2E coverage passing)
 
 ## UX Reboot Closure (2026-02-20)
 

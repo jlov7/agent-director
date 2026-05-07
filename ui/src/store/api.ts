@@ -153,13 +153,15 @@ export async function importTracePayload(
 export async function createEvalCaseFromTrace(
   traceId: string,
   stepId?: string,
-  name?: string
+  name?: string,
+  evaluators?: Array<Record<string, unknown>>
 ): Promise<EvalCase | null> {
   if (FORCE_DEMO) return null;
   const payload = await safePostJson<{ evalCase: EvalCase }>(`${API_BASE}/api/eval-cases/from-trace`, {
     trace_id: traceId,
     step_id: stepId,
     name,
+    evaluators,
   });
   return payload?.evalCase ?? null;
 }
@@ -482,6 +484,11 @@ function buildLocalReplay(
     modifiedStepId: stepId,
     modifications,
     createdAt: now.toISOString(),
+    executionMode: strategy === 'recorded' ? 'recorded_replay' : 'counterfactual_simulation',
+    truthLabel:
+      strategy === 'recorded'
+        ? 'Recorded replay: existing trace evidence copied without new execution.'
+        : `${strategy} counterfactual simulation: branch is deterministic analysis, not executed against a live agent runtime.`,
   };
 
   const shiftTime = (iso: string | null) => {

@@ -11,7 +11,7 @@ from http.server import ThreadingHTTPServer
 from server.main import ApiHandler
 from server.ops.store import OpsStore
 from server.replay.jobs import ReplayJobStore
-from server.trace.schema import StepSummary, TraceMetadata, TraceSummary
+from server.trace.schema import StepDetails, StepSummary, TraceMetadata, TraceSummary
 from server.trace.store import TraceStore
 
 
@@ -22,6 +22,30 @@ class TestEvalApi(unittest.TestCase):
         server_main.ApiHandler.clear_rate_limit_state()
         self.temp_dir = TemporaryDirectory()
         self.store = TraceStore(Path(self.temp_dir.name))
+        plan_step = StepSummary(
+            id="s1",
+            index=0,
+            type="llm_call",
+            name="Plan",
+            startedAt="2026-05-07T10:00:00.000Z",
+            endedAt="2026-05-07T10:00:01.000Z",
+            durationMs=1000,
+            status="completed",
+            childStepIds=["s2"],
+        )
+        failed_step = StepSummary(
+            id="s2",
+            index=1,
+            type="tool_call",
+            name="Search",
+            startedAt="2026-05-07T10:00:01.000Z",
+            endedAt="2026-05-07T10:00:02.000Z",
+            durationMs=1000,
+            status="failed",
+            error="timeout",
+            parentStepId="s1",
+            childStepIds=[],
+        )
         self.store.ingest_trace(
             TraceSummary(
                 id="trace-eval-1",
@@ -36,33 +60,15 @@ class TestEvalApi(unittest.TestCase):
                     wallTimeMs=2000,
                     errorCount=1,
                 ),
-                steps=[
-                    StepSummary(
-                        id="s1",
-                        index=0,
-                        type="llm_call",
-                        name="Plan",
-                        startedAt="2026-05-07T10:00:00.000Z",
-                        endedAt="2026-05-07T10:00:01.000Z",
-                        durationMs=1000,
-                        status="completed",
-                        childStepIds=["s2"],
-                    ),
-                    StepSummary(
-                        id="s2",
-                        index=1,
-                        type="tool_call",
-                        name="Search",
-                        startedAt="2026-05-07T10:00:01.000Z",
-                        endedAt="2026-05-07T10:00:02.000Z",
-                        durationMs=1000,
-                        status="failed",
-                        error="timeout",
-                        parentStepId="s1",
-                        childStepIds=[],
-                    ),
-                ],
-            )
+                steps=[plan_step, failed_step],
+            ),
+            {
+                "s1": StepDetails.from_summary(plan_step, {"analysis": "plan mentions downstream search"}),
+                "s2": StepDetails.from_summary(
+                    failed_step,
+                    {"analysis": "search timeout caused retry collapse in the retrieval branch"},
+                ),
+            },
         )
         ApiHandler.store = self.store
         ApiHandler.replay_jobs = ReplayJobStore()
@@ -127,6 +133,79 @@ class TestEvalApi(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(len(data["evalCases"]), 1)
         self.assertEqual(data["evalCases"][0]["traceId"], "trace-eval-1")
+
+    def test_runs_semantic_eval_adapters(self) -> None:
+        _, created = self._request(
+            "POST",
+            "/api/eval-cases/from-trace",
+            {
+                "trace_id": "trace-eval-1",
+                "step_id": "s2",
+                "evaluators": [
+                    {
+                        "type": "text_contains",
+                        "name": "Error mentions timeout",
+                        "step_id": "s2",
+                        "field": "error",
+                        "expected": "timeout",
+                    },
+                    {
+                        "type": "semantic_similarity",
+                        "name": "Analysis matches root cause",
+                        "step_id": "s2",
+                        "field": "data.analysis",
+                        "expected": "timeout caused retrieval retry collapse",
+                        "minScore": 0.4,
+                    },
+                    {
+                        "type": "semantic_similarity",
+                        "name": "Zero threshold is honored",
+                        "step_id": "s2",
+                        "field": "data.analysis",
+                        "expected": "unrelated",
+                        "minScore": 0,
+                    },
+                ],
+            },
+        )
+
+        status, data = self._request("POST", "/api/eval-runs", {"case_ids": [created["evalCase"]["id"]]})
+        checks = data["evalRun"]["scores"][0]["checks"]
+        zero_threshold_check = next(check for check in checks if check["name"] == "Zero threshold is honored")
+
+        self.assertEqual(status, 201)
+        self.assertEqual(data["evalRun"]["status"], "passed")
+        self.assertIn("Error mentions timeout", [check["name"] for check in checks])
+        self.assertIn("Analysis matches root cause", [check["name"] for check in checks])
+        self.assertTrue(zero_threshold_check["passed"])
+        self.assertEqual(zero_threshold_check["score"], 0.0)
+
+    def test_rejects_invalid_evaluator_payloads(self) -> None:
+        list_status, list_data = self._request(
+            "POST",
+            "/api/eval-cases/from-trace",
+            {"trace_id": "trace-eval-1", "evaluators": ["not-an-object"]},
+        )
+        missing_step_status, missing_step_data = self._request(
+            "POST",
+            "/api/eval-cases/from-trace",
+            {
+                "trace_id": "trace-eval-1",
+                "evaluators": [
+                    {
+                        "type": "semantic_similarity",
+                        "step_id": "missing-step",
+                        "field": "error",
+                        "expected": "timeout",
+                    }
+                ],
+            },
+        )
+
+        self.assertEqual(list_status, 400)
+        self.assertIn("evaluator entries must be objects", list_data["error"])
+        self.assertEqual(missing_step_status, 400)
+        self.assertIn("evaluator stepId not found in trace", missing_step_data["error"])
 
     def _request(self, method: str, path: str, body=None, headers=None):
         conn = HTTPConnection("127.0.0.1", self.port, timeout=5)

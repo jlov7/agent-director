@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 DEFAULT_HOST = "127.0.0.1"
-DEFAULT_PORT = 8787
+DEFAULT_PORT = int(os.environ.get("AGENT_DIRECTOR_PORT", "8787"))
 
 
 def data_dir() -> Path:

@@ -39,9 +39,8 @@ import NotificationCenter, {
 import type { MatrixScenarioDraft } from './components/Matrix';
 import MorphOrchestrator from './components/Morph/MorphOrchestrator';
 import { useTrace } from './hooks/useTrace';
+import { useEvalEvidence } from './hooks/useEvalEvidence';
 import type {
-  EvalCase,
-  EvalRun,
   ExtensionDefinition,
   GameplayAnalyticsFunnelSummary,
   GameplayGuild,
@@ -66,9 +65,6 @@ import {
   fetchGameplayAnalyticsFunnels,
   fetchGameplaySocialGraph,
   fetchInvestigation,
-  fetchEvalCases,
-  createEvalCaseFromTrace,
-  runEvalCases,
   fetchGameplayObservabilitySummary,
   getGameplaySession,
   fetchReplayJob,
@@ -107,6 +103,7 @@ import { collectStepBoundaries, findNextBoundary } from './utils/playbackBoundar
 import { diffTraces } from './utils/diff';
 import { computePollDelay } from './utils/replayPolling';
 import { downloadText } from './utils/export';
+import { buildTraceEvidenceSummary } from './utils/traceEvidence';
 import {
   DEFAULT_TIMELINE_STUDIO_CONFIG,
   deriveLaneGroups,
@@ -973,10 +970,6 @@ export default function App() {
   const [governanceBusy, setGovernanceBusy] = useState(false);
   const [governanceStatus, setGovernanceStatus] = useState<string | null>(null);
   const [auditEvents, setAuditEvents] = useState<GovernanceAuditEvent[]>([]);
-  const [evalCases, setEvalCases] = useState<EvalCase[]>([]);
-  const [evalRun, setEvalRun] = useState<EvalRun | null>(null);
-  const [evalBusy, setEvalBusy] = useState(false);
-  const [evalStatus, setEvalStatus] = useState<string | null>(null);
   const [pendingConfirm, setPendingConfirm] = useState<null | { id: string; title: string; message: string }>(null);
   const [undoState, setUndoState] = useState<null | { id: string; label: string }>(null);
   const [sessionCursors, setSessionCursors] = useState<Record<string, SessionCursor>>({});
@@ -1135,6 +1128,7 @@ export default function App() {
     const timingPenalty = insights?.timing?.degraded ? 8 : 0;
     return Math.max(0, Math.min(100, Math.round(base - errorPenalty - retryPenalty - wallPenalty - timingPenalty)));
   }, [insights?.errors, insights?.retries, insights?.timing?.degraded, trace]);
+  const traceEvidenceSummary = useMemo(() => buildTraceEvidenceSummary(trace), [trace]);
   const modeHotkeys = useMemo(() => {
     if (mode === 'flow') return 'F / C / Space';
     if (mode === 'compare') return 'C / Space / ← →';
@@ -1263,37 +1257,20 @@ export default function App() {
   useEffect(() => {
     void refreshGovernance();
   }, [refreshGovernance]);
-  const refreshEvalCases = useCallback(async () => {
-    const cases = await fetchEvalCases();
-    setEvalCases(cases);
-  }, []);
-  useEffect(() => {
-    void refreshEvalCases();
-  }, [refreshEvalCases, trace?.id]);
-  const createEvalCaseForActiveTrace = useCallback(async () => {
-    if (!trace?.id) return;
-    setEvalBusy(true);
-    try {
-      const failedStep = trace.steps.find((step) => step.status === 'failed');
-      const created = await createEvalCaseFromTrace(trace.id, failedStep?.id);
-      setEvalStatus(created ? `Created eval case ${created.name}.` : 'Eval case creation failed.');
-      await refreshEvalCases();
-      trackProductEvent('ux.action.confirmed', { scope: 'evals', action: 'create_case', traceId: trace.id });
-    } finally {
-      setEvalBusy(false);
-    }
-  }, [refreshEvalCases, trace, trackProductEvent]);
-  const runCurrentEvalSuite = useCallback(async () => {
-    setEvalBusy(true);
-    try {
-      const run = await runEvalCases(evalCases.map((evalCase) => evalCase.id));
-      setEvalRun(run);
-      setEvalStatus(run ? `Eval run ${run.status}.` : 'Eval run failed.');
-      trackProductEvent('ux.action.confirmed', { scope: 'evals', action: 'run_suite', status: run?.status ?? 'failed' });
-    } finally {
-      setEvalBusy(false);
-    }
-  }, [evalCases, trackProductEvent]);
+  const trackEvalEvent = useCallback(
+    (action: 'create_case' | 'run_suite', metadata: Record<string, unknown>) => {
+      trackProductEvent('ux.action.confirmed', { scope: 'evals', action, ...metadata });
+    },
+    [trackProductEvent]
+  );
+  const {
+    evalCases,
+    evalRun,
+    evalBusy,
+    evalStatus,
+    createEvalCaseForActiveTrace,
+    runCurrentEvalSuite,
+  } = useEvalEvidence(trace, trackEvalEvent);
   const updateGovernanceRetention = useCallback(
     async (nextDays: number) => {
       setGovernanceBusy(true);
@@ -6232,6 +6209,7 @@ export default function App() {
             evalRun={evalRun}
             evalBusy={evalBusy}
             evalStatus={evalStatus}
+            traceEvidenceSummary={traceEvidenceSummary}
             featureFlags={featureFlags}
             onRouteAction={(actionId) => {
               void runRouteAction(actionId);

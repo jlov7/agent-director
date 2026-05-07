@@ -243,6 +243,14 @@ export interface EvalCase {
     expectedErrorCount: number;
     minStepCount: number;
     criticalStepIds: string[];
+    evaluators?: Array<{
+      type: 'text_contains' | 'semantic_similarity';
+      name: string;
+      stepId: string;
+      field: string;
+      expected: string;
+      minScore?: number;
+    }>;
   };
   createdAt: string;
 }
@@ -257,6 +265,7 @@ export interface EvalRunScore {
     passed: boolean;
     expected: unknown;
     actual: unknown;
+    score?: number;
   }>;
 }
 

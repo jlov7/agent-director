@@ -54,7 +54,8 @@ def build_openapi_spec() -> Dict[str, Any]:
                     "description": (
                         "Accepts Agent Director JSON, OpenAI Agents-style spans, "
                         "OpenTelemetry GenAI spans, or OpenInference spans and normalizes "
-                        "them into TraceSummary plus StepDetails records."
+                        "them into TraceSummary plus StepDetails records with provenance, "
+                        "token, cost, and importer warning metadata."
                     ),
                     "requestBody": {
                         "required": True,
@@ -221,6 +222,32 @@ def build_openapi_spec() -> Dict[str, Any]:
                                         "trace_id": {"type": "string"},
                                         "step_id": {"type": "string"},
                                         "name": {"type": "string"},
+                                        "evaluators": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "required": ["type", "step_id", "expected"],
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": ["text_contains", "semantic_similarity"],
+                                                    },
+                                                    "name": {"type": "string"},
+                                                    "step_id": {"type": "string"},
+                                                    "stepId": {"type": "string"},
+                                                    "field": {
+                                                        "type": "string",
+                                                        "description": "error, name, preview.inputPreview, preview.outputPreview, or data.*",
+                                                    },
+                                                    "expected": {"type": "string"},
+                                                    "minScore": {
+                                                        "type": "number",
+                                                        "minimum": 0,
+                                                        "maximum": 1,
+                                                    },
+                                                },
+                                            },
+                                        },
                                     },
                                 }
                             }

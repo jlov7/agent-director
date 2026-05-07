@@ -93,6 +93,7 @@ def _import_span_payload(source: str, payload: Dict[str, Any]) -> ImportedTrace:
     provider = _span_attr(spans[0], "gen_ai.system", "llm.provider", "provider")
     model_id = _span_attr(spans[0], "gen_ai.request.model", "llm.model_name", "model") or "unknown"
     total_tokens = 0
+    total_cost = 0.0
 
     for index, span in enumerate(sorted(spans, key=lambda item: _span_start(item))):
         provider_span_id = str(_span_field(span, "spanId", "span_id", "context.span_id") or f"span-{index}")
@@ -108,7 +109,9 @@ def _import_span_payload(source: str, payload: Dict[str, Any]) -> ImportedTrace:
         ended_at = _span_end(span)
         step_type = _map_step_type(source, attrs)
         tokens = _token_count(attrs)
+        cost = _cost_usd(attrs)
         total_tokens += tokens or 0
+        total_cost += cost or 0
         parent_step_id = span_to_step.get(str(provider_parent_id)) if provider_parent_id else None
         step = StepSummary(
             id=step_id,
@@ -122,7 +125,7 @@ def _import_span_payload(source: str, payload: Dict[str, Any]) -> ImportedTrace:
             error=_span_error(span),
             parentStepId=parent_step_id,
             childStepIds=[],
-            metrics=StepMetrics(tokensTotal=tokens) if tokens else None,
+            metrics=StepMetrics(tokensTotal=tokens, costUsd=cost) if tokens or cost else None,
             preview=StepPreview(
                 title=str(span.get("name") or step_type),
                 subtitle=str(attrs.get("gen_ai.request.model") or attrs.get("llm.model_name") or ""),
@@ -162,6 +165,7 @@ def _import_span_payload(source: str, payload: Dict[str, Any]) -> ImportedTrace:
         modelId=str(model_id),
         wallTimeMs=wall_time,
         totalTokens=total_tokens or None,
+        totalCostUsd=total_cost or None,
         errorCount=sum(1 for step in steps if step.status == "failed"),
         providerTraceId=provider_trace_id,
         framework=source,
@@ -330,6 +334,21 @@ def _token_count(attrs: Dict[str, Any]) -> int | None:
     if input_tokens is None and output_tokens is None:
         return None
     return (input_tokens or 0) + (output_tokens or 0)
+
+
+def _cost_usd(attrs: Dict[str, Any]) -> float | None:
+    value = (
+        attrs.get("gen_ai.usage.cost_usd")
+        or attrs.get("gen_ai.cost.usd")
+        or attrs.get("llm.usage.cost")
+        or attrs.get("usage.cost_usd")
+    )
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _as_int(value: Any) -> int | None:

@@ -1,6 +1,7 @@
 import type { RouteTimelineItem } from '../components/journeys/ExecutionTimeline';
 import type { EvalCase, EvalRun } from '../types';
 import type { FeatureFlags } from '../utils/saasUx';
+import type { TraceEvidenceSummary } from '../utils/traceEvidence';
 import type { UxRebootRoute } from './routeConfig';
 
 export type WorkspaceRouteStatus = 'loading' | 'running' | 'completed' | 'failed' | null;
@@ -65,6 +66,7 @@ export type WorkspaceRouteProps = {
   evalRun: EvalRun | null;
   evalBusy: boolean;
   evalStatus: string | null;
+  traceEvidenceSummary: TraceEvidenceSummary | null;
   featureFlags: FeatureFlags;
   onRouteAction: (actionId: string) => void;
   onRetryAsyncAction: (id: string) => void;
