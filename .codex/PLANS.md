@@ -67,6 +67,54 @@ Completed.
 
 ---
 
+# AppShell Decomposition ExecPlan
+
+## Purpose / Big Picture
+
+Reduce the main frontend shell's architectural risk without changing UI behavior. `ui/src/App.tsx` is still large enough to make future changes harder to reason about; the first useful slice is to move stable app-shell configuration and legacy gameplay adaptation behind focused modules.
+
+## Scope
+
+- In scope: extract app-shell copy/types/route constants, extract gameplay session mapping, run focused frontend verification.
+- Out of scope: visual redesign, broad route-shell rewrite, live replay changes, or deleting gameplay code.
+
+## Progress
+
+- [x] Identify non-visual seams in `App.tsx`.
+- [x] Add `ui/src/appShellConfig.ts` for shell types, route copy, workspace options, and onboarding mappings.
+- [x] Add `ui/src/utils/gameplaySessionMapper.ts` for private gameplay session adaptation.
+- [x] Update `App.tsx` to import those seams and remove the inline implementations.
+- [x] Verify typecheck, lint, unit tests, build, and design lint.
+
+## Surprises & Discoveries
+
+- The best first extraction was not a visual component. It was product locality: legacy gameplay mapping was embedded in the primary observability shell.
+- A behavior-preserving extraction removed roughly 390 lines from `App.tsx` while keeping route rendering untouched.
+
+## Decision Log
+
+- Keep this as a seam-first refactor rather than a line-count crusade.
+- Avoid touching route JSX or CSS in this slice because the current UI/visual gates are already green.
+- Leave further decomposition for future touched areas so tests stay meaningful.
+
+## Validation Plan
+
+- `pnpm -C ui typecheck`
+- `pnpm -C ui lint`
+- `pnpm -C ui test -- src/App.test.tsx src/utils/gameplayEngine.test.ts`
+- `pnpm -C ui build`
+- `pnpm -C ui design:lint`
+
+## Outcomes & Retrospective
+
+Completed.
+- `App.tsx` now imports app-shell configuration from `ui/src/appShellConfig.ts`.
+- `App.tsx` now imports gameplay session adaptation from `ui/src/utils/gameplaySessionMapper.ts`.
+- `App.tsx` dropped from 7,266 lines before this discussion to 6,874 lines after this slice.
+- Focused frontend verification is green.
+
+---
+
 # Carpathy System Coherence ExecPlan
 
 ## Purpose / Big Picture

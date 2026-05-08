@@ -1,26 +1,26 @@
 ## Current Task
-Carpathy system audit, coherence burndown, and executable release drift guard.
+AppShell decomposition first slice.
 
 ## Status
 Complete
 
 ## Plan
-1. [x] Audit current evidence artifacts, product/design docs, release docs, and active planning files.
-2. [x] Identify product/release drift that green gates did not previously catch.
-3. [x] Add a durable burndown and written audit artifact.
-4. [x] Archive legacy gameplay planning outside the active root.
-5. [x] Add executable system coherence audit and wire it into doctor/scorecard.
+1. [x] Identify a safe `App.tsx` seam that reduces shell complexity without visual or behavior changes.
+2. [x] Extract app-shell copy/types/route constants into `ui/src/appShellConfig.ts`.
+3. [x] Extract legacy gameplay session adaptation into `ui/src/utils/gameplaySessionMapper.ts`.
+4. [x] Verify typecheck, lint, unit tests, build, and design lint.
 
 ## Decisions Made
-- Treat green gates as insufficient unless they encode product truth.
-- Archive stale gameplay planning rather than deleting it, preserving history while removing active product drift.
-- Add System Coherence as its own scored release domain so documentation/product drift is not a manual review step.
+- Decompose by real seams, not arbitrary line-count slicing.
+- Keep the extraction behavior-preserving; no visual changes in this slice.
+- Move legacy gameplay adaptation away from the main observability shell to improve product locality.
 
 ## Open Questions
 - None blocking; user authorized autonomous ambitious work.
 
 ## Completion Evidence
-- `python3 scripts/system_coherence_audit.py` passes and emits `artifacts/system-coherence-audit.json`.
-- `python3 -m unittest server.tests.test_system_coherence_audit` passes.
-- `make doctor` passes with `G10-system-coherence`.
-- `make scorecard` passes with `90/90`.
+- `pnpm -C ui typecheck` passes.
+- `pnpm -C ui lint` passes.
+- `pnpm -C ui test -- src/App.test.tsx src/utils/gameplayEngine.test.ts` passes.
+- `pnpm -C ui build` passes.
+- `pnpm -C ui design:lint` passes.

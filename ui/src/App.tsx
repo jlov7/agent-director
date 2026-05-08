@@ -140,6 +140,7 @@ import {
 } from './utils/saasUx';
 import { computeTimeToFirstSuccessMs, pruneToWindow, shouldTriggerRageClick } from './utils/usabilitySignals';
 import { evaluateRoutePerfBudget } from './utils/perf';
+import { mapGameplaySessionToState } from './utils/gameplaySessionMapper';
 import {
   DEFAULT_SHORTCUT_BINDINGS,
   normalizeShortcutBindings,
@@ -156,6 +157,38 @@ import {
   UX_REBOOT_SHELL_STORAGE_KEY,
   type UxRebootRoute,
 } from './routes/routeConfig';
+import {
+  DEFAULT_ROUTE_LAST_COMPLETED,
+  MODE_ORIENTATION_COPY,
+  ONBOARDING_PATH_TO_PERSONA,
+  UX_REBOOT_BASE_ROUTE_ORDER,
+  UX_REBOOT_ROUTE_ARIA_LABEL,
+  UX_REBOOT_ROUTE_FOCUS_COPY,
+  UX_REBOOT_ROUTE_FOCUS_TRIGGER_COPY,
+  UX_REBOOT_ROUTE_INTENT_COPY,
+  UX_REBOOT_ROUTE_LABEL,
+  UX_REBOOT_ROUTE_TO_SECTION,
+  UX_REBOOT_ROUTE_TRANSITION_COPY,
+  WORKSPACE_OPTIONS,
+  WORKSPACE_SECTION_COPY,
+  type DensityMode,
+  type ExportTask,
+  type IntroPersona,
+  type LaunchPath,
+  type Mode,
+  type MotionMode,
+  type RecommendationTone,
+  type RouteActionHistoryEntry,
+  type RouteLastCompletedByRoute,
+  type SaaSRole,
+  type SavedView,
+  type SetupWizardStep,
+  type StuckSignal,
+  type StuckSignalKind,
+  type ThemeMode,
+  type UxRebootCohort,
+  type WorkspaceSection,
+} from './appShellConfig';
 import WorkspaceRoute from './routes/WorkspaceRoute';
 import type { RouteSnapshot } from './routes/workspaceRouteTypes';
 
@@ -174,18 +207,6 @@ const RAGE_CLICK_THRESHOLD = 4;
 const STUCK_SIGNAL_COOLDOWN_MS = 20000;
 const DEAD_END_WINDOW_MS = 120000;
 const DEAD_END_THRESHOLD = 3;
-
-type Mode = 'cinema' | 'flow' | 'compare' | 'matrix' | 'gameplay';
-type IntroPersona = 'builder' | 'executive' | 'operator';
-type ThemeMode = 'studio' | 'focus' | 'contrast';
-type MotionMode = 'cinematic' | 'balanced' | 'minimal';
-type DensityMode = 'auto' | 'comfortable' | 'compact';
-type LaunchPath = 'rapid_triage' | 'deep_diagnosis' | 'team_sync';
-type RecommendationTone = 'priority' | 'warning' | 'info';
-type SaaSRole = 'viewer' | 'operator' | 'admin';
-type WorkspaceSection = 'journey' | 'analysis' | 'collaboration' | 'operations';
-type SetupWizardStep = 'source' | 'import' | 'invite';
-type ExportTaskStatus = 'queued' | 'running' | 'success' | 'error';
 
 type Rect = { left: number; top: number; width: number; height: number };
 type DirectorRecommendation = {
@@ -211,147 +232,6 @@ type StoryBeat = {
   label: string;
   duration: number;
   action: () => void | Promise<void>;
-};
-
-type WorkspaceOption = { id: string; label: string };
-type SavedView = {
-  id: string;
-  name: string;
-  state: {
-    mode: Mode;
-    query: string;
-    typeFilter: StepType | 'all';
-    selectedStepId: string | null;
-    safeExport: boolean;
-    windowed: boolean;
-    syncPlayback: boolean;
-    explainMode: boolean;
-    section: WorkspaceSection;
-  };
-};
-type ExportTask = {
-  id: string;
-  label: string;
-  status: ExportTaskStatus;
-  detail: string;
-  updatedAt: number;
-  retryable: boolean;
-};
-type RouteLastCompletedAction = { id: string; label: string; at: string } | null;
-type RouteLastCompletedByRoute = Record<UxRebootRoute, RouteLastCompletedAction>;
-type RouteActionHistoryEntry = {
-  id: string;
-  route: UxRebootRoute;
-  label: string;
-  at: string;
-};
-type StuckSignalKind = 'rage_click' | 'dead_end_actions';
-type StuckSignal = {
-  id: string;
-  kind: StuckSignalKind;
-  detail: string;
-  at: number;
-};
-
-const WORKSPACE_SECTION_COPY: Record<WorkspaceSection, { title: string; description: string }> = {
-  journey: {
-    title: 'Understand this run',
-    description: 'Track progression and save the exact view you need to return to quickly.',
-  },
-  analysis: {
-    title: 'Diagnose root cause',
-    description: 'Run exports and async diagnostics to isolate what changed and why.',
-  },
-  collaboration: {
-    title: 'Coordinate responders',
-    description: 'Set ownership, create handoffs, and keep the team aligned in real time.',
-  },
-  operations: {
-    title: 'Configure workspace',
-    description: 'Manage setup, support access, and release-safe feature controls.',
-  },
-};
-
-const MODE_ORIENTATION_COPY: Record<Mode, string> = {
-  cinema: 'Timeline playback',
-  flow: 'Flow graph',
-  compare: 'Compare runs',
-  matrix: 'Scenario matrix',
-  gameplay: 'Gameplay command',
-};
-
-const WORKSPACE_OPTIONS: WorkspaceOption[] = [
-  { id: 'personal', label: 'Personal' },
-  { id: 'operations', label: 'Operations' },
-  { id: 'executive', label: 'Executive' },
-];
-
-const UX_REBOOT_ROUTE_TO_SECTION: Record<UxRebootRoute, WorkspaceSection> = {
-  overview: 'journey',
-  triage: 'analysis',
-  diagnose: 'analysis',
-  coordinate: 'collaboration',
-  settings: 'operations',
-};
-
-const UX_REBOOT_ROUTE_LABEL: Record<UxRebootRoute, string> = {
-  overview: 'Review',
-  triage: 'Triage',
-  diagnose: 'Diagnose',
-  coordinate: 'Coordinate',
-  settings: 'Configure',
-};
-const UX_REBOOT_BASE_ROUTE_ORDER: UxRebootRoute[] = ['overview', 'triage', 'diagnose', 'coordinate', 'settings'];
-const UX_REBOOT_ROUTE_ARIA_LABEL: Record<UxRebootRoute, string> = {
-  overview: 'Review workspace route',
-  triage: 'Triage workspace route',
-  diagnose: 'Diagnose workspace route',
-  coordinate: 'Coordinate workspace route',
-  settings: 'Configure workspace route',
-};
-
-const UX_REBOOT_ROUTE_INTENT_COPY: Record<UxRebootRoute, string> = {
-  overview: 'Understand health and risk quickly.',
-  triage: 'Resolve the most urgent failure first.',
-  diagnose: 'Build evidence-backed causal findings.',
-  coordinate: 'Align ownership and handoff continuity.',
-  settings: 'Set safe defaults and workspace controls.',
-};
-const UX_REBOOT_ROUTE_TRANSITION_COPY: Record<UxRebootRoute, string> = {
-  overview: 'You now see summary health signals and a single risk-first next step.',
-  triage: 'You now see incident-first actions ordered observe -> isolate -> validate -> share.',
-  diagnose: 'You now see hypothesis workflow steps with evidence and async checkpoints.',
-  coordinate: 'You now see ownership and handoff continuity controls with snapshot history.',
-  settings: 'You now see safety defaults, trust controls, and rollout toggles.',
-};
-const UX_REBOOT_ROUTE_FOCUS_COPY: Record<UxRebootRoute, string> = {
-  overview: 'Stay focused on run health and top risk. Open the analysis canvas only when you need timeline detail.',
-  triage: 'Run the triage sequence one action at a time. Open the analysis canvas for deep flow or validation detail.',
-  diagnose: 'Keep diagnosis checkpoints concise here. Open the analysis canvas when you need matrix or timeline evidence.',
-  coordinate: 'Keep ownership and handoff continuity clear here. Open the analysis canvas when evidence context is requested.',
-  settings: 'Keep trust defaults explicit here. Open the analysis canvas only when configuration needs trace context.',
-};
-const UX_REBOOT_ROUTE_FOCUS_TRIGGER_COPY: Record<UxRebootRoute, string> = {
-  overview: 'Open full canvas when you need exact timeline position, step payload inspection, or side-by-side compare context.',
-  triage: 'Open full canvas when isolate or validate needs flow graph, matrix replay, or deeper inspector detail.',
-  diagnose: 'Open full canvas when validation requires matrix runs, export detail, or cross-step payload comparison.',
-  coordinate: 'Open full canvas when responders ask for precise step-level evidence during ownership or handoff decisions.',
-  settings: 'Open full canvas when trust or rollout changes require live trace validation before release.',
-};
-type UxRebootCohort = 'off' | 'internal' | 'pilot' | 'ga';
-
-const DEFAULT_ROUTE_LAST_COMPLETED: RouteLastCompletedByRoute = {
-  overview: null,
-  triage: null,
-  diagnose: null,
-  coordinate: null,
-  settings: null,
-};
-
-const ONBOARDING_PATH_TO_PERSONA: Record<OnboardingPath, IntroPersona> = {
-  evaluate: 'executive',
-  operate: 'operator',
-  investigate: 'builder',
 };
 
 const FlowMode = lazy(() => import('./components/FlowMode'));
@@ -435,278 +315,6 @@ function filterSteps(steps: StepSummary[], query: string, typeFilter: StepType |
       .toLowerCase();
     return haystack.includes(q);
   });
-}
-
-function mapGameplaySessionToState(
-  session: GameplaySession,
-  playerId: string,
-  fallback: GameplayState
-): GameplayState {
-  const profile =
-    session.profiles[playerId] ??
-    session.profiles[session.players[0]?.player_id ?? ''] ??
-    Object.values(session.profiles)[0];
-  const roleMap = session.players.reduce<Record<string, 'strategist' | 'operator' | 'analyst' | 'saboteur'>>(
-    (acc, player) => {
-      acc[player.player_id] = player.role;
-      return acc;
-    },
-    {}
-  );
-  const nodes = Object.entries(session.narrative.nodes).map(([nodeId, node]) => ({
-    id: nodeId,
-    title: node.title,
-    body: node.title,
-    choices: node.choices.map((choice) => ({
-      id: choice.id,
-      label: choice.id,
-      nextNodeId: choice.next,
-      tensionDelta: choice.tension,
-      mutator: choice.modifier,
-    })),
-  }));
-  const pvpWinner = session.pvp.winner ?? null;
-  const failureSignals = session.telemetry.failures;
-  const outcome: 'success' | 'failure' | 'mixed' = failureSignals > 0 ? 'failure' : pvpWinner ? 'success' : 'mixed';
-  return {
-    seed: session.seed,
-    raid: {
-      party: session.players.map((player) => player.player_id),
-      roles: roleMap,
-      objectives: session.raid.objectives.map((objective) => ({
-        id: objective.id,
-        label: objective.label,
-        progress: objective.progress,
-        target: objective.target,
-        completed: objective.completed,
-      })),
-      completed: session.raid.completed,
-    },
-    campaign: {
-      depth: session.campaign.depth,
-      lives: session.campaign.lives,
-      currentMission: {
-        id: session.campaign.current_mission.id,
-        title: session.campaign.current_mission.title,
-        difficulty: session.campaign.current_mission.difficulty,
-        hazards: session.campaign.current_mission.hazards,
-        rewardCredits: session.campaign.current_mission.reward_tokens,
-        missionSeed:
-          session.campaign.current_mission.mission_seed ??
-          fallback.campaign.currentMission.missionSeed ??
-          session.seed,
-        blueprint:
-          session.campaign.current_mission.blueprint ??
-          fallback.campaign.currentMission.blueprint ??
-          `seed=${session.seed};depth=${session.campaign.depth}`,
-        templateId: session.campaign.current_mission.template_id ?? fallback.campaign.currentMission.templateId,
-        archetype: session.campaign.current_mission.archetype ?? fallback.campaign.currentMission.archetype,
-        qualityScore: session.campaign.current_mission.quality_score ?? fallback.campaign.currentMission.qualityScore,
-        noveltyScore: session.campaign.current_mission.novelty_score ?? fallback.campaign.currentMission.noveltyScore,
-        repetitionPenalty:
-          session.campaign.current_mission.repetition_penalty ?? fallback.campaign.currentMission.repetitionPenalty,
-        launchPackSize: session.campaign.current_mission.launch_pack_size ?? fallback.campaign.currentMission.launchPackSize,
-      },
-      completedMissionIds: session.campaign.completed_missions,
-      missionHistory:
-        session.campaign.mission_history?.map((entry) => ({
-          missionId: entry.mission_id,
-          templateId: entry.template_id ?? 'legacy-template',
-          archetype: entry.archetype ?? 'legacy',
-          hazards: entry.hazards ?? [],
-          qualityScore: entry.quality_score ?? 50,
-          noveltyScore: entry.novelty_score ?? 50,
-          repetitionPenalty: entry.repetition_penalty ?? 0,
-          outcome: entry.outcome === 'success' || entry.outcome === 'failure' ? entry.outcome : 'unknown',
-        })) ?? fallback.campaign.missionHistory,
-      mutators: [...session.campaign.modifiers, ...session.campaign.unlocked_modifiers],
-    },
-    narrative: {
-      currentNodeId: session.narrative.current_node_id,
-      nodes: nodes.length > 0 ? nodes : fallback.narrative.nodes,
-      history: session.narrative.history.map((entry) => ({ nodeId: entry.node_id, choiceId: entry.choice_id })),
-      tension: session.narrative.tension,
-    },
-    skills: {
-      points: profile?.skill_points ?? fallback.skills.points,
-      nodes: fallback.skills.nodes.map((node) => ({
-        ...node,
-        unlocked: Boolean(profile?.unlocked_skills.includes(node.id)),
-      })),
-      loadout: {
-        capacity: profile?.loadout_capacity ?? fallback.skills.loadout.capacity,
-        equipped: profile?.loadout ?? [],
-        slotCaps: fallback.skills.loadout.slotCaps,
-      },
-    },
-    pvp: {
-      round: session.pvp.round,
-      stability: session.pvp.operator_stability,
-      sabotage: session.pvp.sabotage_pressure,
-      fog: session.pvp.fog,
-      winner: pvpWinner,
-    },
-    time: {
-      activeForkId: session.time.active_fork_id,
-      forks: session.time.forks.map((fork) => ({
-        id: fork.id,
-        label: fork.label,
-        playheadMs: fork.playhead_ms,
-        history: fork.history,
-      })),
-    },
-    boss: {
-      name: session.boss.name,
-      phase: session.boss.phase,
-      hp: session.boss.hp,
-      maxHp: session.boss.max_hp,
-      enraged: session.boss.enraged,
-      phaseMechanic:
-        session.boss.phase_mechanic ??
-        (session.boss.phase === 1
-          ? 'Phase 1: Shield lattice destabilization'
-          : session.boss.phase === 2
-            ? 'Phase 2: Mirror clones absorb exploit damage'
-            : 'Phase 3: Enrage pulse; shield counters become lethal'),
-      vulnerability:
-        session.boss.vulnerability === 'strike' || session.boss.vulnerability === 'shield' || session.boss.vulnerability === 'exploit'
-          ? session.boss.vulnerability
-          : session.boss.phase === 1
-            ? 'exploit'
-            : session.boss.phase === 2
-              ? 'strike'
-              : 'shield',
-    },
-    director: {
-      risk: session.director.risk,
-      hint: session.director.hint,
-      recommendedModifier: session.director.hazard_bias,
-      lastOutcome: outcome,
-    },
-    economy: {
-      credits: session.economy.tokens,
-      materials: session.economy.materials,
-      crafted: session.economy.crafted,
-      reserveTarget: session.economy.policy?.target_reserve ?? fallback.economy.reserveTarget ?? 320,
-      inflationIndex:
-        session.economy.inflation_index ??
-        Number(
-          (
-            session.economy.tokens /
-            (session.economy.policy?.target_reserve ?? fallback.economy.reserveTarget ?? 320)
-          ).toFixed(3)
-        ),
-    },
-    rewards: {
-      dailyClaimedOn: session.rewards?.daily_claimed_date ?? fallback.rewards?.dailyClaimedOn ?? null,
-      streakDays: session.rewards?.streak_days ?? fallback.rewards?.streakDays ?? 0,
-      sessionClaimed: session.rewards?.session_claimed ?? fallback.rewards?.sessionClaimed ?? false,
-      streakClaimedFor: session.rewards?.streak_claimed_for ?? fallback.rewards?.streakClaimedFor ?? 0,
-      masteryClaims: session.rewards?.mastery_claims ?? fallback.rewards?.masteryClaims ?? [],
-      history:
-        session.rewards?.history?.map((entry) => ({
-          id: entry.id,
-          kind:
-            entry.kind === 'daily' || entry.kind === 'session' || entry.kind === 'streak' || entry.kind === 'mastery'
-              ? entry.kind
-              : 'daily',
-          amount: entry.amount,
-          at: Date.parse(entry.at) || Date.now(),
-          details: entry.details ? Object.fromEntries(Object.entries(entry.details).map(([key, value]) => [key, String(value)])) : {},
-        })) ?? fallback.rewards?.history ?? [],
-    },
-    guild: {
-      name: session.guild.guild_id ?? 'Trace Guild',
-      members: session.players.length,
-      operationsScore: session.guild.operations_score,
-      eventsCompleted: session.guild.events_completed,
-    },
-    cinematic: {
-      queue: session.cinematic.events.map((event) => ({
-        id: event.id,
-        type: (event.type === 'critical' || event.type === 'success' || event.type === 'warning' || event.type === 'twist'
-          ? event.type
-          : 'warning'),
-        message: event.message,
-        intensity: (event.intensity as 1 | 2 | 3) || 1,
-        at: Date.parse(event.at) || Date.now(),
-      })),
-    },
-    liveops: {
-      season: session.liveops.season,
-      week: session.liveops.week,
-      challenge: {
-        id: session.liveops.challenge.id,
-        title: session.liveops.challenge.title,
-        goal: session.liveops.challenge.goal,
-        progress: session.liveops.challenge.progress,
-        rewardCredits: session.liveops.challenge.reward,
-        completed: session.liveops.challenge.completed,
-      },
-      difficultyFactor: session.liveops.telemetry.difficultyFactor ?? fallback.liveops.difficultyFactor ?? 1,
-      rewardMultiplier: session.liveops.telemetry.rewardMultiplier ?? fallback.liveops.rewardMultiplier ?? 1,
-      tuningHistory:
-        session.liveops.tuning_history?.map((entry) => ({
-          id: entry.id,
-          changedAt: Date.parse(entry.changed_at) || Date.now(),
-          difficultyFactor: entry.difficultyFactor,
-          rewardMultiplier: entry.rewardMultiplier,
-          note: entry.note,
-        })) ?? fallback.liveops.tuningHistory ?? [],
-    },
-    teamComms: {
-      pings:
-        session.team_comms?.pings?.map((ping) => ({
-          id: ping.id,
-          fromPlayerId: ping.from_player_id,
-          intent:
-            ping.intent === 'focus' || ping.intent === 'assist' || ping.intent === 'defend' || ping.intent === 'rotate'
-              ? ping.intent
-              : 'focus',
-          targetObjectiveId: ping.target_objective_id ?? null,
-          createdAt: Date.parse(ping.created_at) || Date.now(),
-        })) ?? fallback.teamComms.pings ?? [],
-    },
-    safety: {
-      mutedPlayerIds: session.safety?.muted_player_ids ?? fallback.safety.mutedPlayerIds ?? [],
-      blockedPlayerIds: session.safety?.blocked_player_ids ?? fallback.safety.blockedPlayerIds ?? [],
-      reports:
-        session.safety?.reports?.map((report) => ({
-          id: report.id,
-          targetPlayerId: report.target_player_id,
-          reason: report.reason,
-          createdAt: Date.parse(report.created_at) || Date.now(),
-        })) ?? fallback.safety.reports ?? [],
-    },
-    outcome:
-      session.status === 'completed'
-        ? {
-            status: session.telemetry.successes >= session.telemetry.failures ? 'win' : 'loss',
-            reason:
-              session.telemetry.successes >= session.telemetry.failures
-                ? 'Session completed with positive outcomes.'
-                : 'Session completed with unresolved failures.',
-            updatedAt: Date.now(),
-          }
-        : session.telemetry.failures > 0
-          ? {
-              status: 'partial',
-              reason: `${session.telemetry.failures} failure signals observed; run still active.`,
-              updatedAt: Date.now(),
-            }
-          : fallback.outcome ?? {
-              status: 'in_progress',
-              reason: 'Run in progress.',
-              updatedAt: Date.now(),
-            },
-    sandbox: { enabled: session.sandbox?.enabled ?? fallback.sandbox?.enabled ?? false },
-    progression: {
-      xp: profile?.xp ?? fallback.progression?.xp ?? 0,
-      level: profile?.level ?? fallback.progression?.level ?? 1,
-      nextLevelXp: (profile?.level ?? fallback.progression?.level ?? 1) * 200,
-      milestones: profile?.milestones ?? fallback.progression?.milestones ?? [],
-    },
-  };
 }
 
 function getOrCreateSessionId() {
