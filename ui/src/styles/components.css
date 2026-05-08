@@ -1,5 +1,8 @@
 .route-outcome-card {
-  border-color: rgba(111, 210, 255, 0.24);
+  border-color: rgba(47, 214, 161, 0.28);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(47, 214, 161, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(7, 12, 18, 0.92), rgba(9, 18, 26, 0.86));
 }
 
 .route-outcome-card h3 {
@@ -31,20 +34,22 @@
 }
 
 .route-state-card {
-  border-color: rgba(123, 211, 137, 0.22);
+  border-color: rgba(47, 214, 161, 0.26);
   display: grid;
   gap: 8px;
 }
 
 .route-focal-card {
-  border-color: rgba(112, 186, 255, 0.44);
-  background: linear-gradient(145deg, rgba(14, 24, 38, 0.9), rgba(9, 17, 29, 0.82));
-  box-shadow: 0 10px 24px rgba(6, 12, 22, 0.32);
+  border-color: rgba(111, 183, 255, 0.42);
+  background:
+    radial-gradient(circle at 90% 10%, rgba(111, 183, 255, 0.14), transparent 34%),
+    linear-gradient(145deg, rgba(10, 18, 29, 0.94), rgba(5, 10, 17, 0.88));
+  box-shadow: 0 14px 36px rgba(5, 10, 18, 0.36);
 }
 
 .route-education-card {
-  border-color: rgba(170, 205, 255, 0.22);
-  background: rgba(10, 17, 28, 0.7);
+  border-color: rgba(126, 118, 105, 0.3);
+  background: rgba(8, 14, 22, 0.72);
 }
 
 .route-state-card h3 {
@@ -87,9 +92,9 @@
 .route-evidence-grid div {
   min-width: 0;
   padding: 8px;
-  border: 1px solid rgba(136, 190, 250, 0.18);
+  border: 1px solid rgba(126, 118, 105, 0.28);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(8, 13, 21, 0.7);
 }
 
 .route-evidence-grid dt {
@@ -219,15 +224,41 @@
 }
 
 .journey-action-card {
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  position: relative;
+  border: 1px solid rgba(126, 118, 105, 0.26);
   border-radius: 12px;
   padding: var(--ux-surface-padding);
-  background: rgba(8, 13, 21, 0.64);
+  background:
+    linear-gradient(145deg, rgba(7, 12, 19, 0.82), rgba(10, 16, 25, 0.68));
   display: grid;
   gap: 8px;
+  overflow: hidden;
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.journey-action-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(47, 214, 161, 0.1), transparent 34%),
+    radial-gradient(circle at 100% 0%, rgba(111, 183, 255, 0.11), transparent 30%);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.journey-action-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(47, 214, 161, 0.36);
+}
+
+.journey-action-card:hover::before {
+  opacity: 1;
 }
 
 .journey-action-card-header {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -241,6 +272,7 @@
 
 .journey-action-outcome,
 .journey-action-why {
+  position: relative;
   margin: 0;
   font-size: var(--ux-tier-3);
   color: #b7c5da;
@@ -259,10 +291,10 @@
 }
 
 .route-progress-strip {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
+  border: 1px solid rgba(126, 118, 105, 0.28);
+  border-radius: 8px;
   padding: var(--ux-surface-padding);
-  background: rgba(7, 11, 19, 0.62);
+  background: rgba(5, 9, 15, 0.72);
   display: grid;
   gap: 8px;
 }
@@ -293,7 +325,7 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #5fa8f5, #7bd389);
+  background: linear-gradient(90deg, #6fb7ff, #2fd6a1);
 }
 
 .route-progress-resume {

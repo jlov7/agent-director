@@ -5996,6 +5996,41 @@ export default function App() {
         )}
       </nav>
       ) : null}
+      {showWorkspaceScaffold && routeShellEnabled ? (
+        <section className="route-intelligence-strip" aria-label="Route intelligence summary">
+          <div>
+            <span>Route lane</span>
+            <strong>{UX_REBOOT_ROUTE_LABEL[routeShellActiveRoute]} locked</strong>
+            <small>{UX_REBOOT_ROUTE_FOCUS_COPY[routeShellActiveRoute]}</small>
+          </div>
+          <div>
+            <span>Run state</span>
+            <strong>
+              {trace.status === 'completed'
+                ? 'Closed with evidence'
+                : trace.status === 'failed'
+                  ? 'Failure path active'
+                  : trace.status === 'running'
+                    ? 'Live investigation'
+                    : 'Loading context'}
+            </strong>
+            <small>{sessionState.expired ? 'Session renewal required' : 'Session window active'}</small>
+          </div>
+          <div>
+            <span>Proof loop</span>
+            <strong>
+              {evalRun
+                ? `${evalRun.status} eval run`
+                : evalCases.length
+                  ? 'Eval case staged'
+                  : traceEvidenceSummary
+                    ? 'Trace evidence ready'
+                    : 'Awaiting imported trace'}
+            </strong>
+            <small>{traceEvidenceSummary ? 'Provenance, usage, and latency captured' : 'Import a trace to create release proof'}</small>
+          </div>
+        </section>
+      ) : null}
       {showWorkspaceScaffold ? (
       <div className="workspace-orientation" aria-live="polite">
         <p className="workspace-breadcrumb" aria-label="Current location">

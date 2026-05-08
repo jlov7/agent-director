@@ -30,7 +30,7 @@ export default function StoryModeBanner({ active, label, step, total, onStop, on
         </button>
       </div>
       <div className="story-banner-progress">
-        <span style={{ width: `${progress}%` }} />
+        <span style={{ transform: `scaleX(${progress / 100})` }} />
       </div>
     </div>
   );

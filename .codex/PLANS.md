@@ -276,6 +276,68 @@ Completed.
 
 ---
 
+# Frontier Visual Rebuild ExecPlan
+
+## Purpose / Big Picture
+
+Make Agent Director feel exceptional as a production agent observability cockpit, not merely a verified dashboard. The UI should make trace provenance, eval readiness, replay truth, and release confidence immediately legible while avoiding generic AI-dashboard patterns.
+
+## Scope
+
+- In scope: Taste/VoltAgent/Impeccable-informed visual audit, app-shell and route-shell visual system improvements, representative route updates, responsive verification, deterministic visual snapshots, and release evidence refresh.
+- Out of scope: backend contract changes, deleting gameplay code, and new non-visual product features unless required to support the frontend rebuild.
+
+## Progress
+
+- [x] Load Taste Skill, Impeccable, and VoltAgent DESIGN.md guidance.
+- [x] Pull current external references for Taste Skill, Awesome DESIGN.md, and Impeccable designing loop.
+- [x] Capture current rendered UI across primary routes and mobile/tablet/desktop.
+- [x] Run deep visual audit with automated and human-style findings.
+- [x] Implement broad visual rebuild.
+- [x] Verify with browser screenshots and frontend/release gates.
+- [x] Commit and push.
+
+## Surprises & Discoveries
+
+- User correctly flagged that the prior commit was a focused slice, not a deep visual rebuild.
+- The repo already has strong deterministic visual verification, so broad UI work must intentionally update snapshots and then pass the full matrix.
+- The main visible release blocker was weak hierarchy, not broken layout. The old shell had too many same-weight panels for a product whose value is evidence and operational confidence.
+- Impeccable flagged old one-sided step borders and width transitions; those are now removed or converted to full-border/transform-based treatments.
+
+## Decision Log
+
+- Treat the surface as product register: high-trust task UI, not a landing page.
+- Use a restrained carbon/emerald terminal-native direction inspired by VoltAgent, but keep Agent Director's evidence-first product semantics.
+- Avoid adding new animation libraries because Framer Motion is already available and CSS-only motion is enough for this pass unless a component already uses Framer.
+- Preserve the route-shell architecture and make the visual rebuild through scoped CSS plus one evidence-oriented route summary section.
+
+## Validation Plan
+
+- `impeccable detect --fast --json ui/src ui/tests/e2e`
+- Browser/Playwright screenshots at desktop/tablet/mobile for primary routes.
+- `pnpm -C ui design:lint`
+- `pnpm -C ui lint`
+- `pnpm -C ui typecheck`
+- `pnpm -C ui test`
+- `make verify-frontend`
+- `make doctor`
+- `make scorecard`
+
+## Outcomes & Retrospective
+
+Done:
+- Added a deep visual audit artifact for the May 2026 frontend rebuild.
+- Rebuilt the app/header/onboarding/route-shell visual language around carbon command surfaces, emerald signal accents, and stronger route evidence hierarchy.
+- Added route intelligence summary cards for route lane, run state, and proof loop.
+- Converted old side-stripe and width-transition treatments to full-border and transform-based treatments.
+- Refreshed visual snapshots intentionally after browser review.
+- Verified with `impeccable detect`, `pnpm -C ui lint`, `pnpm -C ui typecheck`, `pnpm -C ui design:lint`, `pnpm -C ui test`, route/viewport E2E checks, `make verify-frontend`, `make doctor`, and `make scorecard`.
+
+Not done:
+- None for this visual rebuild pass.
+
+---
+
 # UX Focused-Mode V3 ExecPlan
 
 ## Purpose / Big Picture
