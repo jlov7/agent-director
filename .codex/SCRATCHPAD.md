@@ -1,20 +1,20 @@
 ## Current Task
-Deep visual audit and frontier frontend rebuild using Taste Skill, VoltAgent DESIGN.md guidance, Impeccable, and browser verification.
+World-class panel review and 100-point frontend burndown.
 
 ## Status
 Complete
 
 ## Plan
-1. [x] Capture current rendered UI across primary routes and viewports.
-2. [x] Run Impeccable/Taste-informed visual audit and record findings.
-3. [x] Implement a broad visual rebuild with production-safe CSS/React changes.
-4. [x] Verify in browser at desktop/tablet/mobile and update visual snapshots intentionally.
-5. [x] Run full frontend/release gates, commit, and push.
+1. [x] Score current UI against 10 expert panel criteria.
+2. [x] Add a 100-point burndown with acceptance evidence.
+3. [x] Implement repo-actionable gaps.
+4. [x] Verify with browser, detector, frontend, doctor, and scorecard gates.
+5. [x] Commit and push.
 
 ## Decisions Made
-- Treat this as a product UI, not a marketing hero. Design serves investigation speed and trace/eval confidence.
-- Use restrained but distinctive terminal-native visual language: carbon surfaces, emerald signal, warm borders, high-trust typography.
-- Keep the rebuild scoped to route-shell and shared visual system surfaces touched by the main journeys.
+- Panel baseline score is `89/100`: strong visual system, but completed sessions still showed too much onboarding/recovery chrome.
+- Close only repo-actionable design/product gaps; external expert panel validation remains outside local evidence.
+- Preserve product-register constraints: no brand-page theatre, no new dependency, no decorative motion.
 
 ## Open Questions
 - None blocking; user authorized autonomous completion and broad frontend changes.

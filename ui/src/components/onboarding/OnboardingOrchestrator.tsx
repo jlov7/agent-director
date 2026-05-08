@@ -83,10 +83,24 @@ export default function OnboardingOrchestrator({
     );
   }
 
+  if (stage === 'completed') {
+    return (
+      <section className="onboarding-complete-rail" aria-label="Onboarding complete">
+        <div>
+          <p className="onboarding-eyebrow">Setup complete</p>
+          <strong>Workspace ready for {path}.</strong>
+        </div>
+        <button className="ghost-button" type="button" onClick={onStartOver}>
+          Start over
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section
       className={`onboarding-orchestrator onboarding-stage-${stage}`}
-      aria-label={stage === 'completed' ? 'Onboarding complete' : 'Onboarding in progress'}
+      aria-label="Onboarding in progress"
     >
       <FirstWinChecklist
         path={path}

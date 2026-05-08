@@ -5499,7 +5499,7 @@ export default function App() {
   const effectiveDensity: Exclude<DensityMode, 'auto'> =
     densityMode === 'auto' ? (viewportWidth <= 980 ? 'compact' : 'comfortable') : densityMode;
   const showHelpEscalationBanner =
-    (stuckSignals.length > 0 || timeToFirstSuccessMs === null) && (!routeShellEnabled || onboardingStage !== 'select');
+    supportMomentEligible && (!routeShellEnabled || onboardingStage !== 'select');
   const workspaceTrail = routeShellEnabled
     ? `Workspace / ${UX_REBOOT_ROUTE_LABEL[routeShellActiveRoute]} / ${UX_REBOOT_ROUTE_INTENT_COPY[routeShellActiveRoute]}`
     : `Workspace / ${activeWorkspaceSection.title} / ${modeOrientationLabel}`;

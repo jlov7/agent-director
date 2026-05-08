@@ -129,7 +129,7 @@ export default function Header({
           <LogoMark />
           <span>Agent Director</span>
         </div>
-        <div className="header-tagline">Cinematic trace intelligence for agent runs.</div>
+        <div className="header-tagline">Trace evidence, evals, and replay truth for agent runs.</div>
         <div className="header-meta">
           <span className="header-run">Run: {trace?.id ?? 'loading'}</span>
           {traces.length > 0 ? (

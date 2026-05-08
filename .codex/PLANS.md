@@ -338,6 +338,65 @@ Not done:
 
 ---
 
+# World-Class Panel Burndown ExecPlan
+
+## Purpose / Big Picture
+
+Review Agent Director as if it were judged by an elite design/SaaS panel, score it out of 100 across ten product-design criteria, then close every repo-actionable gap to reach the strongest defensible score.
+
+## Scope
+
+- In scope: 100-point panel audit, burndown artifact, completed-session hierarchy, support escalation eligibility, route intelligence treatment, product copy, snapshots, and release verification.
+- Out of scope: external human panel validation, net-new backend features, and decorative brand-site motion.
+
+## Progress
+
+- [x] Run critical panel review and deterministic Impeccable scan.
+- [x] Add `docs/audits/2026-05-world-class-panel-burndown.md`.
+- [x] Compact completed onboarding into a completion rail.
+- [x] Suppress non-critical help escalation in completed sessions.
+- [x] Tighten product-specific header copy.
+- [x] Convert route intelligence from three cards to one operations rail.
+- [x] Verify and refresh snapshots.
+- [x] Commit and push.
+
+## Surprises & Discoveries
+
+- The major remaining penalty was not color or typography. It was state hierarchy: completed sessions still behaved visually like onboarding sessions.
+- The route intelligence strip was useful content but its three-box presentation looked closer to a generic SaaS card row than a proprietary command surface.
+
+## Decision Log
+
+- Score baseline at `89/100` before this burndown.
+- Target `100/100` for repo-actionable criteria, while noting that true external panel proof requires outside validation.
+- Keep the solution small and product-native: fewer surfaces above the route workspace, not more visual ornament.
+
+## Validation Plan
+
+- `impeccable detect --fast --json ui/src`
+- `pnpm -C ui lint`
+- `pnpm -C ui typecheck`
+- `pnpm -C ui design:lint`
+- `pnpm -C ui test`
+- Browser screenshots for completed Diagnose desktop/mobile
+- `make verify-frontend`
+- `make doctor`
+- `make scorecard`
+
+## Outcomes & Retrospective
+
+Done:
+- Added the world-class panel scorecard and burndown artifact.
+- Closed all repo-actionable gaps from the `89/100` baseline: completed-session hierarchy, help eligibility, product copy, and route summary treatment.
+- Verified completed Diagnose desktop/mobile in browser with no horizontal overflow and no completed-session first-win checklist.
+- Refreshed visual snapshots and cross-browser visual verification baselines.
+- Final gates passed: Impeccable detector, lint, typecheck, design lint, unit tests, targeted E2E, `make verify-frontend`, `make doctor`, and `make scorecard`.
+
+Not done:
+- External human panel validation remains outside local repo evidence.
+
+---
+
 # UX Focused-Mode V3 ExecPlan
 
 ## Purpose / Big Picture
