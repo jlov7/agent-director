@@ -1,0 +1,101 @@
+<template id="segment-problem-questions-template">
+  <div data-composition-id="segment-problem-questions" data-width="1920" data-height="1080" data-duration="16">
+      <section id="scene-problem" class="scene">
+        <div class="scene-content">
+          <div class="topline">
+            <span>Incident room / agent run 24-05-08</span>
+            <span class="coral mono">failure unresolved</span>
+          </div>
+          <div class="problem-grid">
+            <div class="chapter">
+              <h1>When an agent fails, logs are not enough.</h1>
+              <p class="lead">
+                Teams get spans, tokens, retries, costs, screenshots, and guesses. What they need is
+                a way to turn the run into evidence.
+              </p>
+            </div>
+            <div class="trace-chaos chapter">
+              <div class="span-row">
+                <span>planner</span>
+                <span class="span-bar" style="--start: 2%; --width: 76%; --color: #6fb7ff"></span>
+                <span>2.4s</span>
+              </div>
+              <div class="span-row">
+                <span>tool.search</span>
+                <span class="span-bar" style="--start: 18%; --width: 64%; --color: #f0c86d"></span>
+                <span>7.8s</span>
+              </div>
+              <div class="span-row">
+                <span>retrieval</span>
+                <span class="span-bar" style="--start: 31%; --width: 52%; --color: #f07c82"></span>
+                <span>error</span>
+              </div>
+              <div class="span-row">
+                <span>model.call</span>
+                <span class="span-bar" style="--start: 44%; --width: 42%; --color: #6fb7ff"></span>
+                <span>$0.41</span>
+              </div>
+              <div class="span-row">
+                <span>replay</span>
+                <span class="span-bar" style="--start: 53%; --width: 34%; --color: #748399"></span>
+                <span>?</span>
+              </div>
+            </div>
+          </div>
+          <div class="caption">
+            <strong>Agent Director starts from a simple claim: every important run should become release evidence.</strong>
+            <span class="timecode">00:00</span>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="scene-questions" class="scene">
+        <div class="scene-content">
+          <div class="topline">
+            <span>What the team actually needs</span>
+            <span class="signal">questions before dashboards</span>
+          </div>
+          <h2 class="chapter">The interface has to answer the operational questions.</h2>
+          <div class="decision-stack">
+            <div class="question chapter">
+              <div class="question-label">01 / CAUSE</div>
+              <div class="question-text">Which step created the failure, latency spike, or cost jump?</div>
+            </div>
+            <div class="question chapter">
+              <div class="question-label">02 / REGRESSION</div>
+              <div class="question-text">Can this trace become a deterministic eval case?</div>
+            </div>
+            <div class="question chapter">
+              <div class="question-label">03 / TRUTH</div>
+              <div class="question-text">Is this replay recorded, simulated, or actually executed?</div>
+            </div>
+          </div>
+          <div class="caption">
+            <strong>The product is not a prettier log viewer. It is an evidence loop for agent teams.</strong>
+            <span class="timecode">00:08</span>
+          </div>
+        </div>
+      </section>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+        const scenes = [["#scene-problem",0,8],["#scene-questions",8,8]];
+        scenes.forEach(([selector, start, duration], index) => {
+          tl.set(selector, { opacity: 1, visibility: "visible" }, start);
+          tl.from(selector + " .chapter", { y: 32, opacity: 0, duration: 0.72, stagger: 0.07, ease: "power3.out" }, start + 0.18);
+          tl.from(selector + " .caption", { y: 18, opacity: 0, duration: 0.55, ease: "power2.out" }, start + 0.42);
+          if (index < scenes.length - 1) {
+            tl.to(selector, { opacity: 0, duration: 0.45, ease: "power2.inOut" }, start + duration - 0.45);
+            tl.set(selector, { opacity: 0, visibility: "hidden" }, start + duration);
+          }
+        });
+        window.__timelines["segment-problem-questions"] = tl;
+      })();
+    </script>
+  </div>
+</template>

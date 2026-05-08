@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import ModalDialog from '../common/ModalDialog';
 
 describe('ModalDialog', () => {
@@ -40,5 +40,27 @@ describe('ModalDialog', () => {
 
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
     expect(second).toHaveFocus();
+  });
+
+  it('does not steal focus when a caller focuses a control before autofocus runs', async () => {
+    vi.useFakeTimers();
+
+    render(
+      <ModalDialog ariaLabel="Confirm action" onClose={vi.fn()}>
+        <>
+          <button type="button">Cancel</button>
+          <button type="button">Confirm</button>
+        </>
+      </ModalDialog>
+    );
+
+    const confirm = screen.getByRole('button', { name: 'Confirm' });
+    confirm.focus();
+    await act(async () => {
+      vi.runOnlyPendingTimers();
+    });
+
+    expect(confirm).toHaveFocus();
+    vi.useRealTimers();
   });
 });

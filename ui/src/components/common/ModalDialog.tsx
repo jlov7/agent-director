@@ -43,6 +43,7 @@ export default function ModalDialog({
     document.body.style.overflow = 'hidden';
 
     const focusTimer = window.setTimeout(() => {
+      if (panelRef.current?.contains(document.activeElement)) return;
       const focusable = getFocusable(panelRef.current);
       (focusable[0] ?? panelRef.current)?.focus();
     }, 0);

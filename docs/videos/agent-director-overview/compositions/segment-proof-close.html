@@ -1,0 +1,75 @@
+<template id="segment-proof-close-template">
+  <div data-composition-id="segment-proof-close" data-width="1920" data-height="1080" data-duration="13">
+      <section id="scene-proof" class="scene">
+        <div class="scene-content">
+          <div class="topline">
+            <span>Release evidence</span>
+            <span class="signal">doctor pass / scorecard 90 of 90</span>
+          </div>
+          <h2 class="chapter">The repo makes the bar executable.</h2>
+          <div class="proof-board">
+            <div class="gate chapter"><div class="gate-code">G1</div><div class="gate-name">Core journeys</div><div class="gate-pass">PASS</div></div>
+            <div class="gate chapter"><div class="gate-code">G2</div><div class="gate-name">Onboarding</div><div class="gate-pass">PASS</div></div>
+            <div class="gate chapter"><div class="gate-code">G3</div><div class="gate-name">Quality</div><div class="gate-pass">PASS</div></div>
+            <div class="gate chapter"><div class="gate-code">G4</div><div class="gate-name">Accessibility</div><div class="gate-pass">PASS</div></div>
+            <div class="gate chapter"><div class="gate-code">G5</div><div class="gate-name">Performance</div><div class="gate-pass">PASS</div></div>
+            <div class="gate chapter"><div class="gate-code">G6</div><div class="gate-name">Security</div><div class="gate-pass">PASS</div></div>
+            <div class="gate chapter"><div class="gate-code">G7</div><div class="gate-name">Docs</div><div class="gate-pass">PASS</div></div>
+            <div class="gate chapter"><div class="gate-code">G8</div><div class="gate-name">CI</div><div class="gate-pass">PASS</div></div>
+            <div class="gate chapter"><div class="gate-code">G9</div><div class="gate-name">Frontier evidence</div><div class="gate-pass">PASS</div></div>
+            <div class="gate chapter"><div class="gate-code">G10</div><div class="gate-name">System coherence</div><div class="gate-pass">PASS</div></div>
+          </div>
+          <div class="caption">
+            <strong>Agent Director is designed so the repository can prove the product claim.</strong>
+            <span class="timecode">01:07</span>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="scene-close" class="scene">
+        <div class="scene-content">
+          <div class="topline">
+            <span>Agent Director</span>
+            <span class="signal">from trace chaos to release evidence</span>
+          </div>
+          <div class="close-layout">
+            <div class="close-mark chapter">
+              <div class="product-name">Agent<br />Director</div>
+              <div class="tagline">Trace evidence, evals, and replay truth for AI-agent teams.</div>
+            </div>
+            <div class="proof-lines chapter">
+              <div><span class="accent">01</span> Ingest real traces.</div>
+              <div><span class="accent">02</span> Diagnose the causal step.</div>
+              <div><span class="accent">03</span> Convert failures into evals.</div>
+              <div><span class="accent">04</span> Label replay truthfully.</div>
+              <div><span class="accent">05</span> Ship with evidence.</div>
+            </div>
+          </div>
+          <div class="caption">
+            <strong>The vision: every agent run becomes a way to make the next agent better.</strong>
+            <span class="timecode">01:15</span>
+          </div>
+        </div>
+      </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+        const scenes = [["#scene-proof",0,8],["#scene-close",8,5]];
+        scenes.forEach(([selector, start, duration], index) => {
+          tl.set(selector, { opacity: 1, visibility: "visible" }, start);
+          tl.from(selector + " .chapter", { y: 32, opacity: 0, duration: 0.72, stagger: 0.07, ease: "power3.out" }, start + 0.18);
+          tl.from(selector + " .caption", { y: 18, opacity: 0, duration: 0.55, ease: "power2.out" }, start + 0.42);
+          if (index < scenes.length - 1) {
+            tl.to(selector, { opacity: 0, duration: 0.45, ease: "power2.inOut" }, start + duration - 0.45);
+            tl.set(selector, { opacity: 0, visibility: "hidden" }, start + duration);
+          }
+        });
+        window.__timelines["segment-proof-close"] = tl;
+      })();
+    </script>
+  </div>
+</template>

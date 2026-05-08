@@ -37,6 +37,15 @@ http://localhost:3002/#project/agent-director-overview
 
 The composition intentionally uses current app screenshots copied into `assets/` rather than mocked product art. Refresh the source screenshots from `../../screenshots/` when the app UI materially changes.
 
+## Composition Structure
+
+- `index.html` is the root timeline and mounts five segment compositions.
+- `compositions/segment-problem-questions.html` covers the opening problem.
+- `compositions/segment-reveal-workflow.html` covers product reveal and workflow.
+- `compositions/segment-import-diagnose.html` covers ingestion and diagnosis.
+- `compositions/segment-eval-replay.html` covers eval creation and replay truth.
+- `compositions/segment-proof-close.html` covers release gates and close.
+
 ## Render Output
 
 The canonical final render path is:

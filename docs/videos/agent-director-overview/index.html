@@ -9,6 +9,7 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=block"
       rel="stylesheet"
     />
+    <link rel="icon" href="data:," />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -20,374 +21,70 @@
       data-width="1920"
       data-height="1080"
     >
-      <section id="scene-problem" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>Incident room / agent run 24-05-08</span>
-            <span class="coral mono">failure unresolved</span>
-          </div>
-          <div class="problem-grid">
-            <div class="chapter">
-              <h1>When an agent fails, logs are not enough.</h1>
-              <p class="lead">
-                Teams get spans, tokens, retries, costs, screenshots, and guesses. What they need is
-                a way to turn the run into evidence.
-              </p>
-            </div>
-            <div class="trace-chaos chapter">
-              <div class="span-row">
-                <span>planner</span>
-                <span class="span-bar" style="--start: 2%; --width: 76%; --color: #6fb7ff"></span>
-                <span>2.4s</span>
-              </div>
-              <div class="span-row">
-                <span>tool.search</span>
-                <span class="span-bar" style="--start: 18%; --width: 64%; --color: #f0c86d"></span>
-                <span>7.8s</span>
-              </div>
-              <div class="span-row">
-                <span>retrieval</span>
-                <span class="span-bar" style="--start: 31%; --width: 52%; --color: #f07c82"></span>
-                <span>error</span>
-              </div>
-              <div class="span-row">
-                <span>model.call</span>
-                <span class="span-bar" style="--start: 44%; --width: 42%; --color: #6fb7ff"></span>
-                <span>$0.41</span>
-              </div>
-              <div class="span-row">
-                <span>replay</span>
-                <span class="span-bar" style="--start: 53%; --width: 34%; --color: #748399"></span>
-                <span>?</span>
-              </div>
-            </div>
-          </div>
-          <div class="caption">
-            <strong>Agent Director starts from a simple claim: every important run should become release evidence.</strong>
-            <span class="timecode">00:00</span>
-          </div>
-        </div>
-      </section>
+      <div
+        id="segment-problem-questions"
+        class="clip segment-clip"
+        data-composition-id="segment-problem-questions"
+        data-composition-src="compositions/segment-problem-questions.html"
+        data-start="0"
+        data-duration="16"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
 
-      <section id="scene-questions" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>What the team actually needs</span>
-            <span class="signal">questions before dashboards</span>
-          </div>
-          <h2 class="chapter">The interface has to answer the operational questions.</h2>
-          <div class="decision-stack">
-            <div class="question chapter">
-              <div class="question-label">01 / CAUSE</div>
-              <div class="question-text">Which step created the failure, latency spike, or cost jump?</div>
-            </div>
-            <div class="question chapter">
-              <div class="question-label">02 / REGRESSION</div>
-              <div class="question-text">Can this trace become a deterministic eval case?</div>
-            </div>
-            <div class="question chapter">
-              <div class="question-label">03 / TRUTH</div>
-              <div class="question-text">Is this replay recorded, simulated, or actually executed?</div>
-            </div>
-          </div>
-          <div class="caption">
-            <strong>The product is not a prettier log viewer. It is an evidence loop for agent teams.</strong>
-            <span class="timecode">00:08</span>
-          </div>
-        </div>
-      </section>
+      <div
+        id="segment-reveal-workflow"
+        class="clip segment-clip"
+        data-composition-id="segment-reveal-workflow"
+        data-composition-src="compositions/segment-reveal-workflow.html"
+        data-start="16"
+        data-duration="18"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
 
-      <section id="scene-reveal" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>Agent Director</span>
-            <span class="signal">trace evidence online</span>
-          </div>
-          <div class="reveal-layout">
-            <div class="chapter">
-              <h1>Trace evidence, evals, and replay truth.</h1>
-              <p class="lead">
-                Agent Director ingests real agent traces, preserves provenance, and turns failures
-                into a structured path from diagnosis to release gates.
-              </p>
-            </div>
-            <div class="device chapter">
-              <img src="assets/readme-diagnose-evidence.png" alt="Agent Director Diagnose evidence surface" />
-            </div>
-          </div>
-          <div class="caption">
-            <strong>Real UI, real release evidence, and a product surface built around investigation.</strong>
-            <span class="timecode">00:16</span>
-          </div>
-        </div>
-      </section>
+      <div
+        id="segment-import-diagnose"
+        class="clip segment-clip"
+        data-composition-id="segment-import-diagnose"
+        data-composition-src="compositions/segment-import-diagnose.html"
+        data-start="34"
+        data-duration="17"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
 
-      <section id="scene-workflow" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>Core loop</span>
-            <span class="blue mono">import -> diagnose -> eval -> replay</span>
-          </div>
-          <h2 class="chapter">A failed run becomes an improvement loop.</h2>
-          <div class="workflow">
-            <div class="workflow-step chapter">
-              <div class="step-number">01</div>
-              <div class="step-title">Import production-shaped traces.</div>
-              <div class="step-copy">Agent Director JSON, OpenAI Agents-style spans, OTel GenAI, and OpenInference.</div>
-            </div>
-            <div class="workflow-step chapter">
-              <div class="step-number">02</div>
-              <div class="step-title">Normalize provenance.</div>
-              <div class="step-copy">Provider trace IDs, span IDs, parentage, token cost, model metadata, and warnings.</div>
-            </div>
-            <div class="workflow-step chapter">
-              <div class="step-number">03</div>
-              <div class="step-title">Diagnose with evidence.</div>
-              <div class="step-copy">Route-shell journeys keep the team focused on cause, owner, and next action.</div>
-            </div>
-            <div class="workflow-step chapter">
-              <div class="step-number">04</div>
-              <div class="step-title">Turn failures into evals.</div>
-              <div class="step-copy">Deterministic eval cases become release evidence instead of one-off anecdotes.</div>
-            </div>
-          </div>
-          <div class="caption">
-            <strong>The product moves from observation to action without hiding uncertainty.</strong>
-            <span class="timecode">00:25</span>
-          </div>
-        </div>
-      </section>
+      <div
+        id="segment-eval-replay"
+        class="clip segment-clip"
+        data-composition-id="segment-eval-replay"
+        data-composition-src="compositions/segment-eval-replay.html"
+        data-start="51"
+        data-duration="16"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
 
-      <section id="scene-import" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>Typed ingestion</span>
-            <span class="signal">four source formats</span>
-          </div>
-          <div class="evidence-layout">
-            <div class="terminal chapter">
-              <div><span class="ok">POST</span> /api/traces/import</div>
-              <div>{ source: "openai_agents", payload }</div>
-              <br />
-              <div class="ok">normalized.traceId = "trace_prod_8f3"</div>
-              <div>span.parentId = "planner"</div>
-              <div>model.provider = "openai"</div>
-              <div>tokens.total = 18244</div>
-              <div>warnings = ["missing parent span"]</div>
-            </div>
-            <div class="findings">
-              <div class="finding chapter">
-                <div class="finding-key">SOURCES</div>
-                <div class="finding-value">Agent Director, OpenAI Agents, OTel GenAI, OpenInference</div>
-              </div>
-              <div class="finding chapter">
-                <div class="finding-key">PROVENANCE</div>
-                <div class="finding-value">Provider IDs, span IDs, parent IDs, model metadata, costs</div>
-              </div>
-              <div class="finding chapter">
-                <div class="finding-key">WARNINGS</div>
-                <div class="finding-value">Duplicate spans, missing parents, impossible timings, exception events</div>
-              </div>
-            </div>
-          </div>
-          <div class="caption">
-            <strong>Import is not just parsing. It preserves enough truth for investigation and evals.</strong>
-            <span class="timecode">00:34</span>
-          </div>
-        </div>
-      </section>
-
-      <section id="scene-diagnose" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>Diagnose route</span>
-            <span class="amber mono">root cause candidate</span>
-          </div>
-          <div class="evidence-layout">
-            <div class="device chapter">
-              <img src="assets/readme-trace-to-eval.png" alt="Diagnose route showing root cause and trace-to-eval action" />
-            </div>
-            <div class="findings">
-              <div class="finding chapter">
-                <div class="finding-key">CAUSE</div>
-                <div class="finding-value">Retrieval drift produced the wrong tool context before the final model call.</div>
-              </div>
-              <div class="finding chapter">
-                <div class="finding-key">COST</div>
-                <div class="finding-value">$0.41 concentrated in retry-heavy model spans.</div>
-              </div>
-              <div class="finding chapter">
-                <div class="finding-key">ACTION</div>
-                <div class="finding-value">Create eval case from the failed trace and pin it to release gates.</div>
-              </div>
-            </div>
-          </div>
-          <div class="caption">
-            <strong>Every finding has a route, a reason, and a next action.</strong>
-            <span class="timecode">00:43</span>
-          </div>
-        </div>
-      </section>
-
-      <section id="scene-eval" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>Trace to eval</span>
-            <span class="signal">deterministic release evidence</span>
-          </div>
-          <div class="eval-grid">
-            <div class="chapter">
-              <h1>Interesting failures stop being anecdotes.</h1>
-              <p class="lead">
-                The failed trace becomes a repeatable eval case. The next release can prove whether
-                the behavior improved, regressed, or stayed ambiguous.
-              </p>
-            </div>
-            <div class="eval-card chapter">
-              <div class="eval-row"><span>eval_case</span><span class="accent">retrieval_drift_guard</span></div>
-              <div class="eval-row"><span>source_trace</span><span>trace_prod_8f3</span></div>
-              <div class="eval-row"><span>evaluator</span><span>semantic_similarity</span></div>
-              <div class="eval-row"><span>determinism</span><span class="accent">local</span></div>
-              <div class="eval-row"><span>release_use</span><span class="accent">gate evidence</span></div>
-            </div>
-          </div>
-          <div class="caption">
-            <strong>The loop is the point: trace, diagnose, evaluate, release with proof.</strong>
-            <span class="timecode">00:51</span>
-          </div>
-        </div>
-      </section>
-
-      <section id="scene-replay" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>Replay truth</span>
-            <span class="signal">no false re-execution claims</span>
-          </div>
-          <h2 class="chapter">The product labels what it knows.</h2>
-          <div class="truth-modes">
-            <div class="truth-card active chapter">
-              <div class="mono accent">recorded_replay</div>
-              <div class="truth-title">Recorded evidence</div>
-              <div class="truth-copy">A faithful replay of the run that actually happened.</div>
-            </div>
-            <div class="truth-card active chapter">
-              <div class="mono amber">counterfactual_simulation</div>
-              <div class="truth-title">Simulation</div>
-              <div class="truth-copy">Branch analysis, clearly marked as not live agent execution.</div>
-            </div>
-            <div class="truth-card chapter">
-              <div class="mono blue">executed_replay</div>
-              <div class="truth-title">Future live replay</div>
-              <div class="truth-copy">Reserved for actual runtime re-execution when the system can prove it.</div>
-            </div>
-          </div>
-          <div class="caption">
-            <strong>Truthful replay is a product feature, not just a label.</strong>
-            <span class="timecode">00:59</span>
-          </div>
-        </div>
-      </section>
-
-      <section id="scene-proof" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>Release evidence</span>
-            <span class="signal">doctor pass / scorecard 90 of 90</span>
-          </div>
-          <h2 class="chapter">The repo makes the bar executable.</h2>
-          <div class="proof-board">
-            <div class="gate chapter"><div class="gate-code">G1</div><div class="gate-name">Core journeys</div><div class="gate-pass">PASS</div></div>
-            <div class="gate chapter"><div class="gate-code">G2</div><div class="gate-name">Onboarding</div><div class="gate-pass">PASS</div></div>
-            <div class="gate chapter"><div class="gate-code">G3</div><div class="gate-name">Quality</div><div class="gate-pass">PASS</div></div>
-            <div class="gate chapter"><div class="gate-code">G4</div><div class="gate-name">Accessibility</div><div class="gate-pass">PASS</div></div>
-            <div class="gate chapter"><div class="gate-code">G5</div><div class="gate-name">Performance</div><div class="gate-pass">PASS</div></div>
-            <div class="gate chapter"><div class="gate-code">G6</div><div class="gate-name">Security</div><div class="gate-pass">PASS</div></div>
-            <div class="gate chapter"><div class="gate-code">G7</div><div class="gate-name">Docs</div><div class="gate-pass">PASS</div></div>
-            <div class="gate chapter"><div class="gate-code">G8</div><div class="gate-name">CI</div><div class="gate-pass">PASS</div></div>
-            <div class="gate chapter"><div class="gate-code">G9</div><div class="gate-name">Frontier evidence</div><div class="gate-pass">PASS</div></div>
-            <div class="gate chapter"><div class="gate-code">G10</div><div class="gate-name">System coherence</div><div class="gate-pass">PASS</div></div>
-          </div>
-          <div class="caption">
-            <strong>Agent Director is designed so the repository can prove the product claim.</strong>
-            <span class="timecode">01:07</span>
-          </div>
-        </div>
-      </section>
-
-      <section id="scene-close" class="scene">
-        <div class="scene-content">
-          <div class="topline">
-            <span>Agent Director</span>
-            <span class="signal">from trace chaos to release evidence</span>
-          </div>
-          <div class="close-layout">
-            <div class="close-mark chapter">
-              <div class="product-name">Agent<br />Director</div>
-              <div class="tagline">Trace evidence, evals, and replay truth for AI-agent teams.</div>
-            </div>
-            <div class="proof-lines chapter">
-              <div><span class="accent">01</span> Ingest real traces.</div>
-              <div><span class="accent">02</span> Diagnose the causal step.</div>
-              <div><span class="accent">03</span> Convert failures into evals.</div>
-              <div><span class="accent">04</span> Label replay truthfully.</div>
-              <div><span class="accent">05</span> Ship with evidence.</div>
-            </div>
-          </div>
-          <div class="caption">
-            <strong>The vision: every agent run becomes a way to make the next agent better.</strong>
-            <span class="timecode">01:15</span>
-          </div>
-        </div>
-      </section>
+      <div
+        id="segment-proof-close"
+        class="clip segment-clip"
+        data-composition-id="segment-proof-close"
+        data-composition-src="compositions/segment-proof-close.html"
+        data-start="67"
+        data-duration="13"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
     </div>
 
     <script>
       window.__timelines = window.__timelines || {};
-      const mainTl = gsap.timeline({ paused: true });
-
-      const scenes = [
-        ["#scene-problem", 0, 8],
-        ["#scene-questions", 8, 8],
-        ["#scene-reveal", 16, 9],
-        ["#scene-workflow", 25, 9],
-        ["#scene-import", 34, 9],
-        ["#scene-diagnose", 43, 8],
-        ["#scene-eval", 51, 8],
-        ["#scene-replay", 59, 8],
-        ["#scene-proof", 67, 8],
-        ["#scene-close", 75, 5],
-      ];
-
-      scenes.forEach(([selector, start, duration], index) => {
-        mainTl.set(selector, { opacity: 1, visibility: "visible" }, start);
-        mainTl.from(
-          selector + " .chapter",
-          {
-            y: 32,
-            opacity: 0,
-            duration: 0.72,
-            stagger: 0.07,
-            ease: "power3.out",
-          },
-          start + 0.18,
-        );
-        mainTl.from(
-          selector + " .caption",
-          { y: 18, opacity: 0, duration: 0.55, ease: "power2.out" },
-          start + 0.42,
-        );
-        if (index < scenes.length - 1) {
-          mainTl.to(
-            selector,
-            { opacity: 0, duration: 0.45, ease: "power2.inOut" },
-            start + duration - 0.45,
-          );
-          mainTl.set(selector, { opacity: 0, visibility: "hidden" }, start + duration);
-        }
-      });
-
-      window.__timelines["main"] = mainTl;
+      window.__timelines["main"] = gsap.timeline({ paused: true });
     </script>
   </body>
 </html>

@@ -1,0 +1,85 @@
+<template id="segment-reveal-workflow-template">
+  <div data-composition-id="segment-reveal-workflow" data-width="1920" data-height="1080" data-duration="18">
+      <section id="scene-reveal" class="scene">
+        <div class="scene-content">
+          <div class="topline">
+            <span>Agent Director</span>
+            <span class="signal">trace evidence online</span>
+          </div>
+          <div class="reveal-layout">
+            <div class="chapter">
+              <h1>Trace evidence, evals, and replay truth.</h1>
+              <p class="lead">
+                Agent Director ingests real agent traces, preserves provenance, and turns failures
+                into a structured path from diagnosis to release gates.
+              </p>
+            </div>
+            <div class="device chapter">
+              <img src="assets/readme-diagnose-evidence.png" alt="Agent Director Diagnose evidence surface" />
+            </div>
+          </div>
+          <div class="caption">
+            <strong>Real UI, real release evidence, and a product surface built around investigation.</strong>
+            <span class="timecode">00:16</span>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="scene-workflow" class="scene">
+        <div class="scene-content">
+          <div class="topline">
+            <span>Core loop</span>
+            <span class="blue mono">import -> diagnose -> eval -> replay</span>
+          </div>
+          <h2 class="chapter">A failed run becomes an improvement loop.</h2>
+          <div class="workflow">
+            <div class="workflow-step chapter">
+              <div class="step-number">01</div>
+              <div class="step-title">Import production-shaped traces.</div>
+              <div class="step-copy">Agent Director JSON, OpenAI Agents-style spans, OTel GenAI, and OpenInference.</div>
+            </div>
+            <div class="workflow-step chapter">
+              <div class="step-number">02</div>
+              <div class="step-title">Normalize provenance.</div>
+              <div class="step-copy">Provider trace IDs, span IDs, parentage, token cost, model metadata, and warnings.</div>
+            </div>
+            <div class="workflow-step chapter">
+              <div class="step-number">03</div>
+              <div class="step-title">Diagnose with evidence.</div>
+              <div class="step-copy">Route-shell journeys keep the team focused on cause, owner, and next action.</div>
+            </div>
+            <div class="workflow-step chapter">
+              <div class="step-number">04</div>
+              <div class="step-title">Turn failures into evals.</div>
+              <div class="step-copy">Deterministic eval cases become release evidence instead of one-off anecdotes.</div>
+            </div>
+          </div>
+          <div class="caption">
+            <strong>The product moves from observation to action without hiding uncertainty.</strong>
+            <span class="timecode">00:25</span>
+          </div>
+        </div>
+      </section>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+        const scenes = [["#scene-reveal",0,9],["#scene-workflow",9,9]];
+        scenes.forEach(([selector, start, duration], index) => {
+          tl.set(selector, { opacity: 1, visibility: "visible" }, start);
+          tl.from(selector + " .chapter", { y: 32, opacity: 0, duration: 0.72, stagger: 0.07, ease: "power3.out" }, start + 0.18);
+          tl.from(selector + " .caption", { y: 18, opacity: 0, duration: 0.55, ease: "power2.out" }, start + 0.42);
+          if (index < scenes.length - 1) {
+            tl.to(selector, { opacity: 0, duration: 0.45, ease: "power2.inOut" }, start + duration - 0.45);
+            tl.set(selector, { opacity: 0, visibility: "hidden" }, start + duration);
+          }
+        });
+        window.__timelines["segment-reveal-workflow"] = tl;
+      })();
+    </script>
+  </div>
+</template>

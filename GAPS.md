@@ -11,6 +11,7 @@ Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 - Final evidence green in this branch: `make verify-frontend`, `make doctor`, and `make scorecard`.
 - Dogfood evidence: `artifacts/dogfood-trace-evidence.json` covers 8 trace fixtures across `agent_director`, `openai_agents`, `otel_genai`, and `openinference`, with deterministic evals and replay truth proof.
 - System audit evidence: `BURNDOWN.md` and `docs/audits/2026-05-carpathy-system-audit.md` close the step-back audit findings; `artifacts/system-coherence-audit.json` makes active product/release drift release-blocking.
+- Repo front-door evidence: `docs/videos/agent-director-overview/renders/agent-director-overview.mp4` is linked from `README.md` and checked by the system coherence audit alongside its poster and segmented HyperFrames source.
 - Current artifacts: `artifacts/doctor.json` passes with `G1` through `G10`; `artifacts/scorecards.json` passes at `90/90` with Frontier Evidence Loop and System Coherence domains.
 
 ## Frontier P0

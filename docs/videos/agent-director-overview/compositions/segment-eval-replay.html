@@ -1,0 +1,84 @@
+<template id="segment-eval-replay-template">
+  <div data-composition-id="segment-eval-replay" data-width="1920" data-height="1080" data-duration="16">
+      <section id="scene-eval" class="scene">
+        <div class="scene-content">
+          <div class="topline">
+            <span>Trace to eval</span>
+            <span class="signal">deterministic release evidence</span>
+          </div>
+          <div class="eval-grid">
+            <div class="chapter">
+              <h1>Interesting failures stop being anecdotes.</h1>
+              <p class="lead">
+                The failed trace becomes a repeatable eval case. The next release can prove whether
+                the behavior improved, regressed, or stayed ambiguous.
+              </p>
+            </div>
+            <div class="eval-card chapter">
+              <div class="eval-row"><span>eval_case</span><span class="accent">retrieval_drift_guard</span></div>
+              <div class="eval-row"><span>source_trace</span><span>trace_prod_8f3</span></div>
+              <div class="eval-row"><span>evaluator</span><span>semantic_similarity</span></div>
+              <div class="eval-row"><span>determinism</span><span class="accent">local</span></div>
+              <div class="eval-row"><span>release_use</span><span class="accent">gate evidence</span></div>
+            </div>
+          </div>
+          <div class="caption">
+            <strong>The loop is the point: trace, diagnose, evaluate, release with proof.</strong>
+            <span class="timecode">00:51</span>
+          </div>
+        </div>
+      </section>
+
+
+      <section id="scene-replay" class="scene">
+        <div class="scene-content">
+          <div class="topline">
+            <span>Replay truth</span>
+            <span class="signal">no false re-execution claims</span>
+          </div>
+          <h2 class="chapter">The product labels what it knows.</h2>
+          <div class="truth-modes">
+            <div class="truth-card active chapter">
+              <div class="mono accent">recorded_replay</div>
+              <div class="truth-title">Recorded evidence</div>
+              <div class="truth-copy">A faithful replay of the run that actually happened.</div>
+            </div>
+            <div class="truth-card active chapter">
+              <div class="mono amber">counterfactual_simulation</div>
+              <div class="truth-title">Simulation</div>
+              <div class="truth-copy">Branch analysis, clearly marked as not live agent execution.</div>
+            </div>
+            <div class="truth-card chapter">
+              <div class="mono blue">executed_replay</div>
+              <div class="truth-title">Future live replay</div>
+              <div class="truth-copy">Reserved for actual runtime re-execution when the system can prove it.</div>
+            </div>
+          </div>
+          <div class="caption">
+            <strong>Truthful replay is a product feature, not just a label.</strong>
+            <span class="timecode">00:59</span>
+          </div>
+        </div>
+      </section>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+        const tl = gsap.timeline({ paused: true });
+        const scenes = [["#scene-eval",0,8],["#scene-replay",8,8]];
+        scenes.forEach(([selector, start, duration], index) => {
+          tl.set(selector, { opacity: 1, visibility: "visible" }, start);
+          tl.from(selector + " .chapter", { y: 32, opacity: 0, duration: 0.72, stagger: 0.07, ease: "power3.out" }, start + 0.18);
+          tl.from(selector + " .caption", { y: 18, opacity: 0, duration: 0.55, ease: "power2.out" }, start + 0.42);
+          if (index < scenes.length - 1) {
+            tl.to(selector, { opacity: 0, duration: 0.45, ease: "power2.inOut" }, start + duration - 0.45);
+            tl.set(selector, { opacity: 0, visibility: "hidden" }, start + duration);
+          }
+        });
+        window.__timelines["segment-eval-replay"] = tl;
+      })();
+    </script>
+  </div>
+</template>
