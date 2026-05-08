@@ -1,26 +1,29 @@
 ## Current Task
-AppShell decomposition first slice.
+Agent Director HyperFrames overview film.
 
 ## Status
 Complete
 
 ## Plan
-1. [x] Identify a safe `App.tsx` seam that reduces shell complexity without visual or behavior changes.
-2. [x] Extract app-shell copy/types/route constants into `ui/src/appShellConfig.ts`.
-3. [x] Extract legacy gameplay session adaptation into `ui/src/utils/gameplaySessionMapper.ts`.
-4. [x] Verify typecheck, lint, unit tests, build, and design lint.
+1. [x] Scaffold a dedicated HyperFrames project under `docs/videos/agent-director-overview`.
+2. [x] Replace the template with an Agent Director proof-film composition.
+3. [x] Add video documentation and README placement.
+4. [x] Run HyperFrames lint/inspect/render plus repo doc checks.
+5. [ ] Commit and push.
 
 ## Decisions Made
-- Decompose by real seams, not arbitrary line-count slicing.
-- Keep the extraction behavior-preserving; no visual changes in this slice.
-- Move legacy gameplay adaptation away from the main observability shell to improve product locality.
+- Treat the deliverable as a 90-second proof film: problem, product reveal, workflow, release evidence, close.
+- Use the existing `DESIGN.md` visual contract: command-grade observability cockpit, carbon surfaces, emerald signal, no generic AI decoration.
+- Use current app screenshots as visual proof instead of mocked product screens.
 
 ## Open Questions
 - None blocking; user authorized autonomous ambitious work.
 
 ## Completion Evidence
-- `pnpm -C ui typecheck` passes.
-- `pnpm -C ui lint` passes.
-- `pnpm -C ui test -- src/App.test.tsx src/utils/gameplayEngine.test.ts` passes.
-- `pnpm -C ui build` passes.
-- `pnpm -C ui design:lint` passes.
+- `npm run check` passes for the HyperFrames project with zero errors, WCAG AA pass, and zero layout issues.
+- `npx --yes hyperframes@0.5.5 inspect --samples 15` reports zero layout issues.
+- `npm run render` created `docs/videos/agent-director-overview/renders/agent-director-overview.mp4`.
+- README link/path verification passes.
+- `make demo-proof-verify` passes.
+- `make doctor` passes.
+- `make scorecard` passes at `90/90`.

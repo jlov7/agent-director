@@ -53,6 +53,12 @@ Latest gate model:
 |---|---|---|
 | ![Diagnose route evidence](docs/screenshots/readme-diagnose-evidence.png) | ![Trace to eval route](docs/screenshots/readme-trace-to-eval.png) | ![Mobile diagnose route](docs/screenshots/readme-mobile-diagnose.png) |
 
+## Overview Film
+
+[![Agent Director overview film](docs/videos/agent-director-overview/poster.jpg)](docs/videos/agent-director-overview/renders/agent-director-overview.mp4)
+
+The 80-second HyperFrames proof film explains the problem, the trace-to-eval workflow, replay truth, and release evidence in one pass. Source, design notes, and render commands live in [`docs/videos/agent-director-overview/`](docs/videos/agent-director-overview/).
+
 ## Core Workflows
 
 ### 1. Import Real Traces

@@ -1,5 +1,59 @@
 # Frontier Audit and Rebuild ExecPlan
 
+---
+
+# Agent Director Overview Film ExecPlan
+
+## Purpose / Big Picture
+
+Create a world-class repo-native overview film that makes Agent Director immediately legible to a technical/product evaluator: the problem, the product thesis, the trace-to-eval workflow, truthful replay, and release evidence should be understandable in one viewing.
+
+## Scope
+
+- In scope: HyperFrames source composition, visual identity notes, repo documentation, README placement, render output, and verification.
+- Out of scope: paid voiceover, external brand campaign, new app UI changes, or live production footage beyond current repo screenshots.
+
+## Progress
+
+- [x] Use the HyperFrames skill and CLI workflow.
+- [x] Scaffold `docs/videos/agent-director-overview`.
+- [x] Replace starter template with Agent Director-specific proof-film composition.
+- [x] Add documentation for preview/render/reuse.
+- [x] Render a reviewable video artifact.
+- [x] Link the film from the README.
+- [x] Run HyperFrames checks and repo gates.
+- [ ] Commit and push.
+
+## Surprises & Discoveries
+
+- The HyperFrames starter template is Figma-specific, so the durable move is to replace it with a custom composition that uses actual Agent Director screenshots and product copy.
+- Static inspection passed before render, but draft-frame review still caught timing issues in the replay and release-proof scenes; those needed longer scene durations and tighter stagger.
+
+## Decision Log
+
+- Make a proof film, not a generic SaaS promo.
+- Use the existing `DESIGN.md` visual identity rather than creating a second brand system.
+- Keep the first version captions-led so it works without audio and can be embedded in the repo.
+
+## Validation Plan
+
+- `npx hyperframes lint`
+- `npx hyperframes inspect --samples 15`
+- `npx hyperframes render --quality high --output renders/agent-director-overview.mp4`
+- README link/path verification
+- `make demo-proof-verify`
+- `make doctor`
+- `make scorecard`
+
+## Outcomes & Retrospective
+
+Completed.
+- Added a repo-native 80-second HyperFrames proof film under `docs/videos/agent-director-overview`.
+- The film uses the existing Agent Director design system, current product screenshots, and the trace-to-eval/replay truth/release evidence story.
+- The root README now links the film with a poster frame and a source directory.
+- Final render lives at `docs/videos/agent-director-overview/renders/agent-director-overview.mp4`.
+- Verification is green: HyperFrames check, 15-sample inspect, README link/path verification, `make demo-proof-verify`, `make doctor`, and `make scorecard`.
+
 ## Purpose / Big Picture
 
 Move Agent Director from polished trace viewer toward a production agent observability and improvement loop: real trace import, provenance, trace-to-eval, truthful replay semantics, product focus, and restored release gates.
