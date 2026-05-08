@@ -172,6 +172,45 @@ class TestReplayEngine(unittest.TestCase):
         self.assertEqual(live.replay.executionMode, "counterfactual_simulation")  # type: ignore[union-attr]
         self.assertIn("not executed", hybrid.replay.truthLabel.lower())  # type: ignore[union-attr]
 
+    def test_replay_preserves_imported_trace_provenance(self) -> None:
+        trace = TraceSummary(
+            id="trace-1",
+            name="Imported replay source",
+            startedAt="2026-01-27T10:00:00.000Z",
+            endedAt="2026-01-27T10:00:01.000Z",
+            status="completed",
+            metadata=TraceMetadata(
+                source="otel_genai",
+                agentName="ImportedAgent",
+                modelId="gpt-4.1",
+                wallTimeMs=1000,
+                providerTraceId="provider-trace-123",
+                framework="otel_genai",
+                provider="openai",
+                importerWarnings=["missing parent was normalized"],
+            ),
+            steps=[
+                StepSummary(
+                    id="s1",
+                    index=0,
+                    type="llm_call",
+                    name="plan",
+                    startedAt="2026-01-27T10:00:00.000Z",
+                    endedAt="2026-01-27T10:00:01.000Z",
+                    durationMs=1000,
+                    status="completed",
+                    childStepIds=[],
+                )
+            ],
+        )
+
+        replay = replay_from_step(trace, "s1", "hybrid", {"note": "preserve provenance"})
+
+        self.assertEqual(replay.metadata.providerTraceId, "provider-trace-123")
+        self.assertEqual(replay.metadata.framework, "otel_genai")
+        self.assertEqual(replay.metadata.provider, "openai")
+        self.assertEqual(replay.metadata.importerWarnings, ["missing parent was normalized"])
+
 
 if __name__ == "__main__":
     unittest.main()

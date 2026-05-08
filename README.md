@@ -234,6 +234,7 @@ Full reference: [`docs/api-reference.md`](docs/api-reference.md)
 - Executable demo docs: `make demo-proof-verify`
 - 3-second route comprehension proxy: `pnpm -C ui scan:check`
 - Release evidence: `make doctor`
+- Real trace dogfood evidence: `make dogfood-evidence`
 - Scorecards: `make scorecard`
 
 ## Executable Demo Docs (Showboat)

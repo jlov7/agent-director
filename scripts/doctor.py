@@ -349,16 +349,18 @@ def gate_summary(index: dict[str, dict]) -> dict:
     deps = index["dependency_audit"]["status"] == "pass"
     docs = index["docs_presence"]["status"] == "pass"
     ci = index["ci_status"]["status"] == "pass"
+    dogfood = index["dogfood_trace_evidence"]["status"] == "pass"
 
     return {
-        "G1-core-journeys": verify and critical_specs,
+        "G1-core-journeys": verify and critical_specs and dogfood,
         "G2-onboarding-help": critical_specs,
-        "G3-quality": verify and reliability_drills,
+        "G3-quality": verify and reliability_drills and dogfood,
         "G4-accessibility": critical_specs and verify,
         "G5-performance": verify and bundle_budget and cold_start_budget,
         "G6-security": verify and secrets and deps,
         "G7-docs": docs,
         "G8-ci": ci,
+        "G9-frontier-evidence": dogfood,
     }
 
 
@@ -370,6 +372,7 @@ def main() -> int:
         check_secret_scan(),
         check_docs_presence(),
         check_bundle_budget(),
+        run_command("dogfood_trace_evidence", "python3 ./scripts/dogfood_trace_evidence.py"),
         run_command("cold_start_budget", "python3 ./scripts/cold_start_budget.py"),
         run_command("reliability_drills", "python3 ./scripts/reliability_drills.py"),
         check_ci_status(),

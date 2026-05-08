@@ -28,6 +28,9 @@ doctor:
 scorecard:
 	python3 ./scripts/scorecard.py --refresh
 
+dogfood-evidence:
+	python3 ./scripts/dogfood_trace_evidence.py
+
 vercel-check:
 	./scripts/vercel_release_check.sh
 

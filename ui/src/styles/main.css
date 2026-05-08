@@ -5103,6 +5103,10 @@ textarea:focus-visible {
 
   .workspace-nav.route-shell .ghost-button {
     min-width: 0;
+    width: 100%;
+    white-space: normal;
+    text-align: center;
+    padding-inline: 8px;
   }
 }
 

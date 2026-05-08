@@ -87,32 +87,46 @@ def _import_span_payload(source: str, payload: Dict[str, Any]) -> ImportedTrace:
     ended = max(ended_values) if ended_values else None
     wall_time = _duration_ms(started, ended) if ended else 0
 
+    sorted_spans = sorted(spans, key=lambda item: _span_start(item))
     steps: List[StepSummary] = []
     details_by_id: Dict[str, StepDetails] = {}
     span_to_step: Dict[str, str] = {}
+    span_step_ids: List[str] = []
+    span_occurrences: Dict[str, int] = {}
     provider = _span_attr(spans[0], "gen_ai.system", "llm.provider", "provider")
     model_id = _span_attr(spans[0], "gen_ai.request.model", "llm.model_name", "model") or "unknown"
     total_tokens = 0
     total_cost = 0.0
 
-    for index, span in enumerate(sorted(spans, key=lambda item: _span_start(item))):
+    for index, span in enumerate(sorted_spans):
         provider_span_id = str(_span_field(span, "spanId", "span_id", "context.span_id") or f"span-{index}")
-        step_id = _safe_identifier(provider_span_id, prefix=f"s{index}")
-        span_to_step[provider_span_id] = step_id
+        occurrence = span_occurrences.get(provider_span_id, 0) + 1
+        span_occurrences[provider_span_id] = occurrence
+        base_step_id = _safe_identifier(provider_span_id, prefix=f"s{index}")
+        step_id = base_step_id if occurrence == 1 else _safe_identifier(f"{provider_span_id}-{occurrence}", prefix=f"s{index}")
+        if occurrence == 1:
+            span_to_step[provider_span_id] = step_id
+        else:
+            warnings.append(f"Duplicate span id {provider_span_id} normalized as {step_id}.")
+        span_step_ids.append(step_id)
 
-    for index, span in enumerate(sorted(spans, key=lambda item: _span_start(item))):
+    for index, span in enumerate(sorted_spans):
         attrs = _span_attributes(span)
         provider_span_id = str(_span_field(span, "spanId", "span_id", "context.span_id") or f"span-{index}")
         provider_parent_id = _span_field(span, "parentSpanId", "parent_span_id", "parent_id")
-        step_id = span_to_step[provider_span_id]
+        step_id = span_step_ids[index]
         started_at = _span_start(span)
         ended_at = _span_end(span)
+        if ended_at and _duration_ms(started_at, ended_at) == 0 and _time_sort_key(ended_at) < _time_sort_key(started_at):
+            warnings.append(f"Span {provider_span_id} ended before it started; duration was clamped to 0ms.")
         step_type = _map_step_type(source, attrs)
         tokens = _token_count(attrs)
         cost = _cost_usd(attrs)
         total_tokens += tokens or 0
         total_cost += cost or 0
         parent_step_id = span_to_step.get(str(provider_parent_id)) if provider_parent_id else None
+        if provider_parent_id and not parent_step_id:
+            warnings.append(f"Span {provider_span_id} references missing parent span {provider_parent_id}.")
         step = StepSummary(
             id=step_id,
             index=index,
@@ -191,7 +205,9 @@ def _flatten_spans(raw: Any) -> List[Dict[str, Any]]:
     for item in raw:
         if not isinstance(item, dict):
             continue
-        if "scopeSpans" in item:
+        if "resourceSpans" in item and isinstance(item.get("resourceSpans"), list):
+            spans.extend(_flatten_spans(item.get("resourceSpans")))
+        elif "scopeSpans" in item:
             for scope in item.get("scopeSpans") or []:
                 if isinstance(scope, dict):
                     spans.extend(span for span in scope.get("spans", []) if isinstance(span, dict))
@@ -363,7 +379,8 @@ def _as_int(value: Any) -> int | None:
 def _span_status(span: Dict[str, Any]) -> str:
     status = span.get("status", {})
     if isinstance(status, dict):
-        return str(status.get("code") or status.get("statusCode") or "").lower()
+        raw = str(status.get("code") or status.get("statusCode") or "").lower()
+        return "error" if "error" in raw else raw
     return str(status or "").lower()
 
 
@@ -371,8 +388,23 @@ def _span_error(span: Dict[str, Any]) -> str | None:
     status = span.get("status", {})
     if isinstance(status, dict):
         description = status.get("message") or status.get("description")
-        return str(description) if description else None
+        if description:
+            return str(description)
+    for event in span.get("events", []) or []:
+        if not isinstance(event, dict):
+            continue
+        attrs = _span_attributes(event)
+        message = attrs.get("exception.message") or attrs.get("message")
+        if message:
+            return str(message)
     return None
+
+
+def _time_sort_key(value: str) -> float:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return 0.0
 
 
 def _safe_identifier(value: str, prefix: str) -> str:

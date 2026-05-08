@@ -198,6 +198,10 @@ describe('WorkspaceRoute', () => {
           wallTimeLabel: '2.0s wall time',
           slowestStepLabel: 'Slowest: Search, 1.0s',
           failureLabel: '1 failed step',
+          warningCount: 1,
+          warningLabel: '1 importer warning',
+          replayModeLabel: 'Recorded evidence',
+          replayTruthLabel: 'Recorded trace evidence, no replay branch selected.',
           imported: true,
         }}
         onCreateEvalCase={onCreateEvalCase}
@@ -207,7 +211,10 @@ describe('WorkspaceRoute', () => {
 
     expect(screen.getByText('Trace-to-eval evidence')).toBeInTheDocument();
     expect(screen.getByText('75 tokens')).toBeInTheDocument();
-    expect(screen.getByText('$0.0042')).toBeInTheDocument();
+    expect(screen.getAllByText('$0.0042').length).toBeGreaterThan(0);
+    expect(screen.getByText('Imported with warnings')).toBeInTheDocument();
+    expect(screen.getAllByText('1 importer warning').length).toBeGreaterThan(0);
+    expect(screen.getByText('Recorded trace evidence, no replay branch selected.')).toBeInTheDocument();
     expect(screen.getByText('Timeout regression')).toBeInTheDocument();
     expect(screen.getByText('Last run: passed, 1/1 cases passed.')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Create eval case' }));

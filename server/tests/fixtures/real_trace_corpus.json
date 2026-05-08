@@ -1,0 +1,441 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "native-excellent-run",
+      "source": "agent_director",
+      "purpose": "Clean successful Agent Director trace with step details.",
+      "payload": {
+        "trace": {
+          "id": "corpus-native-excellent",
+          "name": "Release notes synthesis",
+          "startedAt": "2026-05-08T09:00:00.000Z",
+          "endedAt": "2026-05-08T09:00:04.000Z",
+          "status": "completed",
+          "metadata": {
+            "source": "agent_director",
+            "agentName": "ReleaseOperator",
+            "modelId": "gpt-4.1",
+            "wallTimeMs": 4000,
+            "totalTokens": 842,
+            "totalCostUsd": 0.0124,
+            "errorCount": 0,
+            "providerTraceId": "native-release-842",
+            "framework": "agent_director",
+            "provider": "openai"
+          },
+          "steps": [
+            {
+              "id": "plan",
+              "index": 0,
+              "type": "llm_call",
+              "name": "Plan release evidence",
+              "startedAt": "2026-05-08T09:00:00.000Z",
+              "endedAt": "2026-05-08T09:00:01.300Z",
+              "durationMs": 1300,
+              "status": "completed",
+              "childStepIds": ["summarize"],
+              "metrics": { "tokensTotal": 420, "costUsd": 0.0062 },
+              "preview": { "outputPreview": "Plan references doctor, scorecard, and eval evidence." }
+            },
+            {
+              "id": "summarize",
+              "index": 1,
+              "type": "tool_call",
+              "name": "Summarize artifacts",
+              "startedAt": "2026-05-08T09:00:01.300Z",
+              "endedAt": "2026-05-08T09:00:04.000Z",
+              "durationMs": 2700,
+              "status": "completed",
+              "parentStepId": "plan",
+              "childStepIds": [],
+              "metrics": { "tokensTotal": 422, "costUsd": 0.0062 },
+              "preview": { "outputPreview": "Release evidence was summarized without warnings." }
+            }
+          ]
+        },
+        "stepDetails": {
+          "plan": { "data": { "analysis": "doctor scorecard eval evidence all present" } },
+          "summarize": { "data": { "analysis": "release evidence packet ready" } }
+        }
+      },
+      "eval": {
+        "stepId": "summarize",
+        "evaluators": [
+          {
+            "type": "text_contains",
+            "step_id": "summarize",
+            "field": "data.analysis",
+            "expected": "release evidence"
+          }
+        ]
+      }
+    },
+    {
+      "id": "openai-tool-timeout",
+      "source": "openai_agents",
+      "purpose": "OpenAI Agents-style failed tool call with STATUS_CODE_ERROR.",
+      "payload": {
+        "traceId": "oa-timeout-317",
+        "name": "Refund lookup timeout",
+        "agentName": "RefundAgent",
+        "spans": [
+          {
+            "spanId": "oa-root",
+            "name": "agent.run",
+            "startTime": "2026-05-08T09:10:00.000Z",
+            "endTime": "2026-05-08T09:10:03.100Z",
+            "attributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.system": "openai",
+              "gen_ai.request.model": "gpt-4.1",
+              "gen_ai.usage.input_tokens": 530,
+              "gen_ai.usage.output_tokens": 145,
+              "gen_ai.usage.cost_usd": 0.014
+            }
+          },
+          {
+            "spanId": "oa-tool",
+            "parentSpanId": "oa-root",
+            "name": "tool.refund_lookup",
+            "startTime": "2026-05-08T09:10:01.000Z",
+            "endTime": "2026-05-08T09:10:03.100Z",
+            "status": { "code": "STATUS_CODE_ERROR", "message": "refund lookup timeout after 2100ms" },
+            "attributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.system": "openai",
+              "tool.name": "refund_lookup",
+              "usage.total_tokens": 71,
+              "gen_ai.usage.cost_usd": 0.0021
+            }
+          }
+        ]
+      },
+      "eval": {
+        "stepId": "oa-tool",
+        "evaluators": [
+          {
+            "type": "text_contains",
+            "step_id": "oa-tool",
+            "field": "error",
+            "expected": "timeout"
+          }
+        ]
+      }
+    },
+    {
+      "id": "otel-resource-spans",
+      "source": "otel_genai",
+      "purpose": "Nested OpenTelemetry resourceSpans payload with cost and token rollups.",
+      "payload": {
+        "traceId": "otel-resource-908",
+        "name": "Checkout policy answer",
+        "serviceName": "checkout-agent",
+        "resourceSpans": [
+          {
+            "resource": { "attributes": [{ "key": "service.name", "value": { "stringValue": "checkout-agent" } }] },
+            "scopeSpans": [
+              {
+                "spans": [
+                  {
+                    "spanId": "otel-plan",
+                    "name": "agent.plan",
+                    "startTimeUnixNano": 1778241600000000000,
+                    "endTimeUnixNano": 1778241600900000000,
+                    "attributes": [
+                      { "key": "gen_ai.operation.name", "value": { "stringValue": "chat" } },
+                      { "key": "gen_ai.system", "value": { "stringValue": "openai" } },
+                      { "key": "gen_ai.request.model", "value": { "stringValue": "gpt-4.1-mini" } },
+                      { "key": "gen_ai.usage.input_tokens", "value": { "intValue": 320 } },
+                      { "key": "gen_ai.usage.output_tokens", "value": { "intValue": 110 } },
+                      { "key": "gen_ai.usage.cost_usd", "value": { "doubleValue": 0.0048 } }
+                    ]
+                  },
+                  {
+                    "spanId": "otel-policy",
+                    "parentSpanId": "otel-plan",
+                    "name": "tool.policy_search",
+                    "startTimeUnixNano": 1778241600900000000,
+                    "endTimeUnixNano": 1778241601900000000,
+                    "attributes": [
+                      { "key": "gen_ai.operation.name", "value": { "stringValue": "execute_tool" } },
+                      { "key": "tool.name", "value": { "stringValue": "policy_search" } },
+                      { "key": "gen_ai.usage.total_tokens", "value": { "intValue": 38 } },
+                      { "key": "gen_ai.usage.cost_usd", "value": { "doubleValue": 0.0008 } }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "eval": {
+        "stepId": "otel-policy",
+        "evaluators": [
+          {
+            "type": "text_contains",
+            "step_id": "otel-policy",
+            "field": "name",
+            "expected": "policy"
+          }
+        ]
+      }
+    },
+    {
+      "id": "openinference-guardrail",
+      "source": "openinference",
+      "purpose": "OpenInference chain with guardrail decision and model provenance.",
+      "payload": {
+        "trace_id": "oi-guardrail-044",
+        "traceName": "Medical disclaimer guardrail",
+        "spans": [
+          {
+            "span_id": "oi-chain",
+            "name": "triage.chain",
+            "start_time": "2026-05-08T09:30:00.000Z",
+            "end_time": "2026-05-08T09:30:02.000Z",
+            "attributes": {
+              "openinference.span.kind": "CHAIN",
+              "llm.provider": "openai",
+              "llm.model_name": "gpt-4.1"
+            }
+          },
+          {
+            "span_id": "oi-guard",
+            "parent_span_id": "oi-chain",
+            "name": "guardrail.medical_claim",
+            "start_time": "2026-05-08T09:30:00.400Z",
+            "end_time": "2026-05-08T09:30:01.000Z",
+            "attributes": {
+              "openinference.span.kind": "GUARDRAIL",
+              "usage.prompt_tokens": 44,
+              "usage.completion_tokens": 18,
+              "usage.cost_usd": 0.0013
+            }
+          }
+        ]
+      },
+      "eval": {
+        "stepId": "oi-guard",
+        "evaluators": [
+          {
+            "type": "text_contains",
+            "step_id": "oi-guard",
+            "field": "name",
+            "expected": "guardrail"
+          }
+        ]
+      }
+    },
+    {
+      "id": "missing-parent-warning",
+      "source": "otel_genai",
+      "purpose": "Child span references a parent that is absent from the payload.",
+      "payload": {
+        "traceId": "otel-missing-parent-512",
+        "name": "Missing parent recovery",
+        "spans": [
+          {
+            "spanId": "orphan-tool",
+            "parentSpanId": "absent-root",
+            "name": "tool.inventory",
+            "startTime": "2026-05-08T09:40:00.000Z",
+            "endTime": "2026-05-08T09:40:01.000Z",
+            "attributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.system": "openai",
+              "gen_ai.request.model": "gpt-4.1-mini",
+              "tool.name": "inventory",
+              "gen_ai.usage.total_tokens": 29
+            }
+          }
+        ]
+      },
+      "expectedWarnings": ["missing parent"],
+      "eval": {
+        "stepId": "orphan-tool",
+        "evaluators": [
+          {
+            "type": "text_contains",
+            "step_id": "orphan-tool",
+            "field": "name",
+            "expected": "inventory"
+          }
+        ]
+      }
+    },
+    {
+      "id": "duplicate-span-warning",
+      "source": "openai_agents",
+      "purpose": "Provider emits duplicate span IDs; importer must preserve both steps.",
+      "payload": {
+        "traceId": "oa-duplicate-span-623",
+        "name": "Duplicate tool retry",
+        "spans": [
+          {
+            "spanId": "dup-step",
+            "name": "tool.lookup.retry_1",
+            "startTime": "2026-05-08T09:50:00.000Z",
+            "endTime": "2026-05-08T09:50:01.000Z",
+            "attributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.system": "openai",
+              "gen_ai.request.model": "gpt-4.1-mini",
+              "tool.name": "lookup",
+              "gen_ai.usage.total_tokens": 31
+            }
+          },
+          {
+            "spanId": "dup-step",
+            "name": "tool.lookup.retry_2",
+            "startTime": "2026-05-08T09:50:01.000Z",
+            "endTime": "2026-05-08T09:50:02.400Z",
+            "attributes": {
+              "gen_ai.operation.name": "execute_tool",
+              "gen_ai.system": "openai",
+              "tool.name": "lookup",
+              "gen_ai.usage.total_tokens": 37
+            }
+          }
+        ]
+      },
+      "expectedWarnings": ["Duplicate span id"],
+      "eval": {
+        "stepId": "dup-step-2",
+        "evaluators": [
+          {
+            "type": "text_contains",
+            "step_id": "dup-step-2",
+            "field": "name",
+            "expected": "retry_2"
+          }
+        ]
+      }
+    },
+    {
+      "id": "impossible-timing-warning",
+      "source": "otel_genai",
+      "purpose": "Span end time precedes start time; duration should clamp and warn.",
+      "payload": {
+        "traceId": "otel-impossible-time-734",
+        "name": "Clock skew trace",
+        "spans": [
+          {
+            "spanId": "skewed-call",
+            "name": "llm.clock_skew",
+            "startTime": "2026-05-08T10:00:03.000Z",
+            "endTime": "2026-05-08T10:00:01.000Z",
+            "attributes": {
+              "gen_ai.operation.name": "chat",
+              "gen_ai.system": "openai",
+              "gen_ai.request.model": "gpt-4.1-mini",
+              "gen_ai.usage.total_tokens": 64
+            }
+          }
+        ]
+      },
+      "expectedWarnings": ["ended before it started"],
+      "eval": {
+        "stepId": "skewed-call",
+        "evaluators": [
+          {
+            "type": "text_contains",
+            "step_id": "skewed-call",
+            "field": "name",
+            "expected": "clock"
+          }
+        ]
+      }
+    },
+    {
+      "id": "long-mixed-replay-candidate",
+      "source": "agent_director",
+      "purpose": "Long mixed trace used to prove replay truth and eval determinism.",
+      "payload": {
+        "trace": {
+          "id": "corpus-long-replay",
+          "name": "Research agent synthesis drift",
+          "startedAt": "2026-05-08T10:10:00.000Z",
+          "endedAt": "2026-05-08T10:10:09.000Z",
+          "status": "failed",
+          "metadata": {
+            "source": "agent_director",
+            "agentName": "ResearchAgent",
+            "modelId": "gpt-4.1",
+            "wallTimeMs": 9000,
+            "totalTokens": 1640,
+            "totalCostUsd": 0.0287,
+            "errorCount": 1,
+            "providerTraceId": "research-drift-1640",
+            "framework": "agent_director",
+            "provider": "openai"
+          },
+          "steps": [
+            {
+              "id": "research-plan",
+              "index": 0,
+              "type": "llm_call",
+              "name": "Plan source review",
+              "startedAt": "2026-05-08T10:10:00.000Z",
+              "endedAt": "2026-05-08T10:10:01.100Z",
+              "durationMs": 1100,
+              "status": "completed",
+              "childStepIds": ["fetch-paper"],
+              "metrics": { "tokensTotal": 510, "costUsd": 0.008 }
+            },
+            {
+              "id": "fetch-paper",
+              "index": 1,
+              "type": "tool_call",
+              "name": "Fetch cited paper",
+              "startedAt": "2026-05-08T10:10:01.100Z",
+              "endedAt": "2026-05-08T10:10:06.900Z",
+              "durationMs": 5800,
+              "status": "failed",
+              "error": "citation source returned stale abstract",
+              "parentStepId": "research-plan",
+              "childStepIds": ["synthesize"],
+              "metrics": { "tokensTotal": 190, "costUsd": 0.003 }
+            },
+            {
+              "id": "synthesize",
+              "index": 2,
+              "type": "llm_call",
+              "name": "Synthesize answer",
+              "startedAt": "2026-05-08T10:10:06.900Z",
+              "endedAt": "2026-05-08T10:10:09.000Z",
+              "durationMs": 2100,
+              "status": "completed",
+              "parentStepId": "fetch-paper",
+              "childStepIds": [],
+              "metrics": { "tokensTotal": 940, "costUsd": 0.0177 },
+              "preview": { "outputPreview": "Answer should be blocked until citation freshness is verified." }
+            }
+          ]
+        },
+        "stepDetails": {
+          "fetch-paper": { "data": { "analysis": "stale abstract caused citation freshness failure" } },
+          "synthesize": { "data": { "analysis": "response must preserve replay truth and cite freshness warning" } }
+        }
+      },
+      "eval": {
+        "stepId": "fetch-paper",
+        "evaluators": [
+          {
+            "type": "semantic_similarity",
+            "step_id": "fetch-paper",
+            "field": "data.analysis",
+            "expected": "stale citation abstract freshness failure",
+            "minScore": 0.4
+          }
+        ]
+      },
+      "replay": {
+        "stepId": "fetch-paper",
+        "strategy": "hybrid",
+        "modifications": { "note": "dogfood replay truth proof" }
+      }
+    }
+  ]
+}

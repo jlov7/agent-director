@@ -36,5 +36,6 @@
   .workspace-route-shell {
     margin: 0;
     gap: var(--space-sm);
+    padding-bottom: calc(var(--space-xl) * 4 + env(safe-area-inset-bottom));
   }
 }

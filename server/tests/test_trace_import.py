@@ -139,6 +139,83 @@ class TestTraceImportApi(unittest.TestCase):
         self.assertEqual(trace["steps"][1]["metrics"]["costUsd"], 0.001)
         self.assertAlmostEqual(trace["metadata"]["totalCostUsd"], 0.0042)
 
+    def test_import_warns_on_duplicate_missing_parent_and_impossible_timing(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/traces/import",
+            {
+                "source": "otel_genai",
+                "payload": {
+                    "traceId": "messy-trace-1",
+                    "spans": [
+                        {
+                            "spanId": "dup",
+                            "parentSpanId": "missing-parent",
+                            "name": "tool.first",
+                            "startTime": "2026-05-07T10:00:02.000Z",
+                            "endTime": "2026-05-07T10:00:01.000Z",
+                            "attributes": {"gen_ai.operation.name": "execute_tool"},
+                        },
+                        {
+                            "spanId": "dup",
+                            "name": "tool.second",
+                            "startTime": "2026-05-07T10:00:03.000Z",
+                            "endTime": "2026-05-07T10:00:04.000Z",
+                            "attributes": {"gen_ai.operation.name": "execute_tool"},
+                        },
+                    ],
+                },
+            },
+        )
+
+        self.assertEqual(status, 201)
+        self.assertEqual([step["id"] for step in data["trace"]["steps"]], ["dup", "dup-2"])
+        self.assertTrue(any("Duplicate span id dup" in warning for warning in data["warnings"]))
+        self.assertTrue(any("missing parent span missing-parent" in warning for warning in data["warnings"]))
+        self.assertTrue(any("ended before it started" in warning for warning in data["warnings"]))
+
+    def test_imports_nested_resource_spans(self) -> None:
+        status, data = self._request(
+            "POST",
+            "/api/traces/import",
+            {
+                "source": "otel_genai",
+                "payload": {
+                    "traceId": "resource-trace-1",
+                    "resourceSpans": [
+                        {
+                            "scopeSpans": [
+                                {
+                                    "spans": [
+                                        {
+                                            "spanId": "resource-span",
+                                            "name": "agent.plan",
+                                            "startTimeUnixNano": 1778241600000000000,
+                                            "endTimeUnixNano": 1778241601000000000,
+                                            "attributes": [
+                                                {
+                                                    "key": "gen_ai.operation.name",
+                                                    "value": {"stringValue": "chat"},
+                                                },
+                                                {
+                                                    "key": "gen_ai.usage.total_tokens",
+                                                    "value": {"intValue": 42},
+                                                },
+                                            ],
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                },
+            },
+        )
+
+        self.assertEqual(status, 201)
+        self.assertEqual(data["trace"]["steps"][0]["id"], "resource-span")
+        self.assertEqual(data["trace"]["metadata"]["totalTokens"], 42)
+
     def test_import_rejects_unknown_source(self) -> None:
         status, data = self._request(
             "POST",

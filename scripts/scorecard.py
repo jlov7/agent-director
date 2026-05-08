@@ -53,6 +53,9 @@ def evaluate_scorecards(doctor: dict, lhci_summary: dict, ux_probe_pass: bool, b
     frontend_ok = gates.get("G3-quality") is True
     backend_ok = backend_probe_pass and checks.get("verify_strict", {}).get("status") == "pass"
     security_ok = gates.get("G6-security") is True
+    frontier_evidence_ok = checks.get("dogfood_trace_evidence", {}).get("status") == "pass" and gates.get(
+        "G9-frontier-evidence"
+    ) is True
     performance_ok = (
         gates.get("G5-performance") is True
         and rep_summary.get("performance", 0) >= 0.85
@@ -108,6 +111,17 @@ def evaluate_scorecards(doctor: dict, lhci_summary: dict, ux_probe_pass: bool, b
                 "secret_scan_pass": checks.get("secret_scan", {}).get("status") == "pass",
                 "dependency_audit_pass": checks.get("dependency_audit", {}).get("status") == "pass",
                 "gate_security": gates.get("G6-security") is True,
+            },
+        },
+        {
+            "id": "frontier_evidence",
+            "title": "Frontier Evidence Loop",
+            "score": 10 if frontier_evidence_ok else 0,
+            "max_score": 10,
+            "status": "pass" if frontier_evidence_ok else "fail",
+            "criteria": {
+                "dogfood_trace_evidence_pass": checks.get("dogfood_trace_evidence", {}).get("status") == "pass",
+                "gate_frontier_evidence": gates.get("G9-frontier-evidence") is True,
             },
         },
         {

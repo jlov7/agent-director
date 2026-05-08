@@ -4615,13 +4615,7 @@ export default function App() {
       traceId: trace?.id ?? null,
     });
 
-    if (!result.withinBudget) {
-      addNotification(
-        `${UX_REBOOT_ROUTE_LABEL[result.route]} route exceeded budget by ${result.overBudgetByMs}ms.`,
-        'warning'
-      );
-    }
-  }, [addNotification, routeShellActiveRoute, routeShellEnabled, trace?.id, trackProductEvent, workspacePanelOpen]);
+  }, [routeShellActiveRoute, routeShellEnabled, trace?.id, trackProductEvent, workspacePanelOpen]);
 
   useEffect(() => {
     if (!routeShellEnabled) return;

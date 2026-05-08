@@ -30,22 +30,19 @@ This emits `artifacts/scorecards.json` and requires every domain score to be `10
 | `G6-security` | No obvious secret leakage and no high-severity dependency vulnerabilities. | `artifacts/doctor.json` shows `secret_scan=pass` and `dependency_audit=pass`. |
 | `G7-docs` | Launch docs and steering docs are present and complete. | `artifacts/doctor.json` shows `docs_presence=pass`. |
 | `G8-ci` | CI checks are green on active PR. | `artifacts/doctor.json` shows `ci_status=pass`. |
-| `G9-route-shell-journeys` | Canonical route-shell journeys (`overview`, `triage`, `diagnose`, `coordinate`, `settings`) pass regression checks. | `tests/e2e/route-journeys.spec.ts` passing in UX verification bundle. |
-| `G10-ux-hardening` | A11y/keyboard/localization/trust/perf hardening checks remain green. | `make verify-ux` passes, including `a11y.spec.ts`, `keyboard.spec.ts`, `localization-layout.spec.ts`, and scan/perf proxy checks. |
+| `G9-frontier-evidence` | Real/adversarial trace corpus imports, creates eval cases, runs deterministically, and preserves replay truth. | `artifacts/doctor.json` shows `dogfood_trace_evidence=pass`; `artifacts/dogfood-trace-evidence.json` shows 8/8 eval cases passed across all import sources. |
 
 ## Evidence Freshness
 - Evidence is stale if `artifacts/doctor.json` predates the latest commit.
 - Re-run `make doctor` after each change set.
 
 ## Latest Evidence Snapshot
-- 2026-05-07: `make doctor` produced `artifacts/doctor.json` with `overall_status=pass`.
-- 2026-05-07: Gate summary in `artifacts/doctor.json` reports `G1` through `G8` all passing after the frontier rebuild.
-- 2026-05-07: `make scorecard` produced `artifacts/scorecards.json` with `total_score=70/70` and `all_perfect=true`.
-- 2026-05-07: `make verify` and `make verify-frontend` passed, including deterministic visual verification and the Chromium/Firefox/WebKit visual matrix.
-- 2026-05-07: Imported-trace frontier journey is covered by route-shell E2E evidence through trace import, Diagnose provenance/cost rollups, eval case/run creation, and replay truth metadata.
-- 2026-02-23: `make doctor` produced `artifacts/doctor.json` with `overall_status=pass`.
-- 2026-02-23: Gate summary in `artifacts/doctor.json` reports `G1` through `G10` all passing.
-- 2026-02-23: `make scorecard` produced `artifacts/scorecards.json` with `total_score=70/70` and `all_perfect=true`.
+- 2026-05-08: `make doctor` passed with `overall_status=pass` and `G1` through `G9` all true.
+- 2026-05-08: `make scorecard` passed with `total_score=80/80` and `all_perfect=true`.
+- 2026-05-08: `make verify-frontend` passed, including deterministic visual verification and the Chromium/Firefox/WebKit visual matrix.
+- 2026-05-08: `python3 scripts/dogfood_trace_evidence.py` produced `artifacts/dogfood-trace-evidence.json` with 8 fixtures, 4 source formats, deterministic evals, and replay truth proof.
+- 2026-05-08: `make doctor` now includes `G9-frontier-evidence` through `dogfood_trace_evidence=pass`.
+- 2026-05-08: `make scorecard` now includes a Frontier Evidence Loop domain; all domains must remain `10/10`.
 - 2026-02-23: `make verify-ux` passed with route-shell journey regressions and hardening suites.
 - 2026-02-23: `make release-safety` and `make vercel-check` passed, and production deployment alias is ready.
 

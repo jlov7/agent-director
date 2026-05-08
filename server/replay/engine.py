@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Set
 
-from ..trace.schema import ReplayInfo, StepSummary, TraceMetadata, TraceSummary
+from ..trace.schema import ReplayInfo, StepSummary, TraceSummary
 
 
 def _to_utc_z(dt: datetime) -> str:
@@ -44,17 +44,7 @@ def replay_from_step(
     if new_trace.replay:
         new_trace.replay.checkpoints = _checkpoint_signatures(new_trace.steps)
 
-    new_trace.metadata = TraceMetadata(
-        source=trace.metadata.source,
-        agentName=trace.metadata.agentName,
-        modelId=trace.metadata.modelId,
-        wallTimeMs=trace.metadata.wallTimeMs,
-        workTimeMs=trace.metadata.workTimeMs,
-        totalTokens=trace.metadata.totalTokens,
-        totalCostUsd=trace.metadata.totalCostUsd,
-        errorCount=trace.metadata.errorCount,
-        retryCount=trace.metadata.retryCount,
-    )
+    new_trace.metadata = deepcopy(trace.metadata)
 
     return new_trace
 

@@ -2,14 +2,15 @@
 
 Status legend: `Open` | `In Progress` | `Blocked` | `Closed`
 
-## Frontier Rebuild Status (2026-05-07)
+## Frontier Rebuild Status (2026-05-08)
 
 - Baseline evidence: `make doctor` failed on 2026-05-07 with `G6-security=false` and `G8-ci=false`; `verify_strict=pass`.
 - Audit artifact: `docs/audits/2026-05-frontier-audit.md`.
 - Target state: real trace import, provenance preservation, trace-to-eval workflow, truthful replay semantics, and public product focus on agent observability.
 - Frontier backlog status: no open repo-actionable P0/P1/P2 frontier gaps remain.
-- Final evidence green in this branch: `make verify`, `make verify-frontend`, `make doctor`, and `make scorecard`.
-- Current artifacts: `artifacts/doctor.json` refreshed on 2026-05-07 with all gates true; `artifacts/scorecards.json` refreshed on 2026-05-07 with `70/70` and `all_perfect=true`.
+- Final evidence green in this branch: `make verify-frontend`, `make doctor`, and `make scorecard`.
+- Dogfood evidence: `artifacts/dogfood-trace-evidence.json` covers 8 trace fixtures across `agent_director`, `openai_agents`, `otel_genai`, and `openinference`, with deterministic evals and replay truth proof.
+- Current artifacts: `artifacts/doctor.json` passes with `G1` through `G9`; `artifacts/scorecards.json` passes at `80/80` with the Frontier Evidence Loop domain.
 
 ## Frontier P0
 

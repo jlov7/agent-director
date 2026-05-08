@@ -44,21 +44,31 @@ export default function DiagnoseRoute({
     : evalCases.length
       ? `${evalCases.length} case${evalCases.length === 1 ? '' : 's'} ready`
       : 'No cases yet';
+  const evalProofLabel = evalRun
+    ? `${evalRun.passedCount}/${evalRun.caseCount} passing`
+    : evalCases.length
+      ? 'Cases staged'
+      : 'Not promoted';
+  const importProofLabel = traceEvidenceSummary
+    ? traceEvidenceSummary.warningCount > 0
+      ? 'Imported with warnings'
+      : 'Imported cleanly'
+    : 'No imported trace';
   const commandDeckRows = [
     {
       label: 'Trace',
-      value: traceEvidenceSummary ? 'Imported run' : 'Waiting',
-      detail: traceEvidenceSummary ? 'Provider trace locked' : 'Import or load a run',
+      value: traceEvidenceSummary ? traceEvidenceSummary.sourceLabel : 'Waiting',
+      detail: traceEvidenceSummary ? `Provider ID ${traceEvidenceSummary.providerTraceId}` : 'Import or load a run',
     },
     {
       label: 'Cost',
-      value: traceEvidenceSummary ? 'Metered spend' : 'No spend',
-      detail: traceEvidenceSummary ? 'Usage and cost captured' : 'No usage captured',
+      value: traceEvidenceSummary ? traceEvidenceSummary.costLabel : 'No spend',
+      detail: traceEvidenceSummary ? `${traceEvidenceSummary.tokenLabel} captured` : 'No usage captured',
     },
     {
-      label: 'Latency',
-      value: traceEvidenceSummary ? 'Timed path' : 'No timing',
-      detail: traceEvidenceSummary ? 'Slowest step isolated' : 'No slow step',
+      label: 'Warnings',
+      value: traceEvidenceSummary ? traceEvidenceSummary.warningLabel : 'Unknown',
+      detail: traceEvidenceSummary ? 'Importer output is release-visible' : 'No importer output',
     },
     {
       label: 'Eval',
@@ -162,9 +172,9 @@ export default function DiagnoseRoute({
         resume={lastCompletedActionId === 'diagnose-share-findings'}
       />
 
-      <article className="workspace-card">
+      <article className="workspace-card route-evidence-card">
         <h3>Trace-to-eval evidence</h3>
-        <p>Convert this trace into a repeatable regression case, then run the suite before release.</p>
+        <p>Convert the current trace into a repeatable regression case, then run the suite before release.</p>
         <section className="route-command-deck" aria-label="Trace evidence command deck">
           <div className="route-command-signal" aria-hidden="true">
             <span />
@@ -217,6 +227,23 @@ export default function DiagnoseRoute({
             </div>
           </dl>
         ) : null}
+        <section className="route-proof-ledger" aria-label="Frontier evidence ledger">
+          <div>
+            <span>Import proof</span>
+            <strong>{importProofLabel}</strong>
+            <small>{traceEvidenceSummary?.providerTraceId ?? 'No provider trace bound to this run.'}</small>
+          </div>
+          <div>
+            <span>Eval proof</span>
+            <strong>{evalProofLabel}</strong>
+            <small>{evalRun ? `Last deterministic run ${evalRun.status}.` : 'Create and run cases to make this release evidence.'}</small>
+          </div>
+          <div>
+            <span>Replay truth</span>
+            <strong>{traceEvidenceSummary?.replayModeLabel ?? 'Recorded evidence'}</strong>
+            <small>{traceEvidenceSummary?.replayTruthLabel ?? 'No replay branch is being represented as live execution.'}</small>
+          </div>
+        </section>
         <div className="route-state-actions">
           <button className="primary-button" type="button" onClick={onCreateEvalCase} disabled={evalBusy}>
             Create eval case
@@ -244,7 +271,7 @@ export default function DiagnoseRoute({
         )}
       </article>
 
-      <article className="workspace-card">
+      <article className="workspace-card route-history-card">
         <h3>Execution history</h3>
         <p>Open detailed async/export timeline only when you need recovery evidence.</p>
         <div className="route-state-actions">

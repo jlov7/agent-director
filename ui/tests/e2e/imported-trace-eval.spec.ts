@@ -59,10 +59,14 @@ test('imports a real OTel trace, creates eval evidence, and labels replay truthf
 
   await expect(page.getByRole('heading', { name: 'Diagnose state' })).toBeVisible();
   await expect(page.getByText('Trace-to-eval evidence')).toBeVisible();
-  await expect(page.getByText('otel_genai')).toBeVisible();
-  await expect(page.getByText('openai')).toBeVisible();
-  await expect(page.getByText('75 tokens')).toBeVisible();
-  await expect(page.getByText('$0.0042')).toBeVisible();
+  const evidenceGrid = page.getByLabel('Trace cost and provenance summary');
+  await expect(evidenceGrid.getByText('otel_genai')).toBeVisible();
+  await expect(evidenceGrid.getByText('openai')).toBeVisible();
+  await expect(evidenceGrid.getByText('75 tokens')).toBeVisible();
+  await expect(evidenceGrid.getByText('$0.0042')).toBeVisible();
+  const evidenceLedger = page.getByLabel('Frontier evidence ledger');
+  await expect(evidenceLedger.getByText('Imported cleanly')).toBeVisible();
+  await expect(evidenceLedger.getByText('Recorded evidence')).toBeVisible();
 
   await page.getByRole('button', { name: 'Create eval case' }).click();
   await expect(page.getByText(/Created eval case/)).toBeVisible();

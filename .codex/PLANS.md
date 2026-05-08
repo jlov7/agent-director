@@ -67,6 +67,64 @@ Completed.
 
 ---
 
+# Real Trace Dogfood Evidence ExecPlan
+
+## Purpose / Big Picture
+
+Push Agent Director beyond a polished interface by making real trace-to-eval dogfooding part of release evidence. The product should prove it can ingest messy agent traces, preserve warnings and provenance, create deterministic eval cases, and keep replay truth explicit in the UI and gates.
+
+## Scope
+
+- In scope: importer hardening for messy spans, an eight-fixture trace corpus, dogfood evidence script/artifact, doctor/scorecard wiring, Diagnose-route evidence UI improvements, backend/frontend/E2E tests, and release docs updates.
+- Out of scope: external live agent re-execution, paid third-party observability integrations, and deleting legacy gameplay code.
+
+## Progress
+
+- [x] Load product/design context and inspect existing trace import, eval, replay, doctor, and scorecard flows.
+- [x] Harden trace importer warnings for duplicate spans, missing parents, status variants, and impossible timings.
+- [x] Add corpus fixtures covering clean, failed, OpenAI-style, OTel, OpenInference, missing metadata, malformed parentage, and replay ambiguity cases.
+- [x] Add `scripts/dogfood_trace_evidence.py` and artifact output.
+- [x] Wire dogfood evidence into `make doctor` and scorecard release scoring.
+- [x] Upgrade Diagnose UI to make warnings/eval/replay truth first-class.
+- [x] Add tests and visual coverage for corpus evidence.
+- [x] Run full verification gates, commit, and push.
+
+## Surprises & Discoveries
+
+- The core primitives already exist, but release evidence currently has only one imported-trace E2E rather than a corpus pressure test.
+- Importer warnings are too quiet for adversarial production spans; duplicate IDs and missing parents need explicit evidence.
+- The in-app Browser DOM/console validation was useful, but its screenshot surface returned a stale capture; Playwright produced the reliable desktop/mobile screenshot evidence.
+
+## Decision Log
+
+- Make the evidence loop local and deterministic so it can run in doctor/scorecard without external services.
+- Keep corpus data realistic but synthetic enough to avoid secrets or privacy risk.
+- Improve the existing Diagnose route instead of adding another dashboard surface.
+
+## Validation Plan
+
+- `python3 scripts/dogfood_trace_evidence.py`
+- `python3 -m unittest server.tests.test_trace_import server.tests.test_evals_api server.tests.test_dogfood_evidence`
+- `pnpm -C ui lint`
+- `pnpm -C ui typecheck`
+- `pnpm -C ui test -- src/routes/__tests__/WorkspaceRoute.test.tsx src/store/api.test.ts`
+- Browser validation on Diagnose route with imported corpus-like data.
+- `make verify-frontend`
+- `make doctor`
+- `make scorecard`
+
+## Outcomes & Retrospective
+
+Completed.
+- Importer hardening now surfaces duplicate span IDs, missing parents, status-error variants, exception events, resource-span nesting, and impossible timings as release-visible warnings.
+- `server/tests/fixtures/real_trace_corpus.json` covers 8 synthetic but production-shaped traces across Agent Director, OpenAI Agents-style, OTel GenAI, and OpenInference inputs.
+- `scripts/dogfood_trace_evidence.py` proves import, eval-case creation, deterministic eval runs, and replay truth preservation, then emits `artifacts/dogfood-trace-evidence.json`.
+- `make doctor` now has `G9-frontier-evidence`; `make scorecard` now scores the Frontier Evidence Loop and requires `80/80`.
+- Diagnose now presents source/provenance, importer warnings, token/cost evidence, eval status, and replay truth as a first-class evidence ledger.
+- Verification is green: dogfood script, targeted backend tests, UI lint/type/unit/E2E/design lint, `make verify-frontend`, `make doctor`, and `make scorecard`.
+
+---
+
 # Final World-Class Hardening Wave ExecPlan
 
 ## Purpose / Big Picture

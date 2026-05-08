@@ -21,6 +21,7 @@ describe('buildTraceEvidenceSummary', () => {
         totalTokens: 75,
         totalCostUsd: 0.0042,
         errorCount: 1,
+        importerWarnings: ['missing parent normalized'],
       },
       steps: [
         {
@@ -63,6 +64,10 @@ describe('buildTraceEvidenceSummary', () => {
       wallTimeLabel: '2.0s wall time',
       slowestStepLabel: 'Slowest: Plan, 1.0s',
       failureLabel: '1 failed step',
+      warningCount: 1,
+      warningLabel: '1 importer warning',
+      replayModeLabel: 'Recorded evidence',
+      replayTruthLabel: 'Recorded trace evidence, no replay branch selected.',
       imported: true,
     });
   });
