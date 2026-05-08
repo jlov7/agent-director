@@ -59,6 +59,8 @@ This hub is organized by audience and lifecycle so readers can quickly find the 
 - [`ux100-debt-register.md`](ux100-debt-register.md)
 - [`ux-audit-2026-02-14.md`](ux-audit-2026-02-14.md)
 - [`audits/2026-05-frontier-audit.md`](audits/2026-05-frontier-audit.md)
+- [`audits/2026-05-carpathy-system-audit.md`](audits/2026-05-carpathy-system-audit.md)
+- [`../BURNDOWN.md`](../BURNDOWN.md)
 - [`ux-review-day-checklist.md`](ux-review-day-checklist.md)
 - [`uxr2-final-report.md`](uxr2-final-report.md)
 - [`plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md`](plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md)

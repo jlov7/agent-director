@@ -23,6 +23,7 @@ REQUIRED_SPECS = [
 
 REQUIRED_DOC_FILES = [
     "AGENTS.md",
+    "BURNDOWN.md",
     "RELEASE_GATES.md",
     "GAPS.md",
     "QUESTIONS.md",
@@ -350,6 +351,7 @@ def gate_summary(index: dict[str, dict]) -> dict:
     docs = index["docs_presence"]["status"] == "pass"
     ci = index["ci_status"]["status"] == "pass"
     dogfood = index["dogfood_trace_evidence"]["status"] == "pass"
+    coherence = index["system_coherence_audit"]["status"] == "pass"
 
     return {
         "G1-core-journeys": verify and critical_specs and dogfood,
@@ -361,6 +363,7 @@ def gate_summary(index: dict[str, dict]) -> dict:
         "G7-docs": docs,
         "G8-ci": ci,
         "G9-frontier-evidence": dogfood,
+        "G10-system-coherence": coherence,
     }
 
 
@@ -373,6 +376,7 @@ def main() -> int:
         check_docs_presence(),
         check_bundle_budget(),
         run_command("dogfood_trace_evidence", "python3 ./scripts/dogfood_trace_evidence.py"),
+        run_command("system_coherence_audit", "python3 ./scripts/system_coherence_audit.py"),
         run_command("cold_start_budget", "python3 ./scripts/cold_start_budget.py"),
         run_command("reliability_drills", "python3 ./scripts/reliability_drills.py"),
         check_ci_status(),

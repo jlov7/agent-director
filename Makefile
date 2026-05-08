@@ -31,6 +31,9 @@ scorecard:
 dogfood-evidence:
 	python3 ./scripts/dogfood_trace_evidence.py
 
+system-coherence:
+	python3 ./scripts/system_coherence_audit.py
+
 vercel-check:
 	./scripts/vercel_release_check.sh
 

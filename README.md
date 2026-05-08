@@ -235,6 +235,7 @@ Full reference: [`docs/api-reference.md`](docs/api-reference.md)
 - 3-second route comprehension proxy: `pnpm -C ui scan:check`
 - Release evidence: `make doctor`
 - Real trace dogfood evidence: `make dogfood-evidence`
+- Product/release coherence evidence: `make system-coherence`
 - Scorecards: `make scorecard`
 
 ## Executable Demo Docs (Showboat)
@@ -301,6 +302,7 @@ make vercel-check
 - Strict verification: `make verify-strict`
 - UX verification: `make verify-ux`
 - Release evidence: `make doctor`
+- Product/release coherence evidence: `make system-coherence`
 - Quality scorecards: `make scorecard`
 
 Security and contribution docs:

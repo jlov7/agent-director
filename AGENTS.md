@@ -67,7 +67,7 @@ Ship a production-ready v1 of Agent Director with coherent end-to-end journeys, 
 - Accessibility basics are enforced on primary flows (keyboard/focus/labels/aria).
 - Security defaults remain safe (redaction-first, no secrets, validated inputs).
 - Documentation remains accurate for setup/run/test/deploy/env vars.
-- Scorecard artifact reports all current domains at `10/10`.
+- Scorecard artifact reports all domains at `10/10` with the current total bar in `SCORECARDS.md`.
 
 ## Execution Rules
 - Work in small, reviewable increments.

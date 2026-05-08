@@ -67,6 +67,58 @@ Completed.
 
 ---
 
+# Carpathy System Coherence ExecPlan
+
+## Purpose / Big Picture
+
+Take a step back from feature work and make product truth itself executable. The system should not be able to pass release gates while active docs advertise stale scorecard totals, root planning points at the wrong product, or the audit exists only as chat context.
+
+## Scope
+
+- In scope: system audit report, closed burndown, archive legacy gameplay TODO, add executable system coherence audit, wire audit into doctor and scorecard, update release docs.
+- Out of scope: broad `App.tsx` extraction and live executed replay, because those need separate touched seams and runtime capability work.
+
+## Progress
+
+- [x] Audit current doctor, scorecard, dogfood, product, design, release, and active planning evidence.
+- [x] Identify stale scorecard docs and root gameplay TODO as concrete drift.
+- [x] Add `BURNDOWN.md` with the audit findings and closure evidence.
+- [x] Add `docs/audits/2026-05-carpathy-system-audit.md`.
+- [x] Archive the legacy gameplay TODO under `docs/archive/legacy-notes/`.
+- [x] Add `scripts/system_coherence_audit.py` plus regression coverage.
+- [x] Wire system coherence into `make doctor` as `G10-system-coherence`.
+- [x] Add a System Coherence scorecard domain and raise the release bar to `90/90`.
+
+## Surprises & Discoveries
+
+- The strongest gap was not a failing test; it was active planning language contradicting the product thesis.
+- Scorecard totals had correctly evolved in artifacts, but the human-facing scorecard doc lagged behind.
+
+## Decision Log
+
+- Archive legacy gameplay planning instead of deleting it to preserve project history without keeping it active.
+- Keep `App.tsx` as a monitored architectural risk, not a forced refactor, because the current route seams and tests give adequate locality for this wave.
+- Make coherence a release-blocking check rather than another advisory markdown note.
+
+## Validation Plan
+
+- `python3 scripts/system_coherence_audit.py`
+- `python3 -m unittest server.tests.test_system_coherence_audit server.tests.test_doctor_ci`
+- `make doctor`
+- `make scorecard`
+
+## Outcomes & Retrospective
+
+Completed.
+- The step-back audit is captured in `docs/audits/2026-05-carpathy-system-audit.md`.
+- `BURNDOWN.md` records the findings and no open P0/P1/P2 rows remain from this audit.
+- Legacy gameplay release planning is archived under `docs/archive/legacy-notes/` instead of living at repo root.
+- `scripts/system_coherence_audit.py` makes active doc/product drift executable evidence.
+- `make doctor` passes with `G10-system-coherence`.
+- `make scorecard` passes at `90/90`.
+
+---
+
 # Real Trace Dogfood Evidence ExecPlan
 
 ## Purpose / Big Picture

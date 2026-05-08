@@ -56,6 +56,9 @@ def evaluate_scorecards(doctor: dict, lhci_summary: dict, ux_probe_pass: bool, b
     frontier_evidence_ok = checks.get("dogfood_trace_evidence", {}).get("status") == "pass" and gates.get(
         "G9-frontier-evidence"
     ) is True
+    system_coherence_ok = checks.get("system_coherence_audit", {}).get("status") == "pass" and gates.get(
+        "G10-system-coherence"
+    ) is True
     performance_ok = (
         gates.get("G5-performance") is True
         and rep_summary.get("performance", 0) >= 0.85
@@ -122,6 +125,17 @@ def evaluate_scorecards(doctor: dict, lhci_summary: dict, ux_probe_pass: bool, b
             "criteria": {
                 "dogfood_trace_evidence_pass": checks.get("dogfood_trace_evidence", {}).get("status") == "pass",
                 "gate_frontier_evidence": gates.get("G9-frontier-evidence") is True,
+            },
+        },
+        {
+            "id": "system_coherence",
+            "title": "System Coherence",
+            "score": 10 if system_coherence_ok else 0,
+            "max_score": 10,
+            "status": "pass" if system_coherence_ok else "fail",
+            "criteria": {
+                "system_coherence_audit_pass": checks.get("system_coherence_audit", {}).get("status") == "pass",
+                "gate_system_coherence": gates.get("G10-system-coherence") is True,
             },
         },
         {

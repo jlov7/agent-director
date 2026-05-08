@@ -31,14 +31,17 @@ This emits `artifacts/scorecards.json` and requires every domain score to be `10
 | `G7-docs` | Launch docs and steering docs are present and complete. | `artifacts/doctor.json` shows `docs_presence=pass`. |
 | `G8-ci` | CI checks are green on active PR. | `artifacts/doctor.json` shows `ci_status=pass`. |
 | `G9-frontier-evidence` | Real/adversarial trace corpus imports, creates eval cases, runs deterministically, and preserves replay truth. | `artifacts/doctor.json` shows `dogfood_trace_evidence=pass`; `artifacts/dogfood-trace-evidence.json` shows 8/8 eval cases passed across all import sources. |
+| `G10-system-coherence` | Active product/release docs agree on the current observability thesis, scorecard bar, and legacy gameplay archive boundary. | `artifacts/doctor.json` shows `system_coherence_audit=pass`; `artifacts/system-coherence-audit.json` shows all coherence checks passing. |
 
 ## Evidence Freshness
 - Evidence is stale if `artifacts/doctor.json` predates the latest commit.
 - Re-run `make doctor` after each change set.
 
 ## Latest Evidence Snapshot
-- 2026-05-08: `make doctor` passed with `overall_status=pass` and `G1` through `G9` all true.
-- 2026-05-08: `make scorecard` passed with `total_score=80/80` and `all_perfect=true`.
+- 2026-05-08: `make doctor` now includes `G10-system-coherence` through `system_coherence_audit=pass`.
+- 2026-05-08: `make scorecard` now includes a System Coherence domain; total release bar is `90/90`.
+- 2026-05-08: `make doctor` passed with `overall_status=pass` and `G1` through `G10` all true.
+- 2026-05-08: `make scorecard` passed with `total_score=90/90` and `all_perfect=true`.
 - 2026-05-08: `make verify-frontend` passed, including deterministic visual verification and the Chromium/Firefox/WebKit visual matrix.
 - 2026-05-08: `python3 scripts/dogfood_trace_evidence.py` produced `artifacts/dogfood-trace-evidence.json` with 8 fixtures, 4 source formats, deterministic evals, and replay truth proof.
 - 2026-05-08: `make doctor` now includes `G9-frontier-evidence` through `dogfood_trace_evidence=pass`.
