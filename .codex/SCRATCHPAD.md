@@ -1,20 +1,21 @@
 ## Current Task
-Agent Director HyperFrames overview film.
+Final release audit closure.
 
 ## Status
 Complete
 
 ## Plan
-1. [x] Scaffold a dedicated HyperFrames project under `docs/videos/agent-director-overview`.
-2. [x] Replace the template with an Agent Director proof-film composition.
-3. [x] Add video documentation and README placement.
-4. [x] Run HyperFrames lint/inspect/render plus repo doc checks.
-5. [ ] Commit and push.
+1. [x] Scaffold, verify, commit, and push the HyperFrames overview film.
+2. [x] Split the film into segment compositions and make it part of system coherence.
+3. [x] Fix the modal autofocus race found by `make doctor`.
+4. [x] Remove stale scorecard totals from active steering docs.
+5. [x] Commit and push the final steering-doc coherence closure.
 
 ## Decisions Made
 - Treat the deliverable as a 90-second proof film: problem, product reveal, workflow, release evidence, close.
 - Use the existing `DESIGN.md` visual contract: command-grade observability cockpit, carbon surfaces, emerald signal, no generic AI decoration.
 - Use current app screenshots as visual proof instead of mocked product screens.
+- Treat stale release totals in active steering docs as a real release-trust gap, even when they came from historical closure notes.
 
 ## Open Questions
 - None blocking; user authorized autonomous ambitious work.

@@ -114,8 +114,8 @@ Completed full gates:
 - `make scorecard`
 
 Current release artifacts:
-- `artifacts/doctor.json` refreshed on 2026-05-07 with `overall_status=pass` and `G1` through `G8` all true.
-- `artifacts/scorecards.json` refreshed on 2026-05-07 with `70/70` and `all_perfect=true`.
+- Historical closure evidence on 2026-05-07 had `artifacts/doctor.json` at `overall_status=pass` with `G1` through `G8` true.
+- The current branch release bar is stricter: `make doctor` passes with `G1` through `G10`, and `make scorecard` passes at `90/90` with `all_perfect=true`.
 
 ## Frontier Closure
 

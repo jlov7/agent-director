@@ -39,7 +39,7 @@ Before this pass, the application was functionally strong but visually underpowe
 - Browser screenshot metrics across desktop, tablet, and mobile routes showed no horizontal overflow and no visible sub-44px controls.
 - `make verify-frontend` passed, including lint, typecheck, 352 unit tests, 110 E2E tests, Lighthouse, deterministic visual verification, and Chromium/Firefox/WebKit visual matrix.
 - `make doctor` passed.
-- `make scorecard` passed at `70/70`.
+- `make scorecard` now passes at `90/90`.
 
 ## Residual Judgment
 

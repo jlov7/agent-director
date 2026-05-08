@@ -16,7 +16,12 @@ ACTIVE_DOCS = [
     "BURNDOWN.md",
     "PRODUCT.md",
     "DESIGN.md",
+    ".codex/PLANS.md",
     ".codex/SCRATCHPAD.md",
+    "docs/audits/2026-05-carpathy-system-audit.md",
+    "docs/audits/2026-05-frontier-audit.md",
+    "docs/audits/2026-05-frontier-visual-audit.md",
+    "docs/audits/2026-05-world-class-panel-burndown.md",
 ]
 
 OVERVIEW_FILM_FILES = [
@@ -49,7 +54,8 @@ def run_audit() -> dict:
         if not path.exists():
             stale_scorecard_docs.append(f"{rel_path}:missing")
             continue
-        if "70/70" in path.read_text(encoding="utf-8"):
+        content = path.read_text(encoding="utf-8")
+        if "70/70" in content or "80/80" in content:
             stale_scorecard_docs.append(rel_path)
 
     scorecards = read_text("SCORECARDS.md")

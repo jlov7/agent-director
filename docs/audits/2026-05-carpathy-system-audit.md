@@ -16,8 +16,8 @@ The build is green, but green is only useful if the checks encode the right trut
 
 | Rank | Area | Finding | Risk | Resolution |
 |---|---|---|---|---|
-| P0 | Release truth | `SCORECARDS.md` still advertised `70/70` after the Frontier Evidence Loop made the real bar `80/80`. | Humans can ship against stale evidence language. | Updated scorecards to the new `90/90` bar and added a coherence domain. |
-| P0 | Product thesis | `WORLD_CLASS_RELEASE_TODO.md` remained at repo root and described a world-class game product. | A future agent or contributor could revive the wrong product direction. | Archived it under legacy notes and made root-level gameplay TODOs fail the coherence audit. |
+| P0 | Release truth | `SCORECARDS.md` still advertised an older seven-domain bar after the Frontier Evidence Loop had raised the standard. | Humans can ship against stale evidence language. | Updated scorecards to the current `90/90` bar and added a coherence domain. |
+| P0 | Product thesis | A legacy gameplay release tracker remained at repo root and described the wrong product direction. | A future agent or contributor could revive the wrong product direction. | Archived it under legacy notes and made root-level gameplay trackers fail the coherence audit. |
 | P1 | Audit durability | Product coherence was a manual judgment, not a gate. | Drift returns silently. | Added `scripts/system_coherence_audit.py`, `G10-system-coherence`, and a scorecard domain. |
 | P1 | Burndown visibility | The step-back audit had no single burnable list. | Work becomes conversational instead of operational. | Added `BURNDOWN.md` with closed findings and evidence. |
 | P1 | Repo front door | The overview film became a key product artifact, but its README linkage and render presence were not release-blocking. | The most legible product explanation could disappear while gates stay green. | Added overview-film presence, poster, render, source, and root-composition budget checks to system coherence. |

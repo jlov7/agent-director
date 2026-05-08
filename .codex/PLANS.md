@@ -273,7 +273,7 @@ Completed.
 - Importer hardening now surfaces duplicate span IDs, missing parents, status-error variants, exception events, resource-span nesting, and impossible timings as release-visible warnings.
 - `server/tests/fixtures/real_trace_corpus.json` covers 8 synthetic but production-shaped traces across Agent Director, OpenAI Agents-style, OTel GenAI, and OpenInference inputs.
 - `scripts/dogfood_trace_evidence.py` proves import, eval-case creation, deterministic eval runs, and replay truth preservation, then emits `artifacts/dogfood-trace-evidence.json`.
-- `make doctor` now has `G9-frontier-evidence`; `make scorecard` now scores the Frontier Evidence Loop and requires `80/80`.
+- `make doctor` now has `G9-frontier-evidence`; the current branch scorecard bar is `90/90`.
 - Diagnose now presents source/provenance, importer warnings, token/cost evidence, eval status, and replay truth as a first-class evidence ledger.
 - Verification is green: dogfood script, targeted backend tests, UI lint/type/unit/E2E/design lint, `make verify-frontend`, `make doctor`, and `make scorecard`.
 
@@ -442,7 +442,7 @@ Completed.
 - FE-001..FE-092 are marked done with repository-grounded evidence in `docs/frontend-100-closure-evidence.md`.
 - Deterministic visual verification now includes cross-browser matrix, machine-readable assertion artifacts, flake detection, and artifact viewing.
 - Frontend release gate is unified under `pnpm verify:frontend` / `make verify-frontend` and includes performance + visual checks.
-- Final closure refresh on 2026-02-22 is green: `pnpm verify:frontend`, `make verify`, `make verify-ux`, `make doctor`, and `make scorecard` (`70/70`).
+- Historical final closure refresh on 2026-02-22 was green; the current branch scorecard bar is `90/90`.
 
 ---
 
@@ -776,7 +776,7 @@ Execute an exhaustive launch-readiness sweep with fresh evidence, live UX valida
 ## Outcomes & Retrospective
 
 Completed.
-- Launch gate evidence refreshed and passing (`doctor`: all gates true; `scorecard`: 70/70).
+- Launch gate evidence was refreshed and passing; the current branch scorecard bar is `90/90`.
 - Fixed two real release blockers caused by shared-port test harness collisions.
 - Added Rodney launch screenshots for cinema/flow/matrix/inspector/help/support and responsive breakpoints.
 
@@ -996,12 +996,12 @@ Ship Agent Director at a true public-launch quality bar: durable gameplay, opera
 
 ## Scope
 
-- In scope: all items in `WORLD_CLASS_RELEASE_TODO.md` (`WR-001..WR-040`).
+- In scope: all items in the now-archived legacy gameplay release tracker (`WR-001..WR-040`).
 - Out of scope: unrelated refactors and speculative architecture rewrites that do not advance a tracked WR item.
 
 ## Progress
 
-- [x] Initialize exhaustive tracker and task IDs (`WORLD_CLASS_RELEASE_TODO.md`)
+- [x] Initialize exhaustive legacy gameplay tracker and task IDs.
 - [x] Sync launcher section in `TASKS.md`
 - [x] Batch A (WR-031, WR-036, WR-038, WR-039, WR-018)
 - [x] Batch B (WR-029, WR-030)
