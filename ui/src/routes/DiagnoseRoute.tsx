@@ -39,6 +39,33 @@ export default function DiagnoseRoute({
   onRunEvalCases,
 }: DiagnoseRouteProps) {
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const evalStateLabel = evalRun
+    ? `${evalRun.status}: ${evalRun.passedCount}/${evalRun.caseCount} cases`
+    : evalCases.length
+      ? `${evalCases.length} case${evalCases.length === 1 ? '' : 's'} ready`
+      : 'No cases yet';
+  const commandDeckRows = [
+    {
+      label: 'Trace',
+      value: traceEvidenceSummary ? 'Imported run' : 'Waiting',
+      detail: traceEvidenceSummary ? 'Provider trace locked' : 'Import or load a run',
+    },
+    {
+      label: 'Cost',
+      value: traceEvidenceSummary ? 'Metered spend' : 'No spend',
+      detail: traceEvidenceSummary ? 'Usage and cost captured' : 'No usage captured',
+    },
+    {
+      label: 'Latency',
+      value: traceEvidenceSummary ? 'Timed path' : 'No timing',
+      detail: traceEvidenceSummary ? 'Slowest step isolated' : 'No slow step',
+    },
+    {
+      label: 'Eval',
+      value: evalStateLabel,
+      detail: evalStatus ? 'Eval status updated' : 'Promote trace evidence into release proof',
+    },
+  ];
 
   return (
     <div className="workspace-context-grid route-context-grid" data-route-panel="diagnose">
@@ -138,6 +165,22 @@ export default function DiagnoseRoute({
       <article className="workspace-card">
         <h3>Trace-to-eval evidence</h3>
         <p>Convert this trace into a repeatable regression case, then run the suite before release.</p>
+        <section className="route-command-deck" aria-label="Trace evidence command deck">
+          <div className="route-command-signal" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="route-command-grid">
+            {commandDeckRows.map((row) => (
+              <div className="route-command-cell" key={row.label}>
+                <span>{row.label}</span>
+                <strong>{row.value}</strong>
+                <small>{row.detail}</small>
+              </div>
+            ))}
+          </div>
+        </section>
         {traceEvidenceSummary ? (
           <dl className="route-evidence-grid" aria-label="Trace cost and provenance summary">
             <div>
