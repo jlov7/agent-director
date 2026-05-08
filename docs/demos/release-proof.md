@@ -41,7 +41,7 @@ jq -r '.scripts["verify:frontend"], .scripts["verify:visual"]' package.json
 ```
 
 ```bash
-grep -q '^## Quickstart (5 Minutes)$' README.md && grep -q '^## Testing$' README.md && grep -q '^## Deployment notes$' README.md && grep -q '^## Executable Demo Docs (Showboat)$' README.md && echo readme_sections_present
+grep -q '^## Quickstart$' README.md && grep -q '^## Environment variables$' README.md && grep -q '^## Testing$' README.md && grep -q '^## Deployment notes$' README.md && echo readme_sections_present
 ```
 
 ```output

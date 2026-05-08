@@ -1,119 +1,138 @@
 # Agent Director
 
-```
-    _    ____ _____ _   _ _____
-   / \  / ___| ____| \ | |_   _|
-  / _ \| |  _|  _| |  \| | | |
- / ___ \ |_| | |___| |\  | | |
-/_/   \_\____|_____|_| \_| |_|
+[![verify](https://github.com/jlov7/agent-director/actions/workflows/verify.yml/badge.svg)](https://github.com/jlov7/agent-director/actions/workflows/verify.yml)
+[![visual-verify](https://github.com/jlov7/agent-director/actions/workflows/visual-verify.yml/badge.svg)](https://github.com/jlov7/agent-director/actions/workflows/visual-verify.yml)
+[![ux-review](https://github.com/jlov7/agent-director/actions/workflows/ux-review.yml/badge.svg)](https://github.com/jlov7/agent-director/actions/workflows/ux-review.yml)
 
-    ____  ___ ____  _____ ____ _____ ___  ____
-   |  _ \|_ _|  _ \| ____/ ___|_   _/ _ \|  _ \
-   | | | || || |_) |  _|| |     | || | | | |_) |
-   | |_| || ||  _ <| |__| |___  | || |_| |  _ <
-   |____/|___|_| \_\_____\____| |_| \___/|_| \_\
-```
+**Trace evidence, evals, and replay truth for AI-agent runs.**
 
-**Watch your agent think. Then direct it.**
+Agent Director is a local-first observability and improvement loop for agent builders. It ingests traces, preserves provenance, explains failures, turns interesting runs into deterministic eval cases, and keeps replay semantics honest.
 
-Agent Director is a cinematic, chat-native debugger for AI-agent runs. It turns traces into an interactive timeline + graph, then lets teams replay, compare, and safely share what changed.
+![Agent Director diagnose evidence surface](docs/screenshots/readme-diagnose-evidence.png)
 
-This repository is organized to support two audiences at once:
-- **Non-technical readers** who need to understand what the product does, why it matters, and how to evaluate it quickly.
-- **Technical readers** who need architecture, contracts, verification gates, and deployment paths they can trust.
+## Why It Exists
 
-## Choose Your Path
+Agent teams do not need another pretty trace viewer. They need a way to answer:
 
-| I am... | Start here | Outcome |
+- What happened in this run?
+- Which step created the failure or cost spike?
+- Can we turn this trace into repeatable release evidence?
+- Is this replay recorded, simulated, or actually executed?
+- Are the current release gates proving the right product truth?
+
+Agent Director is built around those questions. The interface is a command-grade investigation surface, not a marketing dashboard.
+
+## Current Release Proof
+
+The branch is release-gated by executable evidence, not a checklist.
+
+| Proof | Command | Current bar |
 |---|---|---|
-| New and non-technical | [`docs/non-technical-guide.md`](docs/non-technical-guide.md) | Understand value, workflows, and demo story in plain language |
-| Engineer / architect | [`docs/technical-guide.md`](docs/technical-guide.md) | Understand architecture, contracts, and extension points |
-| Demo host | [`docs/demo-script.md`](docs/demo-script.md) | Run a polished 90-second walkthrough |
-| Contributor | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Set up, test, and contribute safely |
-| Release owner | [`docs/index.md`](docs/index.md) | Navigate operational, legal, and launch docs |
+| Full release gates | `make doctor` | `G1` through `G10` must pass |
+| Scorecards | `make scorecard` | `90/90`, all domains `10/10` |
+| Real trace dogfood | `make dogfood-evidence` | 8 fixtures across 4 source formats |
+| Product coherence | `make system-coherence` | active docs, gates, and product thesis must agree |
+| Frontend visual QA | `make verify-frontend` | unit, E2E, visual, matrix, Lighthouse |
 
-## Product In 30 Seconds
+Latest gate model:
 
-- **Observe:** Play a truthful wall-clock timeline with overlap lanes.
-- **Inspect:** Open redacted step details, view causal overlays, and inspect structure.
-- **Improve:** Import real agent traces, create eval cases from failures, run deterministic evals, replay truthfully, compare outcomes, and export safe artifacts.
+- `G1-core-journeys`
+- `G2-onboarding-help`
+- `G3-quality`
+- `G4-accessibility`
+- `G5-performance`
+- `G6-security`
+- `G7-docs`
+- `G8-ci`
+- `G9-frontier-evidence`
+- `G10-system-coherence`
 
-Key capabilities:
-- Cinema, Flow, Compare, and Matrix analysis modes.
-- Typed trace import for Agent Director JSON, OpenAI Agents-style spans, OpenTelemetry GenAI spans, and OpenInference spans.
-- Trace-to-eval workflows that turn failed or interesting runs into deterministic release evidence.
-- Route-shell journeys (`Review`, `Triage`, `Diagnose`, `Coordinate`, `Configure`) with explicit outcomes and resume markers.
-- Guided-first onboarding with a clean first-run gateway, progressive disclosure, default focused mode, and explicit "Open analysis canvas" opt-in.
-- Director's Cut replay with deterministic invalidation + diff.
-- Scenario workbench and matrix outcomes with causal ranking.
-- Story mode, guided tour, explain overlays, and setup wizard.
-- Collaboration rails: ownership, handoff digests, support diagnostics, export queue.
-- Safety by default: redaction-first with safe-export guardrails.
-- Staged UX rollout cohorts (`off`/`internal`/`pilot`/`ga`) controlled from Settings.
+## Product Surface
 
-## Onboarding User Guide
+| Diagnose evidence | Trace-to-eval workflow | Mobile route shell |
+|---|---|---|
+| ![Diagnose route evidence](docs/screenshots/readme-diagnose-evidence.png) | ![Trace to eval route](docs/screenshots/readme-trace-to-eval.png) | ![Mobile diagnose route](docs/screenshots/readme-mobile-diagnose.png) |
 
-If you are onboarding a new user or stakeholder, use this sequence:
+## Core Workflows
 
-1. Start with the plain-language guide: [`docs/non-technical-guide.md`](docs/non-technical-guide.md)
-2. Run the 5-minute role quickstart:
-   - Operator: [`docs/quickstart-operator-5-minutes.md`](docs/quickstart-operator-5-minutes.md)
-   - Evaluator/Executive: [`docs/quickstart-evaluator-5-minutes.md`](docs/quickstart-evaluator-5-minutes.md)
-3. Walk through first-run onboarding states: [`docs/onboarding-v2-screens.md`](docs/onboarding-v2-screens.md)
-4. Use the guided journey map for demos/training: [`docs/user-journeys.md`](docs/user-journeys.md)
+### 1. Import Real Traces
 
-## Visual Tour
+`POST /api/traces/import` accepts:
 
-![Cinema mode](docs/screenshots/cinema.png)
-![Flow mode](docs/screenshots/flow.png)
-![Compare mode](docs/screenshots/compare.png)
+- Agent Director JSON
+- OpenAI Agents-style traces
+- OpenTelemetry GenAI spans
+- OpenInference spans
 
-![Demo walkthrough](docs/demo.gif)
+Imports normalize into `TraceSummary` and `StepDetails` with provider trace IDs, span IDs, parent span IDs, framework/source metadata, token usage, cost details, and importer warnings.
+
+### 2. Investigate With Evidence
+
+Operators move through focused routes:
+
+- `Review`: understand run health and top risk.
+- `Triage`: isolate the urgent failure.
+- `Diagnose`: build evidence-backed causal findings.
+- `Coordinate`: assign owners and hand off context.
+- `Configure`: keep workspace and release defaults safe.
+
+### 3. Convert Traces Into Evals
+
+Failed or interesting traces can become deterministic eval cases:
+
+- `POST /api/eval-cases/from-trace`
+- `GET /api/eval-cases`
+- `POST /api/eval-runs`
+- `GET /api/eval-runs/{id}`
+
+The local evaluator is intentionally deterministic so release evidence does not depend on external LLM availability.
+
+### 4. Keep Replay Truthful
+
+Replay output distinguishes:
+
+- `recorded_replay`: copied from recorded evidence.
+- `counterfactual_simulation`: deterministic branch analysis, not live execution.
+- `executed_replay`: reserved for future live agent re-execution.
+
+The UI and API expose `executionMode` and `truthLabel` so simulated replay is never presented as actual re-execution.
 
 ## Architecture At A Glance
 
 ```mermaid
 flowchart LR
   subgraph Sources["Trace Sources"]
-    A1["Agent runtime"]
-    A2["Imported traces"]
+    A1["Agent Director JSON"]
+    A2["OpenAI Agents traces"]
+    A3["OTel GenAI spans"]
+    A4["OpenInference spans"]
   end
 
   subgraph Platform["Agent Director Platform"]
-    B1["Ingestion + validation"]
-    B2["Trace store\nSQLite + JSON payloads"]
-    B3["HTTP + SSE API"]
-    B4["Replay + eval engine"]
-    B5["Safety layer\nredaction + safe export"]
+    B1["Import adapters"]
+    B2["Trace store"]
+    B3["Replay engine"]
+    B4["Eval store + deterministic runners"]
+    B5["Release evidence gates"]
   end
 
-  subgraph Experience["UI Experience"]
-    C1["Cinema / Flow / Compare / Matrix"]
-    C2["Inspector + insight strip"]
-    C3["Collaboration + operations rails"]
+  subgraph Experience["Operator Experience"]
+    C1["Route shell"]
+    C2["Cinema / Flow / Compare / Matrix"]
+    C3["Diagnose evidence ledger"]
+    C4["Handoff + export"]
   end
 
-  Sources --> B1 --> B2 --> B3 --> Experience
-  B2 --> B4 --> B3
-  B2 --> B5 --> B3
+  Sources --> B1 --> B2
+  B2 --> B3
+  B2 --> B4
+  B3 --> B5
+  B4 --> B5
+  B2 --> C1
+  B5 --> C3
 ```
 
-## User Journey At A Glance
-
-```mermaid
-flowchart LR
-  A["Open run"] --> B["Observe in Cinema"]
-  B --> C["Inspect key step"]
-  C --> D["Switch to Flow"]
-  D --> E["Replay from branch point"]
-  E --> F["Compare against baseline"]
-  F --> G["Export summary safely"]
-  G --> H["Share with team + decide next action"]
-```
-
-See full journey maps in [`docs/user-journeys.md`](docs/user-journeys.md).
-
-## Quickstart (5 Minutes)
+## Quickstart
 
 ### Prerequisites
 
@@ -121,13 +140,13 @@ See full journey maps in [`docs/user-journeys.md`](docs/user-journeys.md).
 - Node.js `20+`
 - `pnpm`
 
-### 1) Install
+### 1. Install UI Dependencies
 
 ```bash
 pnpm -C ui install
 ```
 
-### 2) Start API
+### 2. Start The API
 
 ```bash
 python3 server/main.py
@@ -135,7 +154,7 @@ python3 server/main.py
 
 Default API URL: `http://127.0.0.1:8787`
 
-### 3) Start UI
+### 3. Start The UI
 
 ```bash
 pnpm -C ui dev
@@ -143,7 +162,7 @@ pnpm -C ui dev
 
 Default UI URL: `http://127.0.0.1:5173`
 
-### 4) Verify quality gates
+### 4. Verify The Repo
 
 ```bash
 make verify
@@ -151,7 +170,7 @@ make doctor
 make scorecard
 ```
 
-### 5) Optional MCP mode
+### 5. Optional MCP Mode
 
 ```bash
 pip install "mcp[cli]"
@@ -159,6 +178,7 @@ python3 -m server.mcp_server
 ```
 
 Useful env vars:
+
 - `AGENT_DIRECTOR_MCP_TRANSPORT=stdio`
 - `AGENT_DIRECTOR_UI_URL=http://127.0.0.1:5173`
 
@@ -169,11 +189,11 @@ Useful env vars:
 | Variable | Default | Purpose |
 |---|---|---|
 | `AGENT_DIRECTOR_DATA_DIR` | `~/.agent-director` | Overrides trace/data storage path. |
-| `AGENT_DIRECTOR_PORT` | `8787` | Overrides the HTTP API port for local isolated runs/tests. |
+| `AGENT_DIRECTOR_PORT` | `8787` | Overrides the HTTP API port for isolated runs and tests. |
 | `AGENT_DIRECTOR_SAFE_EXPORT` | `0` | Forces redaction-safe exports on step detail responses. |
-| `AGENT_DIRECTOR_MCP_TRANSPORT` | host default | MCP transport (`stdio` when required by host). |
+| `AGENT_DIRECTOR_MCP_TRANSPORT` | host default | MCP transport, usually `stdio` when required by host. |
 | `AGENT_DIRECTOR_UI_URL` | `http://127.0.0.1:5173` | UI URL surfaced by MCP metadata. |
-| `AGENT_DIRECTOR_ENABLE_GAMEPLAY` | `0` | Enables private experimental gameplay APIs. Disabled in the public product by default. |
+| `AGENT_DIRECTOR_ENABLE_GAMEPLAY` | `0` | Enables private experimental gameplay APIs. Disabled by default. |
 
 ### UI
 
@@ -185,107 +205,102 @@ Useful env vars:
 | `VITE_HIDE_BUILD_DATE` | `0` | Hides build timestamp in header. |
 | `BASE_PATH` | `/` | Build-time base path for static hosting. |
 
-## Live Demo
-
-- Vercel: [agent-director.vercel.app](https://agent-director.vercel.app)
-- GitHub Pages: [jlov7.github.io/agent-director](https://jlov7.github.io/agent-director/)
-- Codespaces launch link: [Open in Codespaces](https://github.com/codespaces/new?hide_repo_select=true&repo=jlov7/agent-director)
-
-## Repository Structure
-
-```text
-.
-├── server/                  # Python API, replay engine, MCP surfaces, backend tests
-├── ui/                      # React + TypeScript app, E2E/unit tests, visual baselines
-├── docs/                    # Public-facing and operational documentation hub
-│   ├── screenshots/         # Product screenshots used in docs/readme
-│   ├── demos/               # Executable Showboat proof docs
-│   ├── ops/                 # Runbooks, release safety, operations playbooks
-│   ├── plans/               # Execution plans and historical implementation ledgers
-│   └── archive/             # Archived legacy notes retained for project history
-├── scripts/                 # Verification, doctor/scorecard, release and visual tooling
-├── artifacts/               # Generated verification evidence (doctor/scorecards/visual)
-├── Makefile                 # Unified quality/release commands
-└── README.md                # Product + architecture + setup front door
-```
-
 ## API Snapshot
 
-Base URL (default): `http://127.0.0.1:8787`
+Base URL: `http://127.0.0.1:8787`
 
 Common endpoints:
+
 - `GET /api/health`
 - `GET /api/traces?latest=1`
 - `POST /api/traces/import`
 - `POST /api/eval-cases/from-trace`
+- `GET /api/eval-cases`
 - `POST /api/eval-runs`
+- `GET /api/eval-runs/{id}`
 - `POST /api/traces/{trace_id}/replay`
 - `POST /api/compare`
 - `POST /api/replay-jobs`
-- `GET /api/stream/traces/latest` (SSE)
+- `GET /api/stream/traces/latest`
 
 Full reference: [`docs/api-reference.md`](docs/api-reference.md)
 
 ## Testing
 
-- Standard suite: `make verify`
-- Strict suite: `make verify-strict`
-- UX suite: `make verify-ux`
-- Executable demo docs: `make demo-proof-verify`
-- 3-second route comprehension proxy: `pnpm -C ui scan:check`
-- Release evidence: `make doctor`
-- Real trace dogfood evidence: `make dogfood-evidence`
-- Product/release coherence evidence: `make system-coherence`
-- Scorecards: `make scorecard`
+| Goal | Command |
+|---|---|
+| Standard verification | `make verify` |
+| Strict verification | `make verify-strict` |
+| UX verification | `make verify-ux` |
+| Frontend full gate | `make verify-frontend` |
+| Deterministic visual verification | `make verify-visual` |
+| Real trace dogfood evidence | `make dogfood-evidence` |
+| Product/release coherence | `make system-coherence` |
+| Release doctor | `make doctor` |
+| Scorecards | `make scorecard` |
+| Executable demo docs | `make demo-proof-verify` |
 
-## Executable Demo Docs (Showboat)
+## Repository Map
 
-Agent Director includes executable markdown demos powered by Showboat for reviewer-facing proof.
-
-- Release proof doc: [`docs/demos/release-proof.md`](docs/demos/release-proof.md)
-- Demo docs guide: [`docs/demos/README.md`](docs/demos/README.md)
-
-Commands:
-
-```bash
-make demo-proof-build
-make demo-proof-verify
+```text
+.
+├── server/                  # Python API, trace import, replay, evals, MCP, backend tests
+├── ui/                      # React + TypeScript app, route shell, E2E/unit/visual tests
+├── docs/                    # Product docs, audits, screenshots, runbooks, demos
+│   ├── audits/              # Frontier and system-coherence audits
+│   ├── demos/               # Executable Showboat proof docs
+│   ├── ops/                 # Release, support, observability, and safety runbooks
+│   └── screenshots/         # README and QA screenshots
+├── scripts/                 # Verification, doctor, scorecard, release, visual tooling
+├── artifacts/               # Generated evidence from local gates
+├── .github/workflows/       # CI, UX, visual, performance, deploy, demo proof
+├── BURNDOWN.md              # Current audit burndown
+├── RELEASE_GATES.md         # Gate definitions and evidence requirements
+├── SCORECARDS.md            # 10/10 domain score model
+└── README.md                # Repo front door
 ```
-
-This layer complements, but does not replace, deterministic Playwright visual gates.
 
 ## Documentation Hub
 
-- Core index: [`docs/index.md`](docs/index.md)
-- Non-technical guide: [`docs/non-technical-guide.md`](docs/non-technical-guide.md)
-- Technical guide: [`docs/technical-guide.md`](docs/technical-guide.md)
-- User journeys: [`docs/user-journeys.md`](docs/user-journeys.md)
-- Operator quickstart (5 minutes): [`docs/quickstart-operator-5-minutes.md`](docs/quickstart-operator-5-minutes.md)
-- Evaluator quickstart (5 minutes): [`docs/quickstart-evaluator-5-minutes.md`](docs/quickstart-evaluator-5-minutes.md)
-- Getting started: [`docs/getting-started.md`](docs/getting-started.md)
-- Architecture: [`docs/architecture.md`](docs/architecture.md)
-- UX model: [`docs/ux.md`](docs/ux.md)
-- Onboarding progression screens: [`docs/onboarding-v2-screens.md`](docs/onboarding-v2-screens.md)
-- Story + narrative: [`docs/story.md`](docs/story.md)
-- Visual system: [`docs/visual-system.md`](docs/visual-system.md)
-- Hosting and deployment: [`docs/hosting.md`](docs/hosting.md)
-- Operations runbooks: [`docs/ops/`](docs/ops)
-- Guided mode/session recovery runbook: [`docs/ops/guided-mode-session-recovery.md`](docs/ops/guided-mode-session-recovery.md)
-- Legal docs: [`docs/legal/`](docs/legal)
-- UX review checklist: [`docs/ux-review-day-checklist.md`](docs/ux-review-day-checklist.md)
-- UX simplification final report: [`docs/uxr2-final-report.md`](docs/uxr2-final-report.md)
-- UX v3 research + implementation plan: [`docs/plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md`](docs/plans/2026-02-21-world-class-saas-ux-research-and-implementation-plan.md)
-- Frontier audit: [`docs/audits/2026-05-frontier-audit.md`](docs/audits/2026-05-frontier-audit.md)
+Start here by role:
+
+| Reader | Entry point |
+|---|---|
+| Product evaluator | [`docs/non-technical-guide.md`](docs/non-technical-guide.md) |
+| Engineer or architect | [`docs/technical-guide.md`](docs/technical-guide.md) |
+| Operator | [`docs/quickstart-operator-5-minutes.md`](docs/quickstart-operator-5-minutes.md) |
+| Executive/evaluator | [`docs/quickstart-evaluator-5-minutes.md`](docs/quickstart-evaluator-5-minutes.md) |
+| Demo host | [`docs/demo-script.md`](docs/demo-script.md) |
+| Release owner | [`docs/index.md`](docs/index.md) |
+
+Key evidence docs:
+
+- [`BURNDOWN.md`](BURNDOWN.md)
+- [`RELEASE_GATES.md`](RELEASE_GATES.md)
+- [`SCORECARDS.md`](SCORECARDS.md)
+- [`docs/audits/2026-05-frontier-audit.md`](docs/audits/2026-05-frontier-audit.md)
+- [`docs/audits/2026-05-carpathy-system-audit.md`](docs/audits/2026-05-carpathy-system-audit.md)
+- [`docs/visual-verification-protocol.md`](docs/visual-verification-protocol.md)
+
+## Live Demo
+
+- Vercel: [agent-director.vercel.app](https://agent-director.vercel.app)
+- GitHub Pages: [jlov7.github.io/agent-director](https://jlov7.github.io/agent-director/)
+- Codespaces: [Open in Codespaces](https://github.com/codespaces/new?hide_repo_select=true&repo=jlov7/agent-director)
 
 ## Deployment notes
 
 ### Vercel
 
 - Config file: [`vercel.json`](vercel.json)
-- Toolchain pinning: root [`package.json`](package.json) (`pnpm@10.29.3`)
-- Recommended environment variables for deterministic public demo:
-  - `VITE_FORCE_DEMO=1`
-  - `VITE_HIDE_BUILD_DATE=1`
+- Toolchain pinning: root [`package.json`](package.json), `pnpm@10.29.3`
+
+Recommended deterministic public demo env:
+
+```bash
+VITE_FORCE_DEMO=1
+VITE_HIDE_BUILD_DATE=1
+```
 
 Recommended commands:
 
@@ -296,18 +311,31 @@ vercel inspect agent-director.vercel.app --logs
 make vercel-check
 ```
 
-## Repository Quality Standards
+### GitHub Pages
 
-- Verification suite: `make verify`
-- Strict verification: `make verify-strict`
-- UX verification: `make verify-ux`
-- Release evidence: `make doctor`
-- Product/release coherence evidence: `make system-coherence`
-- Quality scorecards: `make scorecard`
+The Pages workflow builds the static UI with:
+
+```bash
+BASE_PATH=/${GITHUB_REPOSITORY##*/}/
+VITE_FORCE_DEMO=1
+VITE_HIDE_BUILD_DATE=1
+pnpm -C ui build
+```
+
+## Contribution Standard
+
+Before opening a PR:
+
+1. Run the narrow checks for the files you touched.
+2. Run `make doctor` before release-significant changes.
+3. Run visual verification for visual-critical UI changes.
+4. Keep `GAPS.md`, `RELEASE_GATES.md`, and `.codex/PLANS.md` current when the release story changes.
 
 Security and contribution docs:
+
 - [`SECURITY.md`](SECURITY.md)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
+- [`TESTING.md`](TESTING.md)
 
 ## Disclaimer
 
