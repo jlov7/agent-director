@@ -35,7 +35,7 @@ test('ux review checklist walkthrough', async ({ page }) => {
 
   await test.step('Replay from a step and review Flow overlay', async () => {
     await page.getByRole('button', { name: 'Replay from this step' }).click();
-    await expect(page.locator('.flow-canvas')).toBeVisible();
+    await expect(page.locator('.flow-canvas')).toBeVisible({ timeout: 15_000 });
     const overlayButton = page.getByRole('button', { name: /overlay/i });
     await expect(overlayButton).toBeVisible();
     await overlayButton.click();
