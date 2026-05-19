@@ -11,11 +11,5 @@
   "packageManager": "pnpm@10.29.3",
   "engines": {
     "node": ">=20"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@percy/core",
-      "esbuild"
-    ]
   }
 }

@@ -1,2 +1,9 @@
 packages:
   - "ui"
+
+overrides:
+  tmp: 0.2.5
+
+onlyBuiltDependencies:
+  - "@percy/core"
+  - esbuild
