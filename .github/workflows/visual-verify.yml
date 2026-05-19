@@ -28,14 +28,14 @@ jobs:
       matrix:
         project: [chromium, firefox, webkit]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: pnpm/action-setup@v4
         with:
           version: 10.29.3
           run_install: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'pnpm'
@@ -57,7 +57,7 @@ jobs:
 
       - name: Upload visual artifacts (${{ matrix.project }})
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: visual-verify-${{ matrix.project }}
           path: |
@@ -67,7 +67,7 @@ jobs:
 
       - name: Comment PR with visual failure summary
         if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const body = [

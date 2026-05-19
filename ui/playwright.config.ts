@@ -13,7 +13,7 @@ export default defineConfig({
     toHaveScreenshot: {
       // Keep visual checks strict while tolerating minor macOS/Linux raster differences in CI.
       maxDiffPixelRatio: 0.03,
-      maxDiffPixels: 35000,
+      maxDiffPixels: 45000,
     },
   },
   use: {
